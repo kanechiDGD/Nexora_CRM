@@ -1,0 +1,1 @@
+ALTER TABLE `clients` MODIFY COLUMN `claimStatus` varchar(100) DEFAULT 'NO_SOMETIDA';

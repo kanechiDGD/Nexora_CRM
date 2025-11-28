@@ -1,0 +1,311 @@
+{
+  "common": {
+    "language": "Idioma",
+    "english": "Inglés",
+    "spanish": "Español"
+  },
+  "dashboard": {
+    "title": "Dashboard",
+    "subtitle": "Vista general de métricas y KPIs del CRM",
+    "menu": {
+      "dashboard": "Dashboard",
+      "clients": "Clientes",
+      "logs": "Logs",
+      "construction": "Construcción",
+      "calendar": "Calendario",
+      "tasks": "Tareas",
+      "profile": "Perfil",
+      "contracts": "Contratos",
+      "users": "Usuarios"
+    },
+    "theme": {
+      "dayMode": "Modo Día",
+      "nightMode": "Modo Noche"
+    },
+    "user": {
+      "signOut": "Cerrar sesión",
+      "pleaseSignIn": "Por favor inicia sesión para continuar",
+      "signIn": "Iniciar sesión"
+    },
+    "calendar": {
+      "title": "Calendario de Eventos",
+      "next": "Siguiente",
+      "previous": "Anterior",
+      "today": "Hoy",
+      "month": "Mes",
+      "week": "Semana",
+      "day": "Día",
+      "agenda": "Agenda",
+      "date": "Fecha",
+      "time": "Hora",
+      "event": "Evento",
+      "noEvents": "No hay eventos en este rango"
+    },
+    "alerts": {
+      "title": "Alertas de Contacto",
+      "subtitle": "Clientes que necesitan seguimiento",
+      "noAlerts": "No hay clientes pendientes de contacto",
+      "overdue": "¡Atrasado!",
+      "today": "¡Hoy!",
+      "tomorrow": "Mañana",
+      "days": "d",
+      "overdueMessage": "¡Atrasado! Contactar urgente",
+      "todayMessage": "¡Contactar hoy!",
+      "oneDayMessage": "Falta 1 día para contactar",
+      "daysMessage": "Faltan {{days}} días para contactar"
+    },
+    "claimStatus": {
+      "title": "Clientes por Estado de Reclamo",
+      "subtitle": "Conteo de clientes agrupados por estado (predeterminados y personalizados)"
+    },
+    "kpis": {
+      "totalClients": {
+        "title": "Total de Clientes",
+        "subtitle": "Todos los clientes en el sistema"
+      },
+      "lateContact": {
+        "title": "Contacto Atrasado",
+        "subtitle": "Más de 7 días sin contacto"
+      },
+      "notSupplemented": {
+        "title": "No Suplementado",
+        "subtitle": "Clientes sin suplemento"
+      },
+      "pendingSubmission": {
+        "title": "Pendientes por Someter",
+        "subtitle": "Reclamos no sometidos"
+      },
+      "readyConstruction": {
+        "title": "Listas para Construir",
+        "subtitle": "Aprobadas con primer cheque"
+      },
+      "upcomingContacts": {
+        "title": "Próximos Contactos",
+        "subtitle": "Próximos 7 días"
+      }
+    },
+    "tasks": {
+      "title": "Tareas Pendientes",
+      "subtitle": "Tareas activas con fechas límite y asignaciones",
+      "viewAll": "Ver Todas",
+      "noTasks": "No hay tareas pendientes",
+      "pending": "Pendiente",
+      "inProgress": "En Progreso",
+      "dueDate": "Fecha Límite",
+      "priority": {
+        "high": "ALTA",
+        "medium": "MEDIA",
+        "low": "BAJA"
+      }
+    },
+    "navigation": {
+      "backToClients": "Volver a Clientes"
+    }
+  },
+  "landing": {
+    "nav": {
+      "pricing": "Precios",
+      "features": "Funcionalidades",
+      "contact": "Contacto",
+      "login": "Iniciar Sesión"
+    },
+    "hero": {
+      "badge": "El CRM que Revoluciona tu Negocio",
+      "title1": "Triplica tu Eficiencia.",
+      "title2": "Duplica tus Ingresos.",
+      "subtitle": "El único CRM diseñado específicamente para Public Adjusters que automatiza tu negocio y te permite enfocarte en lo que realmente importa:",
+      "subtitleHighlight": "cerrar más casos",
+      "cta": "Prueba Gratis 14 Días",
+      "demo": "Ver Demo",
+      "features": "✓ Sin tarjeta de crédito · ✓ Setup en 5 minutos · ✓ Cancela cuando quieras"
+    },
+    "problems": {
+      "title": "¿Te Suena Familiar?",
+      "subtitle": "Los dolores de cabeza diarios que te están costando dinero",
+      "lostClient": {
+        "title": "Cliente Perdido",
+        "description": "Un cliente llamó hace 3 días. No encontraste la nota. Nunca devolviste la llamada. Se fue con la competencia.",
+        "cost": "- $8,000 perdidos"
+      },
+      "excelChaos": {
+        "title": "Caos en Excel",
+        "description": "5 hojas de cálculo diferentes. Nadie sabe cuál es la actualizada. Perdiste 2 horas buscando un documento.",
+        "cost": "Tu equipo está frustrado"
+      },
+      "noVisibility": {
+        "title": "Sin Visibilidad",
+        "description": "¿Cuántos casos activos tienes? ¿Cuánto dinero en pipeline? No tienes idea.",
+        "cost": "Tomas decisiones a ciegas"
+      }
+    },
+    "solution": {
+      "badge": "LA SOLUCIÓN",
+      "title": "Tu Negocio en Piloto Automático",
+      "subtitle": "Imagina gestionar 3x más casos con el mismo equipo, sin estrés, sin caos",
+      "neverLose": {
+        "title": "Nunca Más Pierdas un Cliente",
+        "description": "Sistema automático de seguimiento. Recordatorios inteligentes. Cada cliente recibe atención en el momento exacto."
+      },
+      "totalVisibility": {
+        "title": "Visibilidad Total en Tiempo Real",
+        "description": "Dashboard que muestra TODO: casos activos, pipeline, métricas clave. Decisiones basadas en datos, no en corazonadas."
+      },
+      "documentsReady": {
+        "title": "Documentos Siempre a la Mano",
+        "description": "Todos los documentos organizados por caso. Búsqueda instantánea. Acceso desde cualquier dispositivo, en cualquier lugar."
+      },
+      "teamSync": {
+        "title": "Tu Equipo Sincronizado",
+        "description": "Colaboración en tiempo real. Asignación clara de tareas. Todos saben exactamente qué hacer y cuándo."
+      }
+    },
+    "features": {
+      "title": "Funcionalidades que te Harán Imparable",
+      "subtitle": "Todo lo que necesitas para dominar tu industria",
+      "calendar": {
+        "title": "Calendario Inteligente",
+        "description": "Agenda automática de inspecciones, citas con clientes, deadlines de casos. Sincroniza con Google Calendar."
+      },
+      "pipeline": {
+        "title": "Pipeline Visual",
+        "description": "Ve en qué etapa está cada caso: Lead → Inspección → Negociación → Cerrado. Drag & drop para mover casos."
+      },
+      "documents": {
+        "title": "Gestión de Documentos",
+        "description": "Pólizas, fotos de daños, estimados, contratos - todo organizado por caso. Almacenamiento ilimitado."
+      },
+      "reminders": {
+        "title": "Recordatorios Automáticos",
+        "description": "El sistema te avisa cuando hay que contactar un cliente, hacer seguimiento o cumplir un deadline."
+      },
+      "team": {
+        "title": "Gestión de Equipo",
+        "description": "Asigna casos a adjusters, co-admin o vendedores. Control de permisos por rol."
+      },
+      "mobile": {
+        "title": "Acceso Mobile",
+        "description": "Responsive design. Trabaja desde tu teléfono en el campo: agrega notas, sube fotos, actualiza casos."
+      }
+    },
+    "pricing": {
+      "title": "Precios Transparentes. Sin Sorpresas.",
+      "subtitle": "Elige el plan que se ajuste a tu negocio. Cambia o cancela en cualquier momento.",
+      "starter": {
+        "name": "Starter",
+        "description": "Para adjusters independientes",
+        "price": "$99",
+        "period": "/mes",
+        "users": "Hasta 5 usuarios",
+        "features": {
+          "clients": "50 clientes activos",
+          "storage": "10 GB almacenamiento",
+          "calendar": "Calendario & tareas",
+          "reports": "Reportes básicos",
+          "support": "Soporte email"
+        },
+        "cta": "Iniciar Prueba Gratis"
+      },
+      "professional": {
+        "name": "Professional",
+        "description": "Para equipos en crecimiento",
+        "price": "$249",
+        "period": "/mes",
+        "users": "Hasta 15 usuarios",
+        "badge": "MÁS POPULAR",
+        "features": {
+          "clients": "Clientes ilimitados",
+          "storage": "100 GB almacenamiento",
+          "allStarter": "Todo en Starter, más:",
+          "analytics": "Reportes avanzados & analytics",
+          "construction": "Gestión de construcción",
+          "api": "API access",
+          "support": "Soporte priority (chat)"
+        },
+        "cta": "Iniciar Prueba Gratis"
+      },
+      "enterprise": {
+        "name": "Enterprise",
+        "description": "Para grandes operaciones",
+        "price": "$499",
+        "period": "/mes",
+        "users": "Hasta 50 usuarios",
+        "features": {
+          "clients": "Clientes ilimitados",
+          "storage": "Almacenamiento ilimitado",
+          "allPro": "Todo en Professional, más:",
+          "onboarding": "Onboarding personalizado",
+          "integrations": "Integraciones custom",
+          "support24": "Soporte dedicado 24/7",
+          "sla": "SLA garantizado"
+        },
+        "cta": "Contactar Ventas"
+      },
+      "allPlans": "Todos los planes incluyen 14 días de prueba gratis. Sin tarjeta de crédito requerida."
+    },
+    "roi": {
+      "title": "Se Paga Solo en Menos de 1 Mes",
+      "subtitle": "Calcula tu retorno de inversión",
+      "metrics": {
+        "moreClients": "+37%",
+        "moreClientsDesc": "Más casos cerrados al mes",
+        "timeSaved": "15 hrs",
+        "timeSavedDesc": "Ahorradas por semana en admin",
+        "revenue": "$12K+",
+        "revenueDesc": "Ingresos extra promedio/mes"
+      },
+      "example": "Ejemplo real: Si cierras solo 1 caso extra al mes gracias a mejor organización (promedio $8K comisión), el CRM ya se pagó 10 veces.",
+      "exampleHighlight": "El resto es ganancia pura"
+    },
+    "cta": {
+      "title": "¿Listo para Transformar tu Negocio?",
+      "subtitle": "Únete a cientos de public adjusters que ya triplicaron su productividad",
+      "button": "Empieza tu Prueba Gratis",
+      "features": "Setup en 5 minutos · Sin tarjeta requerida · Cancela cuando quieras"
+    },
+    "footer": {
+      "tagline": "El CRM más poderoso para Public Adjusters. Diseñado por adjusters, para adjusters.",
+      "product": {
+        "title": "Producto",
+        "features": "Funcionalidades",
+        "pricing": "Precios",
+        "successStories": "Casos de Éxito",
+        "roadmap": "Roadmap"
+      },
+      "support": {
+        "title": "Soporte",
+        "helpCenter": "Centro de Ayuda",
+        "documentation": "Documentación",
+        "tutorials": "Tutoriales",
+        "contact": "Contacto"
+      },
+      "legal": {
+        "title": "Legal",
+        "terms": "Términos",
+        "privacy": "Privacidad",
+        "security": "Seguridad"
+      },
+      "copyright": "Todos los derechos reservados."
+    }
+  },
+  "login": {
+    "appTitle": "CRM Public Adjusters",
+    "appSubtitle": "Sistema de Gestión de Clientes",
+    "welcome": "Bienvenido",
+    "selectOption": "Selecciona una opción para continuar",
+    "loginExisting": "Iniciar Sesión con Organización Existente",
+    "loginExistingDesc": "Ya tengo credenciales de acceso (usuario y contraseña)",
+    "createNew": "Crear Nueva Organización",
+    "createNewDesc": "Soy nuevo y quiero crear una organización desde cero",
+    "needHelp": "¿Necesitas ayuda? Contacta al administrador de tu organización",
+    "loginTitle": "Iniciar Sesión",
+    "loginDescription": "Ingresa tus credenciales para acceder al sistema",
+    "username": "Usuario",
+    "usernamePlaceholder": "usuario@organizacion.internal",
+    "password": "Contraseña",
+    "passwordPlaceholder": "••••••••",
+    "loginButton": "Iniciar Sesión",
+    "loggingIn": "Iniciando sesión...",
+    "backToOptions": "← Volver a opciones",
+    "language": "Idioma"
+  }
+}

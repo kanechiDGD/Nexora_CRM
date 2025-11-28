@@ -1,0 +1,19 @@
+{
+  "query": "SELECT om.id, om.username, om.userId, om.role, u.id as user_id, u.openId, u.name \nFROM organizationMembers om \nLEFT JOIN users u ON om.userId = u.id \nWHERE om.username = 'usuario1@andres.internal'",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user u6ZhkhQtUWuL4aP.root --database Ps2ZHSn7bzKusjaEriYWKB --execute SELECT om.id, om.username, om.userId, om.role, u.id as user_id, u.openId, u.name \nFROM organizationMembers om \nLEFT JOIN users u ON om.userId = u.id \nWHERE om.username = 'usuario1@andres.internal'",
+  "rows": [
+    {
+      "id": "30002",
+      "username": "usuario1@andres.internal",
+      "userId": "2430010",
+      "role": "CO_ADMIN",
+      "user_id": "2430010",
+      "openId": "dummy-30001-1",
+      "name": "Usuario 1"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\tusername\tuserId\trole\tuser_id\topenId\tname\n30002\tusuario1@andres.internal\t2430010\tCO_ADMIN\t2430010\tdummy-30001-1\tUsuario 1\n",
+  "stderr": "",
+  "execution_time_ms": 53
+}

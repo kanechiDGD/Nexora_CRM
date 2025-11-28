@@ -1,0 +1,38 @@
+services:
+  - type: web
+    name: crm-public-adjusters
+    env: node
+    region: oregon
+    plan: starter
+    buildCommand: pnpm install && pnpm build
+    startCommand: pnpm start
+    healthCheckPath: /api/health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 3000
+      - key: DATABASE_HOST
+        sync: false
+      - key: DATABASE_PORT
+        value: 3306
+      - key: DATABASE_USER
+        sync: false
+      - key: DATABASE_PASSWORD
+        sync: false
+      - key: DATABASE_NAME
+        sync: false
+      - key: JWT_SECRET
+        generateValue: true
+        length: 32
+      - key: COOKIE_NAME
+        value: session
+      - key: ALLOWED_ORIGINS
+        sync: false
+
+databases:
+  - name: crm-mysql
+    databaseName: crm_db
+    user: crm_user
+    region: oregon
+    plan: starter

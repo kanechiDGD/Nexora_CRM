@@ -1,0 +1,311 @@
+{
+  "common": {
+    "language": "Language",
+    "english": "English",
+    "spanish": "Spanish"
+  },
+  "dashboard": {
+    "title": "Dashboard",
+    "subtitle": "Overview of CRM metrics and KPIs",
+    "menu": {
+      "dashboard": "Dashboard",
+      "clients": "Clients",
+      "logs": "Logs",
+      "construction": "Construction",
+      "calendar": "Calendar",
+      "tasks": "Tasks",
+      "profile": "Profile",
+      "contracts": "Contracts",
+      "users": "Users"
+    },
+    "theme": {
+      "dayMode": "Day Mode",
+      "nightMode": "Night Mode"
+    },
+    "user": {
+      "signOut": "Sign out",
+      "pleaseSignIn": "Please sign in to continue",
+      "signIn": "Sign in"
+    },
+    "calendar": {
+      "title": "Events Calendar",
+      "next": "Next",
+      "previous": "Previous",
+      "today": "Today",
+      "month": "Month",
+      "week": "Week",
+      "day": "Day",
+      "agenda": "Agenda",
+      "date": "Date",
+      "time": "Time",
+      "event": "Event",
+      "noEvents": "No events in this range"
+    },
+    "alerts": {
+      "title": "Contact Alerts",
+      "subtitle": "Clients needing follow-up",
+      "noAlerts": "No pending client contacts",
+      "overdue": "Overdue!",
+      "today": "Today!",
+      "tomorrow": "Tomorrow",
+      "days": "d",
+      "overdueMessage": "Overdue! Contact urgently",
+      "todayMessage": "Contact today!",
+      "oneDayMessage": "1 day until contact",
+      "daysMessage": "{{days}} days until contact"
+    },
+    "claimStatus": {
+      "title": "Clients by Claim Status",
+      "subtitle": "Client count grouped by status (default and custom)"
+    },
+    "kpis": {
+      "totalClients": {
+        "title": "Total Clients",
+        "subtitle": "All clients in the system"
+      },
+      "lateContact": {
+        "title": "Late Contact",
+        "subtitle": "More than 7 days without contact"
+      },
+      "notSupplemented": {
+        "title": "Not Supplemented",
+        "subtitle": "Clients without supplement"
+      },
+      "pendingSubmission": {
+        "title": "Pending Submission",
+        "subtitle": "Claims not submitted"
+      },
+      "readyConstruction": {
+        "title": "Ready for Construction",
+        "subtitle": "Approved with first check"
+      },
+      "upcomingContacts": {
+        "title": "Upcoming Contacts",
+        "subtitle": "Next 7 days"
+      }
+    },
+    "tasks": {
+      "title": "Pending Tasks",
+      "subtitle": "Active tasks with deadlines and assignments",
+      "viewAll": "View All",
+      "noTasks": "No pending tasks",
+      "pending": "Pending",
+      "inProgress": "In Progress",
+      "dueDate": "Due Date",
+      "priority": {
+        "high": "HIGH",
+        "medium": "MEDIUM",
+        "low": "LOW"
+      }
+    },
+    "navigation": {
+      "backToClients": "Back to Clients"
+    }
+  },
+  "landing": {
+    "nav": {
+      "pricing": "Pricing",
+      "features": "Features",
+      "contact": "Contact",
+      "login": "Sign In"
+    },
+    "hero": {
+      "badge": "The CRM that Revolutionizes your Business",
+      "title1": "Triple your Efficiency.",
+      "title2": "Double your Revenue.",
+      "subtitle": "The only CRM specifically designed for Public Adjusters that automates your business and allows you to focus on what really matters:",
+      "subtitleHighlight": "closing more cases",
+      "cta": "Start 14-Day Free Trial",
+      "demo": "Watch Demo",
+      "features": "✓ No credit card · ✓ 5-minute setup · ✓ Cancel anytime"
+    },
+    "problems": {
+      "title": "Sound Familiar?",
+      "subtitle": "Daily headaches costing you money",
+      "lostClient": {
+        "title": "Lost Client",
+        "description": "A client called 3 days ago. You didn't find the note. Never called back. They went to the competition.",
+        "cost": "- $8,000 lost"
+      },
+      "excelChaos": {
+        "title": "Excel Chaos",
+        "description": "5 different spreadsheets. Nobody knows which is updated. You wasted 2 hours looking for a document.",
+        "cost": "Your team is frustrated"
+      },
+      "noVisibility": {
+        "title": "No Visibility",
+        "description": "How many active cases do you have? How much money in pipeline? You have no idea.",
+        "cost": "Making blind decisions"
+      }
+    },
+    "solution": {
+      "badge": "THE SOLUTION",
+      "title": "Your Business on Autopilot",
+      "subtitle": "Imagine managing 3x more cases with the same team, no stress, no chaos",
+      "neverLose": {
+        "title": "Never Lose Another Client",
+        "description": "Automatic follow-up system. Smart reminders. Every client gets attention at exactly the right moment."
+      },
+      "totalVisibility": {
+        "title": "Total Real-Time Visibility",
+        "description": "Dashboard showing EVERYTHING: active cases, pipeline, key metrics. Data-driven decisions, not hunches."
+      },
+      "documentsReady": {
+        "title": "Documents Always At Hand",
+        "description": "All documents organized by case. Instant search. Access from any device, anywhere."
+      },
+      "teamSync": {
+        "title": "Your Team Synchronized",
+        "description": "Real-time collaboration. Clear task assignment. Everyone knows exactly what to do and when."
+      }
+    },
+    "features": {
+      "title": "Features That Make You Unstoppable",
+      "subtitle": "Everything you need to dominate your industry",
+      "calendar": {
+        "title": "Smart Calendar",
+        "description": "Automatic schedule for inspections, client appointments, case deadlines. Syncs with Google Calendar."
+      },
+      "pipeline": {
+        "title": "Visual Pipeline",
+        "description": "See what stage each case is in: Lead → Inspection → Negotiation → Closed. Drag & drop to move cases."
+      },
+      "documents": {
+        "title": "Document Management",
+        "description": "Policies, damage photos, estimates, contracts - everything organized by case. Unlimited storage."
+      },
+      "reminders": {
+        "title": "Automatic Reminders",
+        "description": "System notifies you when to contact a client, follow up, or meet a deadline."
+      },
+      "team": {
+        "title": "Team Management",
+        "description": "Assign cases to adjusters, co-admins, or salespeople. Role-based permission control."
+      },
+      "mobile": {
+        "title": "Mobile Access",
+        "description": "Responsive design. Work from your phone in the field: add notes, upload photos, update cases."
+      }
+    },
+    "pricing": {
+      "title": "Transparent Pricing. No Surprises.",
+      "subtitle": "Choose the plan that fits your business. Change or cancel anytime.",
+      "starter": {
+        "name": "Starter",
+        "description": "For independent adjusters",
+        "price": "$99",
+        "period": "/month",
+        "users": "Up to 5 users",
+        "features": {
+          "clients": "50 active clients",
+          "storage": "10 GB storage",
+          "calendar": "Calendar & tasks",
+          "reports": "Basic reports",
+          "support": "Email support"
+        },
+        "cta": "Start Free Trial"
+      },
+      "professional": {
+        "name": "Professional",
+        "description": "For growing teams",
+        "price": "$249",
+        "period": "/month",
+        "users": "Up to 15 users",
+        "badge": "MOST POPULAR",
+        "features": {
+          "clients": "Unlimited clients",
+          "storage": "100 GB storage",
+          "allStarter": "Everything in Starter, plus:",
+          "analytics": "Advanced reports & analytics",
+          "construction": "Construction management",
+          "api": "API access",
+          "support": "Priority support (chat)"
+        },
+        "cta": "Start Free Trial"
+      },
+      "enterprise": {
+        "name": "Enterprise",
+        "description": "For large operations",
+        "price": "$499",
+        "period": "/month",
+        "users": "Up to 50 users",
+        "features": {
+          "clients": "Unlimited clients",
+          "storage": "Unlimited storage",
+          "allPro": "Everything in Professional, plus:",
+          "onboarding": "Personalized onboarding",
+          "integrations": "Custom integrations",
+          "support24": "Dedicated 24/7 support",
+          "sla": "Guaranteed SLA"
+        },
+        "cta": "Contact Sales"
+      },
+      "allPlans": "All plans include 14 days free trial. No credit card required."
+    },
+    "roi": {
+      "title": "Pays for Itself in Less Than 1 Month",
+      "subtitle": "Calculate your return on investment",
+      "metrics": {
+        "moreClients": "+37%",
+        "moreClientsDesc": "More cases closed per month",
+        "timeSaved": "15 hrs",
+        "timeSavedDesc": "Saved per week on admin",
+        "revenue": "$12K+",
+        "revenueDesc": "Average extra income/month"
+      },
+      "example": "Real example: If you close just 1 extra case per month thanks to better organization (average $8K commission), the CRM already paid for itself 10 times.",
+      "exampleHighlight": "The rest is pure profit"
+    },
+    "cta": {
+      "title": "Ready to Transform Your Business?",
+      "subtitle": "Join hundreds of public adjusters who have tripled their productivity",
+      "button": "Start Your Free Trial",
+      "features": "5-minute setup · No card required · Cancel anytime"
+    },
+    "footer": {
+      "tagline": "The most powerful CRM for Public Adjusters. Designed by adjusters, for adjusters.",
+      "product": {
+        "title": "Product",
+        "features": "Features",
+        "pricing": "Pricing",
+        "successStories": "Success Stories",
+        "roadmap": "Roadmap"
+      },
+      "support": {
+        "title": "Support",
+        "helpCenter": "Help Center",
+        "documentation": "Documentation",
+        "tutorials": "Tutorials",
+        "contact": "Contact"
+      },
+      "legal": {
+        "title": "Legal",
+        "terms": "Terms",
+        "privacy": "Privacy",
+        "security": "Security"
+      },
+      "copyright": "All rights reserved."
+    }
+  },
+  "login": {
+    "appTitle": "CRM Public Adjusters",
+    "appSubtitle": "Client Management System",
+    "welcome": "Welcome",
+    "selectOption": "Select an option to continue",
+    "loginExisting": "Sign In with Existing Organization",
+    "loginExistingDesc": "I already have access credentials (username and password)",
+    "createNew": "Create New Organization",
+    "createNewDesc": "I'm new and want to create an organization from scratch",
+    "needHelp": "Need help? Contact your organization administrator",
+    "loginTitle": "Sign In",
+    "loginDescription": "Enter your credentials to access the system",
+    "username": "Username",
+    "usernamePlaceholder": "user@organization.internal",
+    "password": "Password",
+    "passwordPlaceholder": "••••••••",
+    "loginButton": "Sign In",
+    "loggingIn": "Signing in...",
+    "backToOptions": "← Back to options",
+    "language": "Language"
+  }
+}

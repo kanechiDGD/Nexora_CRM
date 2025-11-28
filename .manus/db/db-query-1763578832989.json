@@ -1,0 +1,28 @@
+{
+  "query": "SELECT id, firstName, lastName, claimStatus FROM clients LIMIT 5",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user u6ZhkhQtUWuL4aP.root --database Ps2ZHSn7bzKusjaEriYWKB --execute SELECT id, firstName, lastName, claimStatus FROM clients LIMIT 5",
+  "rows": [
+    {
+      "id": " A20251117RJ",
+      "firstName": "Rosa ",
+      "lastName": "Jaquez",
+      "claimStatus": "EN_PROCESO"
+    },
+    {
+      "id": "XX20251118AC",
+      "firstName": "andres",
+      "lastName": "caro",
+      "claimStatus": "APROVADA"
+    },
+    {
+      "id": "XX20251119AC",
+      "firstName": "andres",
+      "lastName": "caro",
+      "claimStatus": "NO_SOMETIDA"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\tfirstName\tlastName\tclaimStatus\n A20251117RJ\tRosa \tJaquez\tEN_PROCESO\nXX20251118AC\tandres\tcaro\tAPROVADA\nXX20251119AC\tandres\tcaro\tNO_SOMETIDA\n",
+  "stderr": "",
+  "execution_time_ms": 48
+}

@@ -1,0 +1,18 @@
+{
+  "query": "SHOW COLUMNS FROM clients LIKE 'claimStatus'",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user u6ZhkhQtUWuL4aP.root --database Ps2ZHSn7bzKusjaEriYWKB --execute SHOW COLUMNS FROM clients LIKE 'claimStatus'",
+  "rows": [
+    {
+      "Field": "claimStatus",
+      "Type": "varchar(100)",
+      "Null": "YES",
+      "Key": "",
+      "Default": "NO_SOMETIDA",
+      "Extra": ""
+    }
+  ],
+  "messages": [],
+  "stdout": "Field\tType\tNull\tKey\tDefault\tExtra\nclaimStatus\tvarchar(100)\tYES\t\tNO_SOMETIDA\t\n",
+  "stderr": "",
+  "execution_time_ms": 57
+}

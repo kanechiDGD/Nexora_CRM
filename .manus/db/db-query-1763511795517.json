@@ -1,0 +1,15 @@
+{
+  "query": "SELECT username, password, role FROM organizationMembers WHERE username = 'usuario1@andres.internal'",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user u6ZhkhQtUWuL4aP.root --database Ps2ZHSn7bzKusjaEriYWKB --execute SELECT username, password, role FROM organizationMembers WHERE username = 'usuario1@andres.internal'",
+  "rows": [
+    {
+      "username": "usuario1@andres.internal",
+      "password": "$2b$10$v8zOOi6cfIX2ZfnYbVTZ9e3Uf0YtkiI7QsNGsyVRDg.t3ff9aFEoa",
+      "role": "CO_ADMIN"
+    }
+  ],
+  "messages": [],
+  "stdout": "username\tpassword\trole\nusuario1@andres.internal\t$2b$10$v8zOOi6cfIX2ZfnYbVTZ9e3Uf0YtkiI7QsNGsyVRDg.t3ff9aFEoa\tCO_ADMIN\n",
+  "stderr": "",
+  "execution_time_ms": 893
+}

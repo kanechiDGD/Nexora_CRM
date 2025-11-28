@@ -1,0 +1,19 @@
+{
+  "query": "SELECT * FROM organizationMembers WHERE username = 'usuario1@andres.internal'",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user u6ZhkhQtUWuL4aP.root --database Ps2ZHSn7bzKusjaEriYWKB --execute SELECT * FROM organizationMembers WHERE username = 'usuario1@andres.internal'",
+  "rows": [
+    {
+      "id": "30002",
+      "organizationId": "30001",
+      "userId": "2430010",
+      "role": "CO_ADMIN",
+      "username": "usuario1@andres.internal",
+      "createdAt": "2025-11-19 00:05:17",
+      "password": "$2b$10$v8zOOi6cfIX2ZfnYbVTZ9e3Uf0YtkiI7QsNGsyVRDg.t3ff9aFEoa"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\torganizationId\tuserId\trole\tusername\tcreatedAt\tpassword\n30002\t30001\t2430010\tCO_ADMIN\tusuario1@andres.internal\t2025-11-19 00:05:17\t$2b$10$v8zOOi6cfIX2ZfnYbVTZ9e3Uf0YtkiI7QsNGsyVRDg.t3ff9aFEoa\n",
+  "stderr": "",
+  "execution_time_ms": 695
+}

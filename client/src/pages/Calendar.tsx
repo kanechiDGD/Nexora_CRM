@@ -1,0 +1,332 @@
+import { useState } from "react";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Calendar as CalendarIcon, Plus, AlertCircle, Clock, Phone, User, Edit, Trash2 } from "lucide-react";
+import { trpc } from "@/lib/trpc";
+import DashboardLayout from "@/components/DashboardLayout";
+import { NewEventDialog } from "@/components/NewEventDialog";
+import { ClientContactDialog } from "@/components/ClientContactDialog";
+
+export default function Calendar() {
+  const [selectedClient, setSelectedClient] = useState<any>(null);
+  const [contactDialogOpen, setContactDialogOpen] = useState(false);
+
+  const { data: clients } = trpc.clients.list.useQuery();
+  const { data: events } = trpc.events.list.useQuery();
+
+  // Calcular clientes que necesitan contacto basado en nextContactDate
+  const getClientsNeedingContact = () => {
+    if (!clients) return [];
+    
+    const now = new Date();
+    now.setHours(0, 0, 0, 0); // Normalizar a medianoche
+    
+    return clients
+      .filter((client: any) => {
+        if (!client.nextContactDate) return false;
+        const nextContact = new Date(client.nextContactDate);
+        nextContact.setHours(0, 0, 0, 0);
+        
+        // Mostrar alertas 2 días antes del contacto programado
+        const daysUntil = Math.floor((nextContact.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+        return daysUntil <= 2;
+      })
+      .map((client: any) => {
+        const nextContact = new Date(client.nextContactDate);
+        nextContact.setHours(0, 0, 0, 0);
+        const daysUntil = Math.floor((nextContact.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+        
+        let priority: 'BAJA' | 'MEDIA' | 'ALTA' | 'URGENTE';
+        if (daysUntil < 0) priority = 'URGENTE';
+        else if (daysUntil === 0) priority = 'ALTA';
+        else if (daysUntil === 1) priority = 'MEDIA';
+        else priority = 'BAJA';
+        
+        return {
+          ...client,
+          daysUntil,
+          priority,
+        };
+      })
+      .sort((a: any, b: any) => a.daysUntil - b.daysUntil);
+  };
+
+  const clientsNeedingContact = getClientsNeedingContact();
+
+  const getEventBadge = (type: string) => {
+    const variants: Record<string, { variant: "default" | "secondary" | "outline", label: string, color: string }> = {
+      'ESTIMADO': { variant: 'default', label: 'Estimado', color: 'bg-blue-500/10 text-blue-500' },
+      'REUNION': { variant: 'secondary', label: 'Reunión', color: 'bg-green-500/10 text-green-500' },
+      'AJUSTACION': { variant: 'outline', label: 'Ajustación', color: 'bg-yellow-500/10 text-yellow-500' },
+      'INTERNO': { variant: 'outline', label: 'Evento Interno', color: 'bg-purple-500/10 text-purple-500' },
+    };
+    const config = variants[type] || { variant: 'outline', label: type, color: 'bg-gray-500/10 text-gray-500' };
+    return <Badge variant={config.variant}>{config.label}</Badge>;
+  };
+
+  const formatDate = (date: Date) => {
+    return new Date(date).toLocaleDateString('es-ES', {
+      weekday: 'long',
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+  };
+
+  const getDaysUntil = (date: Date) => {
+    const now = new Date();
+    const eventDate = new Date(date);
+    const days = Math.floor((eventDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+    if (days === 0) return 'Hoy';
+    if (days === 1) return 'Mañana';
+    if (days < 0) return `Hace ${Math.abs(days)} día${Math.abs(days) !== 1 ? 's' : ''}`;
+    return `En ${days} día${days !== 1 ? 's' : ''}`;
+  };
+
+  const getPriorityBadge = (priority: string) => {
+    const config: Record<string, { class: string; label: string }> = {
+      'URGENTE': { class: 'bg-red-500/10 text-red-500 border-red-500/20', label: 'Atrasado' },
+      'ALTA': { class: 'bg-orange-500/10 text-orange-500 border-orange-500/20', label: 'Hoy' },
+      'MEDIA': { class: 'bg-yellow-500/10 text-yellow-500 border-yellow-500/20', label: 'Mañana' },
+      'BAJA': { class: 'bg-green-500/10 text-green-500 border-green-500/20', label: 'Próximamente' },
+    };
+    const { class: className, label } = config[priority] || config['BAJA'];
+    return <Badge className={className}>{label}</Badge>;
+  };
+
+  const handleContactClient = (client: any) => {
+    setSelectedClient(client);
+    setContactDialogOpen(true);
+  };
+
+  // Ordenar eventos por fecha
+  const sortedEvents = events?.slice().sort((a: any, b: any) => {
+    return new Date(a.eventDate).getTime() - new Date(b.eventDate).getTime();
+  }) || [];
+
+  return (
+    <DashboardLayout>
+      <div className="space-y-6">
+        {/* Header */}
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-3xl font-bold text-foreground">Calendario y Recordatorios</h1>
+            <p className="text-muted-foreground mt-1">
+              Gestiona eventos y mantén contacto regular con clientes
+            </p>
+          </div>
+          <NewEventDialog />
+        </div>
+
+        {/* Alert Card - Clientes que necesitan contacto */}
+        {clientsNeedingContact.length > 0 && (
+          <Card className="border-red-500/50 bg-red-500/5">
+            <CardHeader>
+              <div className="flex items-center gap-2">
+                <AlertCircle className="h-5 w-5 text-red-500" />
+                <CardTitle className="text-red-500">
+                  ¡Alerta! {clientsNeedingContact.length} Cliente{clientsNeedingContact.length !== 1 ? 's' : ''} Necesita{clientsNeedingContact.length === 1 ? '' : 'n'} Contacto
+                </CardTitle>
+              </div>
+              <CardDescription>
+                Los siguientes clientes necesitan ser contactados pronto
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              {clientsNeedingContact.map((client: any) => (
+                <div
+                  key={client.id}
+                  className="flex items-center justify-between p-4 bg-background border border-red-500/20 rounded-lg cursor-pointer hover:bg-accent/50 transition-colors"
+                  onClick={() => handleContactClient(client)}
+                >
+                  <div className="flex items-center gap-4">
+                    <div className="p-2 bg-red-500/10 rounded-lg">
+                      <User className="h-5 w-5 text-red-500" />
+                    </div>
+                    <div>
+                      <p className="font-medium">{client.firstName} {client.lastName}</p>
+                      <p className="text-sm text-muted-foreground">
+                        {client.phone || client.email || 'Sin contacto'}
+                      </p>
+                      <div className="flex items-center gap-2 mt-1">
+                        <Clock className="h-3 w-3" />
+                        <span className="text-xs font-medium">
+                          {client.daysUntil < 0 
+                            ? `${Math.abs(client.daysUntil)} día${Math.abs(client.daysUntil) !== 1 ? 's' : ''} de retraso`
+                            : client.daysUntil === 0
+                            ? 'Contactar hoy'
+                            : `Contactar en ${client.daysUntil} día${client.daysUntil !== 1 ? 's' : ''}`
+                          }
+                        </span>
+                        {getPriorityBadge(client.priority)}
+                      </div>
+                    </div>
+                  </div>
+                  <Button size="sm" variant="outline">
+                    <Phone className="mr-2 h-4 w-4" />
+                    Ver Detalles
+                  </Button>
+                </div>
+              ))}
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Stats */}
+        <div className="grid gap-4 md:grid-cols-3">
+          <Card className="border-border">
+            <CardContent className="pt-6">
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-primary/10 rounded-lg">
+                  <CalendarIcon className="h-5 w-5 text-primary" />
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground">Eventos Próximos</p>
+                  <p className="text-2xl font-bold">{sortedEvents.length}</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="border-border">
+            <CardContent className="pt-6">
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-red-500/10 rounded-lg">
+                  <AlertCircle className="h-5 w-5 text-red-500" />
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground">Clientes Pendientes</p>
+                  <p className="text-2xl font-bold">{clientsNeedingContact.length}</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="border-border">
+            <CardContent className="pt-6">
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-green-500/10 rounded-lg">
+                  <Clock className="h-5 w-5 text-green-500" />
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground">Eventos Esta Semana</p>
+                  <p className="text-2xl font-bold">
+                    {sortedEvents.filter((e: any) => {
+                      const days = Math.floor((new Date(e.eventDate).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24));
+                      return days >= 0 && days <= 7;
+                    }).length}
+                  </p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Upcoming Events */}
+        <Card className="border-border">
+          <CardHeader>
+            <CardTitle>Próximos Eventos</CardTitle>
+            <CardDescription>
+              Estimados, reuniones, ajustaciones y eventos internos programados
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {sortedEvents.length === 0 ? (
+              <div className="text-center py-12">
+                <CalendarIcon className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                <p className="text-muted-foreground">No hay eventos programados</p>
+                <div className="mt-4">
+                  <NewEventDialog />
+                </div>
+              </div>
+            ) : (
+              sortedEvents.map((event: any) => (
+                <div
+                  key={event.id}
+                  className="flex items-start gap-4 p-4 border border-border rounded-lg hover:bg-accent/50 transition-colors"
+                >
+                  <div className="p-3 bg-primary/10 rounded-lg">
+                    <CalendarIcon className="h-6 w-6 text-primary" />
+                  </div>
+                  
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-start justify-between gap-4 mb-2">
+                      <div>
+                        <h3 className="font-medium text-lg">{event.title}</h3>
+                        {event.clientId && (
+                          <p className="text-sm text-muted-foreground">
+                            Cliente: {clients?.find((c: any) => c.id === event.clientId)?.firstName} {clients?.find((c: any) => c.id === event.clientId)?.lastName}
+                          </p>
+                        )}
+                      </div>
+                      {getEventBadge(event.eventType)}
+                    </div>
+
+                    <div className="space-y-1 text-sm text-muted-foreground">
+                      <div className="flex items-center gap-2">
+                        <CalendarIcon className="h-4 w-4" />
+                        <span>{formatDate(event.eventDate)}</span>
+                        <Badge variant="outline" className="ml-2">
+                          {getDaysUntil(event.eventDate)}
+                        </Badge>
+                      </div>
+                      {event.address && (
+                        <div className="flex items-center gap-2">
+                          <span>📍</span>
+                          <span>{event.address}</span>
+                        </div>
+                      )}
+                      {event.notes && (
+                        <p className="text-sm mt-2">{event.notes}</p>
+                      )}
+                    </div>
+
+                    <div className="flex gap-2 mt-3">
+                      {/* Los botones de editar/eliminar están integrados en los diálogos */}
+                      <p className="text-xs text-muted-foreground">Usa el calendario del dashboard para editar/eliminar eventos</p>
+                    </div>
+                  </div>
+                </div>
+              ))
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Information Card */}
+        <Card className="border-border bg-muted/50">
+          <CardHeader>
+            <CardTitle className="text-base">Política de Contacto con Clientes</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-2 text-sm text-muted-foreground">
+            <p>
+              • <strong>Contacto cada 7 días:</strong> El sistema programa automáticamente el próximo contacto 7 días después del último
+            </p>
+            <p>
+              • <strong>Alertas progresivas:</strong> Recibirás alertas 2 días antes, 1 día antes, el día del contacto, y si está atrasado
+            </p>
+            <p>
+              • <strong>Registro obligatorio:</strong> Documenta cada llamada, email o reunión en el sistema
+            </p>
+            <p>
+              • <strong>Priorización automática:</strong> Los clientes con contacto atrasado aparecen primero con prioridad urgente
+            </p>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Dialogs - EditEventDialog y DeleteEventDialog manejan su propio estado open */}
+
+      {selectedClient && (
+        <ClientContactDialog
+          clientId={selectedClient.id}
+          clientName={`${selectedClient.firstName} ${selectedClient.lastName}`}
+          open={contactDialogOpen}
+          onOpenChange={setContactDialogOpen}
+        />
+      )}
+    </DashboardLayout>
+  );
+}

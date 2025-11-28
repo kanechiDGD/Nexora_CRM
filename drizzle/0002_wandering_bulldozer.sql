@@ -1,0 +1,1 @@
+ALTER TABLE `activityLogs` MODIFY COLUMN `clientId` int;
