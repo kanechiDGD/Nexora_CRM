@@ -24,31 +24,19 @@ function isSecureRequest(req: Request) {
 export function getSessionCookieOptions(
   req: Request
 ): Pick<CookieOptions, "domain" | "httpOnly" | "path" | "sameSite" | "secure"> {
-  // const hostname = req.hostname;
-  // const shouldSetDomain =
-  //   hostname &&
-  //   !LOCAL_HOSTS.has(hostname) &&
-  //   !isIpAddress(hostname) &&
-  //   hostname !== "127.0.0.1" &&
-  //   hostname !== "::1";
-
-  // const domain =
-  //   shouldSetDomain && !hostname.startsWith(".")
-  //     ? `.${hostname}`
-  //     : shouldSetDomain
-  //       ? hostname
-  //       : undefined;
-
   const isSecure = isSecureRequest(req);
   const hostname = req.hostname;
   const isLocalhost = LOCAL_HOSTS.has(hostname) || isIpAddress(hostname);
 
+  // En producción HTTPS siempre usar sameSite: 'none' y secure: true
+  // En localhost/desarrollo usar sameSite: 'lax' y secure: false
+  const isProduction = process.env.NODE_ENV === 'production';
+
   return {
     httpOnly: true,
     path: "/",
-    // En localhost usar "lax" porque "none" requiere HTTPS
-    // En producción usar "none" para permitir cookies cross-site
-    sameSite: isLocalhost ? "lax" : "none",
-    secure: isSecure,
+    // sameSite 'none' requiere secure: true, solo usar en producción HTTPS
+    sameSite: (isProduction && isSecure) ? "none" : "lax",
+    secure: isProduction && isSecure,
   };
 }

@@ -34,6 +34,9 @@ async function startServer() {
   const app = express();
   const server = createServer(app);
 
+  // Trust proxy - necesario para deployments detrás de proxies reversos (Render, Vercel, etc.)
+  app.set('trust proxy', 1);
+
   // Security middlewares (helmet, CORS, etc.)
   setupSecurityMiddlewares(app);
 
