@@ -1,4 +1,4 @@
-import { COOKIE_NAME } from "@shared/const";
+import { COOKIE_NAME, ONE_YEAR_MS } from "@shared/const";
 import { getSessionCookieOptions } from "./_core/cookies";
 import { systemRouter } from "./_core/systemRouter";
 import { publicProcedure, protectedProcedure, router } from "./_core/trpc";
@@ -111,13 +111,17 @@ export const appRouter = router({
 
         // Crear sesión JWT (igual que OAuth)
         const { sdk } = await import('./_core/sdk');
+        // Crear sesión y cookie
         const sessionToken = await sdk.createSessionToken(user.openId, {
           name: user.name || input.username,
         });
 
-        // Establecer cookie de sesión
         const cookieOptions = getSessionCookieOptions(ctx.req);
-        ctx.res.cookie(COOKIE_NAME, sessionToken, cookieOptions);
+        // Agregar maxAge para que la cookie persista 1 año (no expire con inactividad)
+        ctx.res.cookie(COOKIE_NAME, sessionToken, {
+          ...cookieOptions,
+          maxAge: ONE_YEAR_MS  // 1 año en milisegundos
+        });
 
         return {
           success: true,
