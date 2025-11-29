@@ -1,21 +1,118 @@
-// Preconfigured storage helpers for Manus WebDev templates
-// Uses the Biz-provided storage proxy (Authorization: Bearer <token>)
-
+// Storage abstraction supporting both Forge and Cloudflare R2
 import { ENV } from './_core/env';
+import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3';
 
-type StorageConfig = { baseUrl: string; apiKey: string };
+type StorageConfig = {
+  type: 'forge' | 'r2';
+  baseUrl?: string;
+  apiKey?: string;
+  r2Config?: {
+    accountId: string;
+    accessKeyId: string;
+    secretAccessKey: string;
+    bucketName: string;
+  };
+};
 
 function getStorageConfig(): StorageConfig {
+  // Check for R2 configuration first
+  const r2AccountId = process.env.R2_ACCOUNT_ID;
+  const r2AccessKeyId = process.env.R2_ACCESS_KEY_ID;
+  const r2SecretAccessKey = process.env.R2_SECRET_ACCESS_KEY;
+  const r2BucketName = process.env.R2_BUCKET_NAME || 'nexora';
+
+  if (r2AccountId && r2AccessKeyId && r2SecretAccessKey) {
+    return {
+      type: 'r2',
+      r2Config: {
+        accountId: r2AccountId,
+        accessKeyId: r2AccessKeyId,
+        secretAccessKey: r2SecretAccessKey,
+        bucketName: r2BucketName,
+      },
+    };
+  }
+
+  // Fall back to Forge
   const baseUrl = ENV.forgeApiUrl;
   const apiKey = ENV.forgeApiKey;
 
   if (!baseUrl || !apiKey) {
     throw new Error(
-      "Storage proxy credentials missing: set BUILT_IN_FORGE_API_URL and BUILT_IN_FORGE_API_KEY"
+      "Storage credentials missing. Set either:\n" +
+      "  - R2_ACCOUNT_ID, R2_ACCESS_KEY_ID, R2_SECRET_ACCESS_KEY, R2_BUCKET_NAME\n" +
+      "  - BUILT_IN_FORGE_API_URL, BUILT_IN_FORGE_API_KEY"
     );
   }
 
-  return { baseUrl: baseUrl.replace(/\/+$/, ""), apiKey };
+  return {
+    type: 'forge',
+    baseUrl: baseUrl.replace(/\/+$/, ""),
+    apiKey
+  };
+}
+
+// R2 S3-compatible upload
+async function uploadToR2(
+  config: NonNullable<StorageConfig['r2Config']>,
+  relKey: string,
+  data: Buffer | Uint8Array | string,
+  contentType: string
+): Promise<{ key: string; url: string }> {
+  const s3Client = new S3Client({
+    region: 'auto',
+    endpoint: `https://${config.accountId}.r2.cloudflarestorage.com`,
+    credentials: {
+      accessKeyId: config.accessKeyId,
+      secretAccessKey: config.secretAccessKey,
+    },
+  });
+
+  const key = normalizeKey(relKey);
+  const buffer = typeof data === 'string' ? Buffer.from(data) : Buffer.from(data);
+
+  const command = new PutObjectCommand({
+    Bucket: config.bucketName,
+    Key: key,
+    Body: buffer,
+    ContentType: contentType,
+  });
+
+  await s3Client.send(command);
+
+  // R2 public URL format
+  const url = `https://pub-${config.accountId}.r2.dev/${key}`;
+
+  return { key, url };
+}
+
+// Forge upload (original implementation)
+async function uploadToForge(
+  baseUrl: string,
+  apiKey: string,
+  relKey: string,
+  data: Buffer | Uint8Array | string,
+  contentType: string
+): Promise<{ key: string; url: string }> {
+  const key = normalizeKey(relKey);
+  const uploadUrl = buildUploadUrl(baseUrl, key);
+  const formData = toFormData(data, contentType, key.split("/").pop() ?? key);
+
+  const response = await fetch(uploadUrl, {
+    method: "POST",
+    headers: buildAuthHeaders(apiKey),
+    body: formData,
+  });
+
+  if (!response.ok) {
+    const message = await response.text().catch(() => response.statusText);
+    throw new Error(
+      `Storage upload failed (${response.status} ${response.statusText}): ${message}`
+    );
+  }
+
+  const url = (await response.json()).url;
+  return { key, url };
 }
 
 function buildUploadUrl(baseUrl: string, relKey: string): URL {
@@ -72,31 +169,32 @@ export async function storagePut(
   data: Buffer | Uint8Array | string,
   contentType = "application/octet-stream"
 ): Promise<{ key: string; url: string }> {
-  const { baseUrl, apiKey } = getStorageConfig();
-  const key = normalizeKey(relKey);
-  const uploadUrl = buildUploadUrl(baseUrl, key);
-  const formData = toFormData(data, contentType, key.split("/").pop() ?? key);
-  const response = await fetch(uploadUrl, {
-    method: "POST",
-    headers: buildAuthHeaders(apiKey),
-    body: formData,
-  });
+  const config = getStorageConfig();
 
-  if (!response.ok) {
-    const message = await response.text().catch(() => response.statusText);
-    throw new Error(
-      `Storage upload failed (${response.status} ${response.statusText}): ${message}`
-    );
+  console.log(`[Storage] Using ${config.type} storage`);
+
+  if (config.type === 'r2' && config.r2Config) {
+    return uploadToR2(config.r2Config, relKey, data, contentType);
+  } else if (config.type === 'forge' && config.baseUrl && config.apiKey) {
+    return uploadToForge(config.baseUrl, config.apiKey, relKey, data, contentType);
   }
-  const url = (await response.json()).url;
-  return { key, url };
+
+  throw new Error('Invalid storage configuration');
 }
 
 export async function storageGet(relKey: string): Promise<{ key: string; url: string; }> {
-  const { baseUrl, apiKey } = getStorageConfig();
+  const config = getStorageConfig();
   const key = normalizeKey(relKey);
-  return {
-    key,
-    url: await buildDownloadUrl(baseUrl, key, apiKey),
-  };
+
+  if (config.type === 'r2' && config.r2Config) {
+    const url = `https://pub-${config.r2Config.accountId}.r2.dev/${key}`;
+    return { key, url };
+  } else if (config.type === 'forge' && config.baseUrl && config.apiKey) {
+    return {
+      key,
+      url: await buildDownloadUrl(config.baseUrl, key, config.apiKey),
+    };
+  }
+
+  throw new Error('Invalid storage configuration');
 }
