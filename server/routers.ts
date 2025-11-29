@@ -117,10 +117,10 @@ export const appRouter = router({
         });
 
         const cookieOptions = getSessionCookieOptions(ctx.req);
-        // Agregar maxAge para que la cookie persista 1 año (no expire con inactividad)
+        // Establecer maxAge de 1 año para que la cookie persista
         ctx.res.cookie(COOKIE_NAME, sessionToken, {
           ...cookieOptions,
-          maxAge: ONE_YEAR_MS  // 1 año en milisegundos
+          maxAge: ONE_YEAR_MS
         });
 
         return {

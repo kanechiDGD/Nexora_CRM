@@ -4,14 +4,14 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { 
-  ArrowLeft, 
-  Edit, 
-  Phone, 
-  Mail, 
-  MapPin, 
-  Building, 
-  FileText, 
+import {
+  ArrowLeft,
+  Edit,
+  Phone,
+  Mail,
+  MapPin,
+  Building,
+  FileText,
   Calendar,
   DollarSign,
   User,
@@ -87,6 +87,51 @@ export default function ClientProfile() {
       currency: 'USD'
     }).format(amount);
   };
+
+  const utils = trpc.useUtils();
+
+  const handleFileUpload = async (files: FileList) => {
+    try {
+      const formData = new FormData();
+
+      // Agregar archivos al FormData
+      for (let i = 0; i < files.length; i++) {
+        formData.append('files', files[i]);
+      }
+
+      // Agregar metadata
+      formData.append('clientId', clientId);
+
+      toast.info(`Subiendo ${files.length} archivo(s)...`);
+
+      const response = await fetch('/api/upload/documents', {
+        method: 'POST',
+        body: formData,
+        credentials: 'include', // Incluir cookies para autenticación
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Error al subir archivos');
+      }
+
+      const result = await response.json();
+
+      toast.success(result.message || 'Archivos subidos correctamente');
+
+      // Invalidar la query de documentos para que se recarguen
+      utils.documents.getByClientId.invalidate({ clientId });
+
+    } catch (error) {
+      console.error('Error uploading files:', error);
+      toast.error(error instanceof Error ? error.message : 'Error al subir archivos');
+    }
+  };
+
+  // Debug: Log documents data
+  console.log('[ClientProfile] Documents data:', documents);
+  console.log('[ClientProfile] Documents count:', documents?.length || 0);
+  console.log('[ClientProfile] ClientId:', clientId);
 
   return (
     <DashboardLayout>
@@ -233,7 +278,7 @@ export default function ClientProfile() {
                   <div className="flex items-center gap-2 mt-1">
                     <Mail className="h-4 w-4 text-muted-foreground" />
                     {client.email ? (
-                      <a 
+                      <a
                         href={`mailto:${client.email}`}
                         className="font-medium text-primary hover:underline cursor-pointer"
                       >
@@ -249,7 +294,7 @@ export default function ClientProfile() {
                   <div className="flex items-center gap-2 mt-1">
                     <Phone className="h-4 w-4 text-muted-foreground" />
                     {client.phone ? (
-                      <a 
+                      <a
                         href={`tel:${client.phone}`}
                         className="font-medium text-primary hover:underline cursor-pointer"
                       >
@@ -265,7 +310,7 @@ export default function ClientProfile() {
                   <div className="flex items-center gap-2 mt-1">
                     <Phone className="h-4 w-4 text-muted-foreground" />
                     {client.alternatePhone ? (
-                      <a 
+                      <a
                         href={`tel:${client.alternatePhone}`}
                         className="font-medium text-primary hover:underline cursor-pointer"
                       >
@@ -474,12 +519,7 @@ export default function ClientProfile() {
                       input.onchange = async (e: any) => {
                         const files = e.target.files;
                         if (files && files.length > 0) {
-                          toast.info(`Subiendo ${files.length} archivo(s)...`);
-                          // TODO: Implementar subida a S3 usando storagePut
-                          // Por ahora solo mostramos mensaje
-                          setTimeout(() => {
-                            toast.success('Archivos subidos correctamente');
-                          }, 1500);
+                          await handleFileUpload(files);
                         }
                       };
                       input.click();
@@ -492,58 +532,99 @@ export default function ClientProfile() {
                 </div>
               </CardHeader>
               <CardContent className="space-y-4">
-                {client.policyDocumentUrl && (
-                  <div className="flex items-center justify-between p-3 border border-border rounded-lg">
-                    <div className="flex items-center gap-3">
-                      <FileText className="h-5 w-5 text-muted-foreground" />
-                      <div>
-                        <p className="font-medium">Póliza</p>
-                        <p className="text-sm text-muted-foreground">Documento de póliza de seguro</p>
+                {/* Documentos subidos desde la base de datos */}
+                {documents && documents.length > 0 ? (
+                  <div className="space-y-3">
+                    {documents.map((doc) => (
+                      <div key={doc.id} className="flex items-center justify-between p-3 border border-border rounded-lg hover:bg-accent/50 transition-colors">
+                        <div className="flex items-center gap-3 flex-1">
+                          <File className="h-5 w-5 text-muted-foreground" />
+                          <div className="flex-1 min-w-0">
+                            <p className="font-medium truncate">{doc.fileName}</p>
+                            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                              <Badge variant="outline" className="text-xs">{doc.documentType}</Badge>
+                              {doc.fileSize && (
+                                <span>• {(doc.fileSize / 1024 / 1024).toFixed(2)} MB</span>
+                              )}
+                              {doc.uploadedAt && (
+                                <span>• {new Date(doc.uploadedAt).toLocaleDateString('es-ES')}</span>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                        <div className="flex gap-2">
+                          <Button variant="outline" size="sm" asChild>
+                            <a href={doc.fileUrl} target="_blank" rel="noopener noreferrer">
+                              <Download className="h-4 w-4 mr-1" />
+                              Ver
+                            </a>
+                          </Button>
+                        </div>
                       </div>
-                    </div>
-                    <Button variant="outline" size="sm" asChild>
-                      <a href={client.policyDocumentUrl} target="_blank" rel="noopener noreferrer">
-                        Ver
-                      </a>
-                    </Button>
+                    ))}
                   </div>
-                )}
-                {client.contractDocumentUrl && (
-                  <div className="flex items-center justify-between p-3 border border-border rounded-lg">
-                    <div className="flex items-center gap-3">
-                      <FileText className="h-5 w-5 text-muted-foreground" />
-                      <div>
-                        <p className="font-medium">Contrato</p>
-                        <p className="text-sm text-muted-foreground">Contrato firmado</p>
-                      </div>
-                    </div>
-                    <Button variant="outline" size="sm" asChild>
-                      <a href={client.contractDocumentUrl} target="_blank" rel="noopener noreferrer">
-                        Ver
-                      </a>
-                    </Button>
-                  </div>
-                )}
-                {client.photosUrl && (
-                  <div className="flex items-center justify-between p-3 border border-border rounded-lg">
-                    <div className="flex items-center gap-3">
-                      <FileText className="h-5 w-5 text-muted-foreground" />
-                      <div>
-                        <p className="font-medium">Fotos</p>
-                        <p className="text-sm text-muted-foreground">Fotos de la propiedad</p>
-                      </div>
-                    </div>
-                    <Button variant="outline" size="sm" asChild>
-                      <a href={client.photosUrl} target="_blank" rel="noopener noreferrer">
-                        Ver
-                      </a>
-                    </Button>
-                  </div>
-                )}
-                {!client.policyDocumentUrl && !client.contractDocumentUrl && !client.photosUrl && (
+                ) : (
                   <p className="text-center text-muted-foreground py-8">
-                    No hay documentos disponibles
+                    No hay documentos subidos
                   </p>
+                )}
+
+                {/* Documentos legacy del cliente (si existen) */}
+                {(client.policyDocumentUrl || client.contractDocumentUrl || client.photosUrl) && (
+                  <>
+                    <Separator className="my-4" />
+                    <div className="space-y-3">
+                      <p className="text-sm font-medium text-muted-foreground">Documentos vinculados</p>
+                      {client.policyDocumentUrl && (
+                        <div className="flex items-center justify-between p-3 border border-border rounded-lg">
+                          <div className="flex items-center gap-3">
+                            <FileText className="h-5 w-5 text-muted-foreground" />
+                            <div>
+                              <p className="font-medium">Póliza</p>
+                              <p className="text-sm text-muted-foreground">Documento de póliza de seguro</p>
+                            </div>
+                          </div>
+                          <Button variant="outline" size="sm" asChild>
+                            <a href={client.policyDocumentUrl} target="_blank" rel="noopener noreferrer">
+                              Ver
+                            </a>
+                          </Button>
+                        </div>
+                      )}
+                      {client.contractDocumentUrl && (
+                        <div className="flex items-center justify-between p-3 border border-border rounded-lg">
+                          <div className="flex items-center gap-3">
+                            <FileText className="h-5 w-5 text-muted-foreground" />
+                            <div>
+                              <p className="font-medium">Contrato</p>
+                              <p className="text-sm text-muted-foreground">Contrato firmado</p>
+                            </div>
+                          </div>
+                          <Button variant="outline" size="sm" asChild>
+                            <a href={client.contractDocumentUrl} target="_blank" rel="noopener noreferrer">
+                              Ver
+                            </a>
+                          </Button>
+                        </div>
+                      )}
+                      {client.photosUrl && (
+                        <div className="flex items-center justify-between p-3 border border-border rounded-lg">
+                          <div className="flex items-center gap-3">
+                            <FileText className="h-5 w-5 text-muted-foreground" />
+                            <div>
+                              <p className="font-medium">Fotos</p>
+                              <p className="text-sm text-muted-foreground">Fotos de la propiedad</p>
+                            </div>
+                          </div>
+                          <Button variant="outline" size="sm" asChild>
+                            <a href={client.photosUrl} target="_blank" rel="noopener noreferrer">
+                              Ver
+                            </a>
+                          </Button>
+                        </div>
+                      )}
+                    </div>
+                  </>
                 )}
               </CardContent>
             </Card>
@@ -620,7 +701,7 @@ export default function ClientProfile() {
                         </div>
                       ))}
                     </div>
-                    
+
                     {/* Todos los contactos (oculto por defecto) */}
                     <div id="all-contacts" style={{ display: 'none' }} className="space-y-4 mt-4 pt-4 border-t border-border">
                       <h4 className="font-semibold mb-3">Historial Completo</h4>

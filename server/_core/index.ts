@@ -10,6 +10,7 @@ import { serveStatic, setupVite } from "./vite";
 import { setupSecurityMiddlewares } from "./security";
 import { apiLimiter, authLimiter } from "./rateLimiting";
 import { logger } from "./logger";
+import { uploadRouter } from "../upload";
 
 function isPortAvailable(port: number): Promise<boolean> {
   return new Promise(resolve => {
@@ -55,6 +56,9 @@ async function startServer() {
 
   // OAuth callback under /api/oauth/callback
   registerOAuthRoutes(app);
+
+  // Upload routes (must be before tRPC to handle multipart/form-data)
+  app.use("/api/upload", uploadRouter);
 
   // tRPC API with rate limiting
   app.use(

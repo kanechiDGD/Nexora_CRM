@@ -27,13 +27,16 @@ export function getSessionCookieOptions(
   const isSecure = isSecureRequest(req);
   const isProduction = process.env.NODE_ENV === 'production';
 
+  // En desarrollo, usar sameSite: 'strict' para máxima persistencia
+  // Esto evita que la cookie se elimine al cambiar de pestaña
+  // En producción, usar 'lax' para balance entre seguridad y funcionalidad
+  const sameSite: "strict" | "lax" | "none" = isProduction ? "lax" : "strict";
+
   return {
     httpOnly: true,
     path: "/",
-    // Usar 'lax' en lugar de 'none' para mejor compatibilidad
-    // 'lax' permite cookies en navegación normal pero protege contra CSRF
-    sameSite: "lax",
-    // secure: true solo en producción HTTPS
+    sameSite,
+    // secure solo en producción con HTTPS
     secure: isProduction && isSecure,
   };
 }

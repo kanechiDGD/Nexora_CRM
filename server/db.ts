@@ -365,12 +365,16 @@ export async function getDocumentsByClientId(clientId: string, organizationId: n
   const db = await getDb();
   if (!db) return [];
   const { desc, and } = await import('drizzle-orm');
-  return await db.select().from(documents)
+  console.log('[DB] getDocumentsByClientId - clientId:', clientId, 'organizationId:', organizationId);
+  const results = await db.select().from(documents)
     .where(and(
       eq(documents.clientId, clientId),
       eq(documents.organizationId, organizationId)
     ))
     .orderBy(desc(documents.uploadedAt));
+  console.log('[DB] getDocumentsByClientId - results count:', results.length);
+  console.log('[DB] getDocumentsByClientId - results:', JSON.stringify(results, null, 2));
+  return results;
 }
 
 export async function getDocumentsByConstructionProjectId(projectId: number, organizationId: number) {
