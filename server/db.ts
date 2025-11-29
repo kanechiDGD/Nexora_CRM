@@ -1,9 +1,9 @@
 import { eq } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
-import { 
-  InsertUser, 
-  users, 
-  clients, 
+import {
+  InsertUser,
+  users,
+  clients,
   InsertClient,
   activityLogs,
   InsertActivityLog,
@@ -167,14 +167,14 @@ export async function searchClientsByName(searchTerm: string, organizationId: nu
 // Helper function to convert empty strings to null
 function cleanClientData(data: InsertClient): InsertClient {
   const cleaned: any = { ...data };
-  
+
   // Convert empty strings to null for all optional fields
   Object.keys(cleaned).forEach(key => {
     if (cleaned[key] === "") {
       cleaned[key] = null;
     }
   });
-  
+
   return cleaned as InsertClient;
 }
 
@@ -214,7 +214,7 @@ export async function getClientsWithLateContact(organizationId: number, daysThre
   const { sql, lt, and } = await import('drizzle-orm');
   const thresholdDate = new Date();
   thresholdDate.setDate(thresholdDate.getDate() - daysThreshold);
-  
+
   return await db.select().from(clients)
     .where(and(
       eq(clients.organizationId, organizationId),
@@ -265,7 +265,7 @@ export async function getClientsWithUpcomingContact(organizationId: number, days
   const today = new Date();
   const futureDate = new Date();
   futureDate.setDate(futureDate.getDate() + daysAhead);
-  
+
   return await db.select().from(clients)
     .where(
       and(
@@ -614,9 +614,22 @@ export async function getOrganizationMemberByUserId(userId: number) {
 export async function getOrganizationMemberByUsername(username: string) {
   const db = await getDb();
   if (!db) return undefined;
-  const result = await db.select().from(organizationMembers)
-    .where(eq(organizationMembers.username, username)).limit(1);
-  return result.length > 0 ? result[0] : undefined;
+
+  // Validación adicional para prevenir SQL errors
+  if (!username || username.trim() === '') {
+    console.warn('[DB] getOrganizationMemberByUsername called with empty username');
+    return undefined;
+  }
+
+  try {
+    const result = await db.select().from(organizationMembers)
+      .where(eq(organizationMembers.username, username)).limit(1);
+    return result.length > 0 ? result[0] : undefined;
+  } catch (error) {
+    console.error('[DB] Error in getOrganizationMemberByUsername:', error);
+    console.error('[DB] Username was:', username);
+    throw error;
+  }
 }
 
 export async function getOrganizationMembers(organizationId: number) {
@@ -695,11 +708,11 @@ export async function getCustomClaimStatusById(id: number) {
 export async function getClientCountByClaimStatus(organizationId: number) {
   const db = await getDb();
   if (!db) return [];
-  
+
   // Obtener todos los clientes de la organización
   const allClients = await db.select().from(clients)
     .where(eq(clients.organizationId, organizationId));
-  
+
   // Agrupar por claimStatus y contar
   const statusCounts = allClients.reduce((acc: any, client) => {
     const status = client.claimStatus || 'NO_SOMETIDA';
@@ -720,6 +733,6 @@ export async function getClientCountByClaimStatus(organizationId: number) {
     });
     return acc;
   }, {});
-  
+
   return Object.values(statusCounts);
 }
