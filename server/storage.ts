@@ -66,6 +66,10 @@ async function uploadToR2(
       accessKeyId: config.accessKeyId,
       secretAccessKey: config.secretAccessKey,
     },
+    // R2-specific configuration
+    forcePathStyle: false,
+    // Disable region validation for R2
+    tls: true,
   });
 
   const key = normalizeKey(relKey);
@@ -80,9 +84,8 @@ async function uploadToR2(
 
   await s3Client.send(command);
 
-  // R2 public URL format
-  const url = `https://pub-${config.accountId}.r2.dev/${key}`;
-
+  // Use the public dev URL that was enabled
+  const url = `https://pub-4bd96393344a84d0ba91e48f7516c6e61.r2.dev/${key}`;
   return { key, url };
 }
 
