@@ -25,18 +25,15 @@ export function getSessionCookieOptions(
   req: Request
 ): Pick<CookieOptions, "domain" | "httpOnly" | "path" | "sameSite" | "secure"> {
   const isSecure = isSecureRequest(req);
-  const hostname = req.hostname;
-  const isLocalhost = LOCAL_HOSTS.has(hostname) || isIpAddress(hostname);
-
-  // En producción HTTPS siempre usar sameSite: 'none' y secure: true
-  // En localhost/desarrollo usar sameSite: 'lax' y secure: false
   const isProduction = process.env.NODE_ENV === 'production';
 
   return {
     httpOnly: true,
     path: "/",
-    // sameSite 'none' requiere secure: true, solo usar en producción HTTPS
-    sameSite: (isProduction && isSecure) ? "none" : "lax",
+    // Usar 'lax' en lugar de 'none' para mejor compatibilidad
+    // 'lax' permite cookies en navegación normal pero protege contra CSRF
+    sameSite: "lax",
+    // secure: true solo en producción HTTPS
     secure: isProduction && isSecure,
   };
 }
