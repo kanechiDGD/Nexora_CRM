@@ -58,8 +58,15 @@ async function uploadToR2(
   data: Buffer | Uint8Array | string,
   contentType: string
 ): Promise<{ key: string; url: string }> {
+  const crypto = await import('crypto');
   const key = normalizeKey(relKey);
   const buffer = typeof data === 'string' ? Buffer.from(data) : Buffer.from(data);
+
+  // Calculate payload hash (required by AWS Signature V4)
+  const payloadHash = crypto.createHash('sha256').update(buffer).digest('hex');
+
+  // Create timestamp
+  const timestamp = new Date().toISOString().replace(/[:-]|\.\d{3}/g, '');
 
   // R2 endpoint for direct upload
   const endpoint = `https://${config.accountId}.r2.cloudflarestorage.com/${config.bucketName}/${key}`;
@@ -70,7 +77,9 @@ async function uploadToR2(
     'PUT',
     `/${config.bucketName}/${key}`,
     contentType,
-    buffer
+    buffer,
+    payloadHash,
+    timestamp
   );
 
   const response = await fetch(endpoint, {
@@ -79,6 +88,8 @@ async function uploadToR2(
       'Authorization': authHeader,
       'Content-Type': contentType,
       'Content-Length': buffer.length.toString(),
+      'x-amz-content-sha256': payloadHash,
+      'x-amz-date': timestamp,
     },
     body: buffer,
   });
@@ -102,17 +113,17 @@ async function createR2AuthHeader(
   method: string,
   path: string,
   contentType: string,
-  body: Buffer
+  body: Buffer,
+  payloadHash: string,
+  timestamp: string
 ): Promise<string> {
   const crypto = await import('crypto');
 
-  const timestamp = new Date().toISOString().replace(/[:-]|\.\d{3}/g, '');
   const date = timestamp.slice(0, 8);
   const region = 'auto';
   const service = 's3';
 
   // Create canonical request
-  const payloadHash = crypto.createHash('sha256').update(body).digest('hex');
   const canonicalHeaders = `content-type:${contentType}\nhost:${config.accountId}.r2.cloudflarestorage.com\nx-amz-content-sha256:${payloadHash}\nx-amz-date:${timestamp}\n`;
   const signedHeaders = 'content-type;host;x-amz-content-sha256;x-amz-date';
   const canonicalRequest = `${method}\n${path}\n\n${canonicalHeaders}\n${signedHeaders}\n${payloadHash}`;
