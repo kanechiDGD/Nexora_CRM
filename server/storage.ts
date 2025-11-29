@@ -67,6 +67,7 @@ async function uploadToR2(
       accessKeyId: config.accessKeyId,
       secretAccessKey: config.secretAccessKey,
     },
+    forcePathStyle: true, // CRÍTICO: R2 requiere path-style URLs
   });
 
   const key = normalizeKey(relKey);
