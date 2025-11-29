@@ -35,30 +35,9 @@ export default function ClientProfile() {
   const { data: activityLogs } = trpc.activityLogs.getByClientId.useQuery({ clientId });
   const { data: documents } = trpc.documents.getByClientId.useQuery({ clientId });
 
-  if (isLoading) {
-    return (
-      <DashboardLayout>
-        <div className="flex items-center justify-center min-h-[400px]">
-          <p className="text-muted-foreground">Cargando cliente...</p>
-        </div>
-      </DashboardLayout>
-    );
-  }
+  const utils = trpc.useUtils();
 
-  if (!client) {
-    return (
-      <DashboardLayout>
-        <div className="flex flex-col items-center justify-center min-h-[400px] gap-4">
-          <AlertCircle className="h-12 w-12 text-muted-foreground" />
-          <p className="text-muted-foreground">Cliente no encontrado</p>
-          <Button onClick={() => setLocation('/clients')}>
-            Volver a Clientes
-          </Button>
-        </div>
-      </DashboardLayout>
-    );
-  }
-
+  // Definir todas las funciones ANTES de los early returns
   const getStatusBadge = (status: string) => {
     const variants: Record<string, { variant: "default" | "secondary" | "destructive" | "outline", label: string }> = {
       'NO_SOMETIDA': { variant: 'outline', label: 'No Sometida' },
@@ -87,8 +66,6 @@ export default function ClientProfile() {
       currency: 'USD'
     }).format(amount);
   };
-
-  const utils = trpc.useUtils();
 
   const handleFileUpload = async (files: FileList) => {
     try {
@@ -127,6 +104,31 @@ export default function ClientProfile() {
       toast.error(error instanceof Error ? error.message : 'Error al subir archivos');
     }
   };
+
+  // AHORA los early returns DESPUÉS de todos los hooks y funciones
+  if (isLoading) {
+    return (
+      <DashboardLayout>
+        <div className="flex items-center justify-center min-h-[400px]">
+          <p className="text-muted-foreground">Cargando cliente...</p>
+        </div>
+      </DashboardLayout>
+    );
+  }
+
+  if (!client) {
+    return (
+      <DashboardLayout>
+        <div className="flex flex-col items-center justify-center min-h-[400px] gap-4">
+          <AlertCircle className="h-12 w-12 text-muted-foreground" />
+          <p className="text-muted-foreground">Cliente no encontrado</p>
+          <Button onClick={() => setLocation('/clients')}>
+            Volver a Clientes
+          </Button>
+        </div>
+      </DashboardLayout>
+    );
+  }
 
   return (
     <DashboardLayout>
