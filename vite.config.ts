@@ -24,7 +24,10 @@ export default defineConfig({
   build: {
     outDir: path.resolve(import.meta.dirname, "dist/public"),
     emptyOutDir: true,
+    // Asegurar que los assets usen paths relativos correctos
+    assetsDir: "assets",
   },
+  base: "/",  // Base path para assets en producción
   server: {
     host: true,
     allowedHosts: [
