@@ -128,11 +128,6 @@ export default function ClientProfile() {
     }
   };
 
-  // Debug: Log documents data
-  console.log('[ClientProfile] Documents data:', documents);
-  console.log('[ClientProfile] Documents count:', documents?.length || 0);
-  console.log('[ClientProfile] ClientId:', clientId);
-
   return (
     <DashboardLayout>
       <div className="space-y-6">
