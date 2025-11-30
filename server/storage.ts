@@ -95,7 +95,7 @@ async function uploadToR2(
       Key: key,
     });
 
-    const url = await getSignedUrl(s3Client as any, getCommand, {
+    const url = await getSignedUrl(s3Client as any, getCommand as any, {
       expiresIn: 604800 // 7 días en segundos
     });
 
