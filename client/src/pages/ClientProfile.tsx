@@ -25,6 +25,7 @@ import { useState } from "react";
 import { toast } from "sonner";
 import { trpc } from "@/lib/trpc";
 import DashboardLayout from "@/components/DashboardLayout";
+import DocumentsTab from "@/components/DocumentsTab";
 
 export default function ClientProfile() {
   const { id } = useParams();
@@ -738,6 +739,11 @@ export default function ClientProfile() {
                 )}
               </CardContent>
             </Card>
+          </TabsContent>
+
+          {/* Documents Tab */}
+          <TabsContent value="documents">
+            <DocumentsTab clientId={clientId} />
           </TabsContent>
         </Tabs>
       </div>
