@@ -392,6 +392,20 @@ export async function createDocument(data: InsertDocument) {
   return result;
 }
 
+export async function getDocumentById(id: number) {
+  const db = await getDb();
+  if (!db) return null;
+  const result = await db.select().from(documents).where(eq(documents.id, id)).limit(1);
+  return result[0] || null;
+}
+
+export async function deleteDocument(id: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  const result = await db.delete(documents).where(eq(documents.id, id));
+  return result;
+}
+
 // ============ AUDIT LOGS ============
 
 export async function createAuditLog(data: InsertAuditLog) {

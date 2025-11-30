@@ -85,10 +85,35 @@ router.post('/documents', upload.array('files', 10), async (req: Request, res: R
 
         for (const file of files) {
             try {
+                // Check for duplicate filenames and append (1), (2) etc.
+                let finalFileName = file.originalname;
+                const existingDocs = await db.getDocumentsByClientId(
+                    clientId || '',
+                    organizationMember.organizationId
+                );
+
+                const duplicates = existingDocs.filter(doc => {
+                    const docBase = doc.fileName.replace(/\s*\(\d+\)(\.[^.]+)?$/, '$1');
+                    const fileBase = finalFileName.replace(/\s*\(\d+\)(\.[^.]+)?$/, '$1');
+                    return docBase === fileBase || doc.fileName === finalFileName;
+                });
+
+                if (duplicates.length > 0) {
+                    const ext = finalFileName.lastIndexOf('.') > 0
+                        ? finalFileName.substring(finalFileName.lastIndexOf('.'))
+                        : '';
+                    const nameWithoutExt = ext
+                        ? finalFileName.substring(0, finalFileName.lastIndexOf('.'))
+                        : finalFileName;
+
+                    finalFileName = `${nameWithoutExt} (${duplicates.length})${ext}`;
+                    console.log('[Upload] Duplicate detected, renamed to:', finalFileName);
+                }
+
                 // Generar un nombre único para el archivo
                 const timestamp = Date.now();
                 const randomStr = Math.random().toString(36).substring(7);
-                const sanitizedFileName = file.originalname.replace(/[^a-zA-Z0-9.-]/g, '_');
+                const sanitizedFileName = finalFileName.replace(/[^a-zA-Z0-9.-]/g, '_');
                 const storageKey = `documents/${organizationMember.organizationId}/${clientId || constructionProjectId}/${timestamp}-${randomStr}-${sanitizedFileName}`;
 
                 console.log('[Upload] Uploading file to S3:', storageKey);
@@ -133,7 +158,7 @@ router.post('/documents', upload.array('files', 10), async (req: Request, res: R
                     constructionProjectId: constructionProjectId ? parseInt(constructionProjectId) : null,
                     organizationId: organizationMember.organizationId,
                     documentType: docType,
-                    fileName: file.originalname,
+                    fileName: finalFileName,
                     fileUrl: url,
                     fileKey: key,
                     mimeType: file.mimetype,
@@ -174,6 +199,96 @@ router.post('/documents', upload.array('files', 10), async (req: Request, res: R
     } catch (error) {
         console.error('[Upload] Error:', error);
         return res.status(500).json({ error: 'Error al procesar la subida de archivos' });
+    }
+});
+
+// Endpoint para eliminar documentos (solo admin y co-admin)
+router.delete('/documents/:id', async (req: Request, res: Response) => {
+    try {
+        // Autenticar usuario
+        let user;
+        try {
+            user = await sdk.authenticateRequest(req);
+        } catch (error) {
+            return res.status(401).json({ error: 'No autenticado' });
+        }
+
+        // Verificar que el usuario pertenece a una organización
+        const organizationMember = await db.getOrganizationMemberByUserId(user.id);
+        if (!organizationMember) {
+            return res.status(403).json({ error: 'Usuario no pertenece a ninguna organización' });
+        }
+
+        // Verificar que el usuario es admin o co-admin
+        if (organizationMember.role !== 'ADMIN' && organizationMember.role !== 'CO_ADMIN') {
+            return res.status(403).json({ error: 'No tienes permisos para eliminar documentos' });
+        }
+
+        const documentId = parseInt(req.params.id);
+        if (isNaN(documentId)) {
+            return res.status(400).json({ error: 'ID de documento inválido' });
+        }
+
+        console.log('[Delete] Request to delete document:', documentId);
+
+        // Obtener el documento
+        const document = await db.getDocumentById(documentId);
+        if (!document) {
+            return res.status(404).json({ error: 'Documento no encontrado' });
+        }
+
+        // Verificar que el documento pertenece a la organización del usuario
+        if (document.organizationId !== organizationMember.organizationId) {
+            return res.status(403).json({ error: 'No tienes permisos para eliminar este documento' });
+        }
+
+        // Eliminar archivo de R2 si existe fileKey
+        if (document.fileKey) {
+            try {
+                const { S3Client, DeleteObjectCommand } = await import('@aws-sdk/client-s3');
+
+                const r2AccountId = process.env.R2_ACCOUNT_ID;
+                const r2AccessKeyId = process.env.R2_ACCESS_KEY_ID;
+                const r2SecretAccessKey = process.env.R2_SECRET_ACCESS_KEY;
+                const r2BucketName = process.env.R2_BUCKET_NAME || 'nexora';
+
+                if (r2AccountId && r2AccessKeyId && r2SecretAccessKey) {
+                    const s3Client = new S3Client({
+                        region: 'auto',
+                        endpoint: `https://${r2AccountId}.r2.cloudflarestorage.com`,
+                        credentials: {
+                            accessKeyId: r2AccessKeyId,
+                            secretAccessKey: r2SecretAccessKey,
+                        },
+                        forcePathStyle: true,
+                    });
+
+                    const deleteCommand = new DeleteObjectCommand({
+                        Bucket: r2BucketName,
+                        Key: document.fileKey,
+                    });
+
+                    await s3Client.send(deleteCommand);
+                    console.log('[Delete] File deleted from R2:', document.fileKey);
+                }
+            } catch (error) {
+                console.error('[Delete] Error deleting file from R2:', error);
+                // Continuar con eliminación de DB aunque falle R2
+            }
+        }
+
+        // Eliminar registro de la base de datos
+        await db.deleteDocument(documentId);
+        console.log('[Delete] Document deleted from database');
+
+        return res.status(200).json({
+            success: true,
+            message: 'Documento eliminado correctamente',
+        });
+
+    } catch (error) {
+        console.error('[Delete] Error:', error);
+        return res.status(500).json({ error: 'Error al eliminar el documento' });
     }
 });
 
