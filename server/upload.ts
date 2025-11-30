@@ -172,7 +172,7 @@ router.post('/documents', upload.array('files', 10), async (req: Request, res: R
                 console.log('[Upload] Document saved to database successfully');
 
                 uploadedDocuments.push({
-                    fileName: file.originalname,
+                    fileName: finalFileName,
                     fileUrl: url,
                     documentType: docType,
                     fileSize: file.size,
