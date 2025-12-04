@@ -35,17 +35,16 @@ export async function getDb() {
   if (!_db && process.env.DATABASE_URL) {
     try {
       // Create connection pool with proper configuration
+      // NOTE: Pass DATABASE_URL directly as string, NOT as { uri: ... }
       _pool = mysql.createPool({
-        uri: process.env.DATABASE_URL,
+        uri: process.env.DATABASE_URL, // mysql2 accepts 'uri' for connection strings
         connectionLimit: 10,
         waitForConnections: true,
         queueLimit: 0,
         enableKeepAlive: true,
         keepAliveInitialDelay: 0,
         connectTimeout: 30000,
-        // Add connection acquisition timeout
         acquireTimeout: 60000,
-        // Enable multiple statements for migrations
         multipleStatements: false,
       });
 
@@ -54,7 +53,8 @@ export async function getDb() {
       console.log("[Database] Connection pool established successfully");
       connection.release();
 
-      _db = drizzle(_pool);
+      // CRITICAL FIX: Use { client: pool } syntax for Drizzle
+      _db = drizzle({ client: _pool });
     } catch (error) {
       console.error("[Database] Failed to connect:", error);
       _db = null;
