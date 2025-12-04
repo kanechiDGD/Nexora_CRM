@@ -37,62 +37,62 @@ export default function Dashboard() {
   const { data: pendingSubmission, isLoading: loadingPending } = trpc.dashboard.pendingSubmission.useQuery();
   const { data: readyForConstruction, isLoading: loadingReady } = trpc.dashboard.readyForConstruction.useQuery();
   const { data: upcomingContacts, isLoading: loadingUpcoming } = trpc.dashboard.upcomingContacts.useQuery();
-  
+
   // Obtener clientes que necesitan contacto (últimos 7 días)
   const { data: clientsNeedingContact } = trpc.clients.list.useQuery();
-  
+
   // Obtener eventos del calendario
   const { data: events } = trpc.events.list.useQuery();
-  
+
   // Obtener tareas pendientes
   const { data: tasks } = trpc.tasks.list.useQuery();
-  
+
   // Filtrar solo tareas pendientes y en progreso
-  const pendingTasks = tasks?.filter((task: any) => 
+  const pendingTasks = tasks?.filter((task: any) =>
     task.status === 'PENDIENTE' || task.status === 'EN_PROGRESO'
   ).slice(0, 5) || []; // Mostrar solo las primeras 5
-  
+
   // Calcular alertas de contacto con sistema progresivo (aparecen 2 días antes)
   const contactAlerts = clientsNeedingContact?.filter((client: any) => {
     // Si no tiene nextContactDate, usar lastContactDate + 7 días como fallback
-    const nextContact = client.nextContactDate 
+    const nextContact = client.nextContactDate
       ? new Date(client.nextContactDate)
-      : client.lastContactDate 
+      : client.lastContactDate
         ? new Date(new Date(client.lastContactDate).getTime() + 7 * 24 * 60 * 60 * 1000)
         : new Date(); // Si no hay ninguna fecha, mostrar hoy
-    
+
     const daysUntilContact = differenceInDays(nextContact, new Date());
-    
+
     // Mostrar alertas desde 2 días antes hasta después de la fecha
     return daysUntilContact <= 2;
   }).map((client: any) => {
-    const nextContact = client.nextContactDate 
+    const nextContact = client.nextContactDate
       ? new Date(client.nextContactDate)
-      : client.lastContactDate 
+      : client.lastContactDate
         ? new Date(new Date(client.lastContactDate).getTime() + 7 * 24 * 60 * 60 * 1000)
         : new Date();
-    
+
     const daysUntilContact = differenceInDays(nextContact, new Date());
-    
+
     // Determinar prioridad según días restantes
     let priority = 'low';
     if (daysUntilContact < 0) priority = 'urgent'; // Pasado
     else if (daysUntilContact === 0) priority = 'high'; // Hoy
     else if (daysUntilContact === 1) priority = 'medium'; // Mañana
     else priority = 'low'; // 2 días antes
-    
+
     return {
       ...client,
       daysUntilContact,
       priority
     };
   }).sort((a: any, b: any) => a.daysUntilContact - b.daysUntilContact) || [];
-  
+
   // Convertir eventos de la base de datos al formato del calendario
   const calendarEvents = events?.map((event: any) => ({
     title: event.title,
     start: new Date(event.eventDate),
-    end: event.endTime 
+    end: event.endTime
       ? new Date(event.eventDate + 'T' + event.endTime)
       : new Date(new Date(event.eventDate).getTime() + 60 * 60 * 1000), // +1 hora por defecto
     resource: event,
@@ -112,8 +112,215 @@ export default function Dashboard() {
           </p>
         </div>
 
-        {/* Calendario y Alertas */}
-        <div className="grid gap-6 lg:grid-cols-3 mb-8">
+        {/* Sección de Estados de Reclamo */}
+        <div>
+          <h2 className="text-2xl font-bold text-foreground mb-4">Clientes por Estado de Reclamo</h2>
+          <p className="text-muted-foreground mb-6">
+            Conteo de clientes agrupados por estado (predeterminados y personalizados)
+          </p>
+          <ClaimStatusCards />
+        </div>
+
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+          {/* Total de Clientes */}
+          <Card
+            className="cursor-pointer hover:bg-accent/50 transition-colors border-border"
+            onClick={() => handleCardClick('all')}
+          >
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Total de Clientes</CardTitle>
+              <Users className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-foreground">
+                {loadingTotal ? "..." : totalClients?.count || 0}
+              </div>
+              <p className="text-xs text-muted-foreground mt-1">
+                Todos los clientes en el sistema
+              </p>
+            </CardContent>
+          </Card>
+
+          {/* Contacto Atrasado */}
+          <Card
+            className="cursor-pointer hover:bg-accent/50 transition-colors border-border border-l-4 border-l-destructive"
+            onClick={() => handleCardClick('late-contact')}
+          >
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Contacto Atrasado</CardTitle>
+              <Clock className="h-4 w-4 text-destructive" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-foreground">
+                {loadingLate ? "..." : lateContact?.count || 0}
+              </div>
+              <p className="text-xs text-muted-foreground mt-1">
+                Más de 7 días sin contacto
+              </p>
+            </CardContent>
+          </Card>
+
+          {/* No Suplementado */}
+          <Card
+            className="cursor-pointer hover:bg-accent/50 transition-colors border-border border-l-4 border-l-yellow-500"
+            onClick={() => handleCardClick('not-supplemented')}
+          >
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">No Suplementado</CardTitle>
+              <FileX className="h-4 w-4 text-yellow-500" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-foreground">
+                {loadingSupp ? "..." : notSupplemented?.count || 0}
+              </div>
+              <p className="text-xs text-muted-foreground mt-1">
+                Clientes sin suplemento
+              </p>
+            </CardContent>
+          </Card>
+
+          {/* Pendientes por Someter */}
+          <Card
+            className="cursor-pointer hover:bg-accent/50 transition-colors border-border border-l-4 border-l-orange-500"
+            onClick={() => handleCardClick('pending-submission')}
+          >
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Pendientes por Someter</CardTitle>
+              <AlertCircle className="h-4 w-4 text-orange-500" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-foreground">
+                {loadingPending ? "..." : pendingSubmission?.count || 0}
+              </div>
+              <p className="text-xs text-muted-foreground mt-1">
+                Reclamos no sometidos
+              </p>
+            </CardContent>
+          </Card>
+
+          {/* Listas para Construir */}
+          <Card
+            className="cursor-pointer hover:bg-accent/50 transition-colors border-border border-l-4 border-l-green-500"
+            onClick={() => handleCardClick('ready-construction')}
+          >
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Listas para Construir</CardTitle>
+              <Building2 className="h-4 w-4 text-green-500" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-foreground">
+                {loadingReady ? "..." : readyForConstruction?.count || 0}
+              </div>
+              <p className="text-xs text-muted-foreground mt-1">
+                Aprobadas con primer cheque
+              </p>
+            </CardContent>
+          </Card>
+
+          {/* Próximos Contactos */}
+          <Card
+            className="cursor-pointer hover:bg-accent/50 transition-colors border-border border-l-4 border-l-blue-500"
+            onClick={() => handleCardClick('upcoming-contacts')}
+          >
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Próximos Contactos</CardTitle>
+              <Calendar className="h-4 w-4 text-blue-500" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-foreground">
+                {loadingUpcoming ? "..." : upcomingContacts?.count || 0}
+              </div>
+              <p className="text-xs text-muted-foreground mt-1">
+                Próximos 7 días
+              </p>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Tareas Pendientes */}
+        <Card className="border-border shadow-sm">
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle className="flex items-center gap-2">
+                  <CheckSquare className="h-5 w-5 text-primary" />
+                  Tareas Pendientes
+                </CardTitle>
+                <CardDescription>
+                  Tareas activas con fechas límite y asignaciones
+                </CardDescription>
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setLocation('/tasks')}
+              >
+                Ver Todas
+              </Button>
+            </div>
+          </CardHeader>
+          <CardContent>
+            {pendingTasks.length === 0 ? (
+              <p className="text-sm text-muted-foreground text-center py-8">
+                No hay tareas pendientes
+              </p>
+            ) : (
+              <div className="space-y-4">
+                {pendingTasks.map((task: any) => (
+                  <div
+                    key={task.id}
+                    className="flex items-center justify-between p-4 rounded-lg border border-border bg-card hover:bg-accent/50 transition-colors cursor-pointer"
+                    onClick={() => setLocation('/tasks')}
+                  >
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2 mb-1">
+                        <h4 className="font-medium text-sm">{task.title}</h4>
+                        <Badge variant={task.status === 'EN_PROGRESO' ? 'default' : 'secondary'}>
+                          {task.status === 'PENDIENTE' ? 'Pendiente' : 'En Progreso'}
+                        </Badge>
+                        {task.priority && (
+                          <Badge
+                            variant={task.priority === 'ALTA' ? 'destructive' : task.priority === 'MEDIA' ? 'default' : 'outline'}
+                            className="text-xs"
+                          >
+                            {task.priority}
+                          </Badge>
+                        )}
+                      </div>
+                      {task.description && (
+                        <p className="text-xs text-muted-foreground line-clamp-1">
+                          {task.description}
+                        </p>
+                      )}
+                    </div>
+                    <div className="flex items-center gap-6 ml-4">
+                      {task.dueDate && (
+                        <div className="text-right">
+                          <div className="text-xs text-muted-foreground">Fecha Límite</div>
+                          <div className="text-sm font-medium">
+                            {new Date(task.dueDate).toLocaleDateString('es-ES', {
+                              day: '2-digit',
+                              month: 'short'
+                            })}
+                          </div>
+                        </div>
+                      )}
+                      {task.assignedTo && (
+                        <div className="flex items-center gap-2">
+                          <UserIcon className="h-4 w-4 text-muted-foreground" />
+                          <div className="text-sm">{task.assignedToName || `Usuario #${task.assignedTo}`}</div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Calendario y Alertas - MOVIDO AL FINAL */}
+        <div className="grid gap-6 lg:grid-cols-3">
           {/* Calendario Visual */}
           <div className="lg:col-span-2">
             <Card className="border-border shadow-sm">
@@ -184,22 +391,22 @@ export default function Dashboard() {
                           </div>
                           <Badge
                             variant={
-                              alert.priority === 'urgent' ? 'destructive' : 
-                              alert.priority === 'high' ? 'destructive' : 
-                              alert.priority === 'medium' ? 'default' : 
-                              'secondary'
+                              alert.priority === 'urgent' ? 'destructive' :
+                                alert.priority === 'high' ? 'destructive' :
+                                  alert.priority === 'medium' ? 'default' :
+                                    'secondary'
                             }
                             className={
                               alert.priority === 'urgent' ? 'text-xs bg-red-600' :
-                              alert.priority === 'high' ? 'text-xs bg-orange-500' :
-                              alert.priority === 'medium' ? 'text-xs bg-yellow-500' :
-                              'text-xs bg-green-500'
+                                alert.priority === 'high' ? 'text-xs bg-orange-500' :
+                                  alert.priority === 'medium' ? 'text-xs bg-yellow-500' :
+                                    'text-xs bg-green-500'
                             }
                           >
-                            {alert.daysUntilContact < 0 ? '¡Atrasado!' : 
-                             alert.daysUntilContact === 0 ? '¡Hoy!' : 
-                             alert.daysUntilContact === 1 ? 'Mañana' :
-                             `${alert.daysUntilContact}d`}
+                            {alert.daysUntilContact < 0 ? '¡Atrasado!' :
+                              alert.daysUntilContact === 0 ? '¡Hoy!' :
+                                alert.daysUntilContact === 1 ? 'Mañana' :
+                                  `${alert.daysUntilContact}d`}
                           </Badge>
                         </div>
                         <div className="space-y-1">
@@ -235,215 +442,8 @@ export default function Dashboard() {
             </Card>
           </div>
         </div>
-
-        {/* Sección de Estados de Reclamo */}
-        <div>
-          <h2 className="text-2xl font-bold text-foreground mb-4">Clientes por Estado de Reclamo</h2>
-          <p className="text-muted-foreground mb-6">
-            Conteo de clientes agrupados por estado (predeterminados y personalizados)
-          </p>
-          <ClaimStatusCards />
-        </div>
-
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-          {/* Total de Clientes */}
-          <Card 
-            className="cursor-pointer hover:bg-accent/50 transition-colors border-border"
-            onClick={() => handleCardClick('all')}
-          >
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Total de Clientes</CardTitle>
-              <Users className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-foreground">
-                {loadingTotal ? "..." : totalClients?.count || 0}
-              </div>
-              <p className="text-xs text-muted-foreground mt-1">
-                Todos los clientes en el sistema
-              </p>
-            </CardContent>
-          </Card>
-
-          {/* Contacto Atrasado */}
-          <Card 
-            className="cursor-pointer hover:bg-accent/50 transition-colors border-border border-l-4 border-l-destructive"
-            onClick={() => handleCardClick('late-contact')}
-          >
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Contacto Atrasado</CardTitle>
-              <Clock className="h-4 w-4 text-destructive" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-foreground">
-                {loadingLate ? "..." : lateContact?.count || 0}
-              </div>
-              <p className="text-xs text-muted-foreground mt-1">
-                Más de 7 días sin contacto
-              </p>
-            </CardContent>
-          </Card>
-
-          {/* No Suplementado */}
-          <Card 
-            className="cursor-pointer hover:bg-accent/50 transition-colors border-border border-l-4 border-l-yellow-500"
-            onClick={() => handleCardClick('not-supplemented')}
-          >
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">No Suplementado</CardTitle>
-              <FileX className="h-4 w-4 text-yellow-500" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-foreground">
-                {loadingSupp ? "..." : notSupplemented?.count || 0}
-              </div>
-              <p className="text-xs text-muted-foreground mt-1">
-                Clientes sin suplemento
-              </p>
-            </CardContent>
-          </Card>
-
-          {/* Pendientes por Someter */}
-          <Card 
-            className="cursor-pointer hover:bg-accent/50 transition-colors border-border border-l-4 border-l-orange-500"
-            onClick={() => handleCardClick('pending-submission')}
-          >
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Pendientes por Someter</CardTitle>
-              <AlertCircle className="h-4 w-4 text-orange-500" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-foreground">
-                {loadingPending ? "..." : pendingSubmission?.count || 0}
-              </div>
-              <p className="text-xs text-muted-foreground mt-1">
-                Reclamos no sometidos
-              </p>
-            </CardContent>
-          </Card>
-
-          {/* Listas para Construir */}
-          <Card 
-            className="cursor-pointer hover:bg-accent/50 transition-colors border-border border-l-4 border-l-green-500"
-            onClick={() => handleCardClick('ready-construction')}
-          >
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Listas para Construir</CardTitle>
-              <Building2 className="h-4 w-4 text-green-500" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-foreground">
-                {loadingReady ? "..." : readyForConstruction?.count || 0}
-              </div>
-              <p className="text-xs text-muted-foreground mt-1">
-                Aprobadas con primer cheque
-              </p>
-            </CardContent>
-          </Card>
-
-          {/* Próximos Contactos */}
-          <Card 
-            className="cursor-pointer hover:bg-accent/50 transition-colors border-border border-l-4 border-l-blue-500"
-            onClick={() => handleCardClick('upcoming-contacts')}
-          >
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Próximos Contactos</CardTitle>
-              <Calendar className="h-4 w-4 text-blue-500" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-foreground">
-                {loadingUpcoming ? "..." : upcomingContacts?.count || 0}
-              </div>
-              <p className="text-xs text-muted-foreground mt-1">
-                Próximos 7 días
-              </p>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Tareas Pendientes */}
-        <Card className="border-border shadow-sm">
-          <CardHeader>
-            <div className="flex items-center justify-between">
-              <div>
-                <CardTitle className="flex items-center gap-2">
-                  <CheckSquare className="h-5 w-5 text-primary" />
-                  Tareas Pendientes
-                </CardTitle>
-                <CardDescription>
-                  Tareas activas con fechas límite y asignaciones
-                </CardDescription>
-              </div>
-              <Button 
-                variant="outline" 
-                size="sm"
-                onClick={() => setLocation('/tasks')}
-              >
-                Ver Todas
-              </Button>
-            </div>
-          </CardHeader>
-          <CardContent>
-            {pendingTasks.length === 0 ? (
-              <p className="text-sm text-muted-foreground text-center py-8">
-                No hay tareas pendientes
-              </p>
-            ) : (
-              <div className="space-y-4">
-                {pendingTasks.map((task: any) => (
-                  <div 
-                    key={task.id}
-                    className="flex items-center justify-between p-4 rounded-lg border border-border bg-card hover:bg-accent/50 transition-colors cursor-pointer"
-                    onClick={() => setLocation('/tasks')}
-                  >
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2 mb-1">
-                        <h4 className="font-medium text-sm">{task.title}</h4>
-                        <Badge variant={task.status === 'EN_PROGRESO' ? 'default' : 'secondary'}>
-                          {task.status === 'PENDIENTE' ? 'Pendiente' : 'En Progreso'}
-                        </Badge>
-                        {task.priority && (
-                          <Badge 
-                            variant={task.priority === 'ALTA' ? 'destructive' : task.priority === 'MEDIA' ? 'default' : 'outline'}
-                            className="text-xs"
-                          >
-                            {task.priority}
-                          </Badge>
-                        )}
-                      </div>
-                      {task.description && (
-                        <p className="text-xs text-muted-foreground line-clamp-1">
-                          {task.description}
-                        </p>
-                      )}
-                    </div>
-                    <div className="flex items-center gap-6 ml-4">
-                      {task.dueDate && (
-                        <div className="text-right">
-                          <div className="text-xs text-muted-foreground">Fecha Límite</div>
-                          <div className="text-sm font-medium">
-                            {new Date(task.dueDate).toLocaleDateString('es-ES', { 
-                              day: '2-digit', 
-                              month: 'short' 
-                            })}
-                          </div>
-                        </div>
-                      )}
-                      {task.assignedTo && (
-                        <div className="flex items-center gap-2">
-                          <UserIcon className="h-4 w-4 text-muted-foreground" />
-                          <div className="text-sm">{task.assignedToName || `Usuario #${task.assignedTo}`}</div>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </CardContent>
-        </Card>
       </div>
-      
+
       {/* Diálogo de Detalles de Contacto */}
       {selectedClient && (
         <ClientContactDialog
