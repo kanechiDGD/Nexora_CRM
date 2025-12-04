@@ -1,5 +1,6 @@
 import { eq } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
+import mysql from "mysql2/promise";
 import {
   InsertUser,
   users,
@@ -27,18 +28,50 @@ import {
 import { ENV } from './_core/env';
 
 let _db: ReturnType<typeof drizzle> | null = null;
+let _pool: mysql.Pool | null = null;
 
-// Lazily create the drizzle instance so local tooling can run without a DB.
+// Lazily create the drizzle instance with proper connection pooling
 export async function getDb() {
   if (!_db && process.env.DATABASE_URL) {
     try {
-      _db = drizzle(process.env.DATABASE_URL);
+      // Create connection pool with proper configuration
+      _pool = mysql.createPool({
+        uri: process.env.DATABASE_URL,
+        connectionLimit: 10,
+        waitForConnections: true,
+        queueLimit: 0,
+        enableKeepAlive: true,
+        keepAliveInitialDelay: 0,
+        connectTimeout: 30000,
+        // Add connection acquisition timeout
+        acquireTimeout: 60000,
+        // Enable multiple statements for migrations
+        multipleStatements: false,
+      });
+
+      // Test the connection
+      const connection = await _pool.getConnection();
+      console.log("[Database] Connection pool established successfully");
+      connection.release();
+
+      _db = drizzle(_pool);
     } catch (error) {
-      console.warn("[Database] Failed to connect:", error);
+      console.error("[Database] Failed to connect:", error);
       _db = null;
+      _pool = null;
     }
   }
   return _db;
+}
+
+// Graceful shutdown
+export async function closeDb() {
+  if (_pool) {
+    await _pool.end();
+    _pool = null;
+    _db = null;
+    console.log("[Database] Connection pool closed");
+  }
 }
 
 export async function upsertUser(user: InsertUser): Promise<void> {
@@ -639,9 +672,20 @@ export async function getOrganizationMemberByUsername(username: string) {
     const result = await db.select().from(organizationMembers)
       .where(eq(organizationMembers.username, username)).limit(1);
     return result.length > 0 ? result[0] : undefined;
-  } catch (error) {
+  } catch (error: any) {
+    // Log detailed error information
     console.error('[DB] Error in getOrganizationMemberByUsername:', error);
     console.error('[DB] Username was:', username);
+    console.error('[DB] Error code:', error?.code);
+    console.error('[DB] SQL State:', error?.sqlState);
+
+    // If it's a connection error, return undefined instead of throwing
+    // This prevents login failures due to transient connection issues
+    if (error?.code === 'ECONNRESET' || error?.code === 'ETIMEDOUT' || error?.code === 'ENOTFOUND') {
+      console.error('[DB] Transient connection error, returning undefined');
+      return undefined;
+    }
+
     throw error;
   }
 }

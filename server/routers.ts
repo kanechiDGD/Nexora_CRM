@@ -111,9 +111,10 @@ export const appRouter = router({
 
         // Crear sesión JWT (igual que OAuth)
         const { sdk } = await import('./_core/sdk');
-        // Crear sesión y cookie
+        // Crear sesión y cookie con expiración de 1 año
         const sessionToken = await sdk.createSessionToken(user.openId, {
           name: user.name || input.username,
+          expiresInMs: ONE_YEAR_MS,
         });
 
         const cookieOptions = getSessionCookieOptions(ctx.req);
