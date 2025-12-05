@@ -176,7 +176,9 @@ export default function Login() {
                   </Label>
                   <Input
                     id="username"
+                    name="username"
                     type="text"
+                    autoComplete="username"
                     placeholder={t('login.usernamePlaceholder')}
                     value={username}
                     onChange={(e) => setUsername(e.target.value)}
@@ -191,7 +193,9 @@ export default function Login() {
                   </Label>
                   <Input
                     id="password"
+                    name="password"
                     type="password"
+                    autoComplete="current-password"
                     placeholder={t('login.passwordPlaceholder')}
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
