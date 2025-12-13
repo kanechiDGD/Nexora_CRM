@@ -1,4 +1,4 @@
-# CRM Public Adjusters
+# CRM Public Adjustersss
 
 Sistema de CRM multi-tenant construido con React, TypeScript, tRPC y MySQL.
 
