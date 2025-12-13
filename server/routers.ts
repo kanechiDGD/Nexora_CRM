@@ -119,10 +119,15 @@ export const appRouter = router({
         });
 
         const cookieOptions = getSessionCookieOptions(ctx.req);
-        // Establecer maxAge de 1 año para que la cookie persista si rememberMe es true
+        // Establecer maxAge:
+        // - Si rememberMe es true: 1 año (ONE_YEAR_MS)
+        // - Si rememberMe es false: 30 días (para evitar cierre de sesión por timeout corto)
+        // Esto responde a la necesidad de "nunca cerrar sesión sola"
+        const THIRTY_DAYS_MS = 30 * 24 * 60 * 60 * 1000;
+
         ctx.res.cookie(COOKIE_NAME, sessionToken, {
           ...cookieOptions,
-          maxAge: input.rememberMe ? ONE_YEAR_MS : undefined,
+          maxAge: input.rememberMe ? ONE_YEAR_MS : THIRTY_DAYS_MS,
         });
 
         return {
