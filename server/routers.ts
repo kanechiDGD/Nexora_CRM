@@ -80,6 +80,7 @@ export const appRouter = router({
       .input(z.object({
         username: z.string(),
         password: z.string(),
+        rememberMe: z.boolean().optional().default(false),
       }))
       .mutation(async ({ input, ctx }) => {
         // Buscar miembro por username
@@ -118,10 +119,10 @@ export const appRouter = router({
         });
 
         const cookieOptions = getSessionCookieOptions(ctx.req);
-        // Establecer maxAge de 1 año para que la cookie persista
+        // Establecer maxAge de 1 año para que la cookie persista si rememberMe es true
         ctx.res.cookie(COOKIE_NAME, sessionToken, {
           ...cookieOptions,
-          maxAge: ONE_YEAR_MS
+          maxAge: input.rememberMe ? ONE_YEAR_MS : undefined,
         });
 
         return {
