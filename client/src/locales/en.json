@@ -303,6 +303,7 @@
     "usernamePlaceholder": "user@organization.internal",
     "password": "Password",
     "passwordPlaceholder": "••••••••",
+    "rememberMe": "Remember me",
     "loginButton": "Sign In",
     "loggingIn": "Signing in...",
     "backToOptions": "← Back to options",

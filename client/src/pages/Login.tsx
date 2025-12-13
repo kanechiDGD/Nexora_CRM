@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -22,6 +23,7 @@ export default function Login() {
   const [showLoginForm, setShowLoginForm] = useState(false);
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
+  const [rememberMe, setRememberMe] = useState(true);
   const [error, setError] = useState("");
 
   const loginMutation = trpc.auth.loginWithCredentials.useMutation({
@@ -37,7 +39,7 @@ export default function Login() {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
-    loginMutation.mutate({ username, password });
+    loginMutation.mutate({ username, password, rememberMe });
   };
 
   const handleCreateOrganization = () => {
@@ -202,6 +204,21 @@ export default function Login() {
                     required
                     className="bg-slate-900/50 border-slate-600 text-white placeholder:text-slate-500 h-9 sm:h-10 md:h-11 text-sm sm:text-base"
                   />
+                </div>
+
+                <div className="flex items-center space-x-2">
+                  <Checkbox
+                    id="remember-me"
+                    checked={rememberMe}
+                    onCheckedChange={(checked) => setRememberMe(Boolean(checked))}
+                    className="border-slate-600 data-[state=checked]:bg-blue-600 data-[state=checked]:text-white"
+                  />
+                  <Label
+                    htmlFor="remember-me"
+                    className="text-xs sm:text-sm text-slate-300 cursor-pointer"
+                  >
+                    {t('login.rememberMe')}
+                  </Label>
                 </div>
 
                 {error && (
