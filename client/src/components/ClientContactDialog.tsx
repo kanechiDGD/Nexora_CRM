@@ -86,7 +86,7 @@ export function ClientContactDialog({ open, onOpenChange, clientId, clientName }
     
     createActivity.mutate({
       clientId,
-      activityType: contactMethod as any,
+      activityType: contactMethod as "LLAMADA" | "CORREO" | "VISITA" | "NOTA" | "DOCUMENTO" | "CAMBIO_ESTADO",
       subject,
       description,
       outcome: null,

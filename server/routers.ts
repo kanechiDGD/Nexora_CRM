@@ -124,10 +124,12 @@ export const appRouter = router({
         // - Si rememberMe es false: 30 días (para evitar cierre de sesión por timeout corto)
         // Esto responde a la necesidad de "nunca cerrar sesión sola"
         const THIRTY_DAYS_MS = 30 * 24 * 60 * 60 * 1000;
+        const maxAge = input.rememberMe ? ONE_YEAR_MS : THIRTY_DAYS_MS;
 
         ctx.res.cookie(COOKIE_NAME, sessionToken, {
           ...cookieOptions,
-          maxAge: input.rememberMe ? ONE_YEAR_MS : THIRTY_DAYS_MS,
+          maxAge,
+          expires: new Date(Date.now() + maxAge), // Redundancia para compatibilidad
         });
 
         return {

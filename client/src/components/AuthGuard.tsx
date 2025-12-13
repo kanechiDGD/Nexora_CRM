@@ -17,6 +17,7 @@ export default function AuthGuard({ children }: AuthGuardProps) {
     {
       enabled: !!user, // Solo ejecutar si el usuario está autenticado
       retry: false,
+      refetchOnWindowFocus: false,
     }
   );
 
