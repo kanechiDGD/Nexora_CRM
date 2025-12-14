@@ -7,6 +7,11 @@ import { trpc } from "@/lib/trpc";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
+import { useState } from "react";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Input } from "@/components/ui/input";
 
 interface ClientContactDialogProps {
   open: boolean;
@@ -17,7 +22,10 @@ interface ClientContactDialogProps {
 
 export function ClientContactDialog({ open, onOpenChange, clientId, clientName }: ClientContactDialogProps) {
   const utils = trpc.useUtils();
-  
+  const [contactMethod, setContactMethod] = useState<string>("LLAMADA");
+  const [description, setDescription] = useState("");
+  const [subject, setSubject] = useState("");
+
   // Obtener información del cliente
   const { data: client, isLoading: loadingClient } = trpc.clients.getById.useQuery(
     { id: clientId },
@@ -32,32 +40,58 @@ export function ClientContactDialog({ open, onOpenChange, clientId, clientName }
   
   const lastActivity = activities && activities.length > 0 ? activities[0] : null;
   
-  // Mutación para marcar como contactado
-  const markAsContacted = trpc.clients.update.useMutation({
+  // Mutación para crear log de actividad
+  const createActivity = trpc.activityLogs.create.useMutation({
     onSuccess: () => {
-      toast.success("Cliente marcado como contactado");
+      // Una vez creado el log, actualizamos el cliente
+      const today = new Date();
+      const nextContact = new Date(today);
+      nextContact.setDate(nextContact.getDate() + 7); // Próximo contacto en 7 días
+
+      updateClientContact.mutate({
+        id: clientId,
+        data: {
+          lastContactDate: today,
+          nextContactDate: nextContact,
+        },
+      });
+    },
+    onError: (error) => {
+      toast.error(`Error al registrar actividad: ${error.message}`);
+    },
+  });
+
+  // Mutación para actualizar fecha de contacto del cliente
+  const updateClientContact = trpc.clients.update.useMutation({
+    onSuccess: () => {
+      toast.success("Contacto registrado y cliente actualizado");
       utils.dashboard.lateContact.invalidate();
       utils.clients.list.invalidate();
+      utils.activityLogs.getByClientId.invalidate();
+      setDescription("");
+      setSubject("");
       onOpenChange(false);
     },
     onError: (error) => {
-      toast.error(`Error al actualizar: ${error.message}`);
+      toast.error(`Error al actualizar cliente: ${error.message}`);
     },
   });
   
-  const handleMarkAsContacted = () => {
+  const handleSubmit = () => {
     if (!clientId) return;
+    if (!description || !subject) {
+      toast.error("Por favor completa el asunto y la descripción");
+      return;
+    }
     
-    const today = new Date();
-    const nextContact = new Date(today);
-    nextContact.setDate(nextContact.getDate() + 7); // Próximo contacto en 7 días
-    
-    markAsContacted.mutate({
-      id: clientId,
-      data: {
-        lastContactDate: today,
-        nextContactDate: nextContact,
-      },
+    createActivity.mutate({
+      clientId,
+      activityType: contactMethod as "LLAMADA" | "CORREO" | "VISITA" | "NOTA" | "DOCUMENTO" | "CAMBIO_ESTADO",
+      subject,
+      description,
+      outcome: null,
+      contactMethod: null,
+      duration: null,
     });
   };
   
@@ -268,22 +302,69 @@ export function ClientContactDialog({ open, onOpenChange, clientId, clientName }
             </>
           )}
           
-          {/* Botón de Acción */}
-          <div className="flex gap-3 pt-4">
-            <Button 
-              onClick={handleMarkAsContacted}
-              className="flex-1"
-              disabled={markAsContacted.isPending}
-            >
-              <CheckCircle className="h-4 w-4 mr-2" />
-              {markAsContacted.isPending ? "Actualizando..." : "Marcar como Contactado"}
-            </Button>
-            <Button 
-              variant="outline"
-              onClick={() => onOpenChange(false)}
-            >
-              Cerrar
-            </Button>
+          {/* Formulario de Registro de Contacto */}
+          <Separator />
+          <div>
+            <h3 className="font-semibold text-lg mb-3 flex items-center gap-2">
+              <CheckCircle className="h-5 w-5" />
+              Registrar Nuevo Contacto
+            </h3>
+            <div className="space-y-4 bg-muted/50 p-4 rounded-lg border border-dashed">
+              <div className="grid gap-2">
+                <Label htmlFor="contact-method">Método de Contacto</Label>
+                <Select value={contactMethod} onValueChange={setContactMethod}>
+                  <SelectTrigger id="contact-method">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="LLAMADA">Llamada</SelectItem>
+                    <SelectItem value="CORREO">Email</SelectItem>
+                    <SelectItem value="VISITA">Visita</SelectItem>
+                    <SelectItem value="NOTA">Nota</SelectItem>
+                    <SelectItem value="DOCUMENTO">Documento</SelectItem>
+                    <SelectItem value="CAMBIO_ESTADO">Cambio de Estado</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="grid gap-2">
+                <Label htmlFor="subject">Asunto</Label>
+                <Input
+                  id="subject"
+                  placeholder="Resumen breve del contacto..."
+                  value={subject}
+                  onChange={(e) => setSubject(e.target.value)}
+                />
+              </div>
+
+              <div className="grid gap-2">
+                <Label htmlFor="description">Descripción / Notas</Label>
+                <Textarea
+                  id="description"
+                  placeholder="Detalles de la conversación, acuerdos, próximos pasos..."
+                  value={description}
+                  onChange={(e) => setDescription(e.target.value)}
+                  rows={3}
+                />
+              </div>
+
+              <div className="flex gap-3 pt-2">
+                <Button
+                  onClick={handleSubmit}
+                  className="flex-1"
+                  disabled={createActivity.isPending || updateClientContact.isPending}
+                >
+                  <CheckCircle className="h-4 w-4 mr-2" />
+                  {(createActivity.isPending || updateClientContact.isPending) ? "Guardando..." : "Guardar y Marcar Contactado"}
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={() => onOpenChange(false)}
+                >
+                  Cancelar
+                </Button>
+              </div>
+            </div>
           </div>
         </div>
       </DialogContent>

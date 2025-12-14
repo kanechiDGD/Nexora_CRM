@@ -7,10 +7,13 @@ import { trpc } from "@/lib/trpc";
 import DashboardLayout from "@/components/DashboardLayout";
 import { NewEventDialog } from "@/components/NewEventDialog";
 import { ClientContactDialog } from "@/components/ClientContactDialog";
+import { EventDetailsDialog } from "@/components/EventDetailsDialog";
 
 export default function Calendar() {
   const [selectedClient, setSelectedClient] = useState<any>(null);
   const [contactDialogOpen, setContactDialogOpen] = useState(false);
+  const [selectedEvent, setSelectedEvent] = useState<any>(null);
+  const [eventDetailsOpen, setEventDetailsOpen] = useState(false);
 
   const { data: clients } = trpc.clients.list.useQuery();
   const { data: events } = trpc.events.list.useQuery();
@@ -100,6 +103,11 @@ export default function Calendar() {
   const handleContactClient = (client: any) => {
     setSelectedClient(client);
     setContactDialogOpen(true);
+  };
+
+  const handleEventClick = (event: any) => {
+    setSelectedEvent(event);
+    setEventDetailsOpen(true);
   };
 
   // Ordenar eventos por fecha
@@ -246,7 +254,8 @@ export default function Calendar() {
               sortedEvents.map((event: any) => (
                 <div
                   key={event.id}
-                  className="flex items-start gap-4 p-4 border border-border rounded-lg hover:bg-accent/50 transition-colors"
+                  className="flex items-start gap-4 p-4 border border-border rounded-lg hover:bg-accent/50 transition-colors cursor-pointer"
+                  onClick={() => handleEventClick(event)}
                 >
                   <div className="p-3 bg-primary/10 rounded-lg">
                     <CalendarIcon className="h-6 w-6 text-primary" />
@@ -325,6 +334,14 @@ export default function Calendar() {
           clientName={`${selectedClient.firstName} ${selectedClient.lastName}`}
           open={contactDialogOpen}
           onOpenChange={setContactDialogOpen}
+        />
+      )}
+
+      {selectedEvent && (
+        <EventDetailsDialog
+          event={selectedEvent}
+          open={eventDetailsOpen}
+          onOpenChange={setEventDetailsOpen}
         />
       )}
     </DashboardLayout>

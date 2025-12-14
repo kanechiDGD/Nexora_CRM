@@ -6,7 +6,7 @@ Sistema de CRM multi-tenant construido con React, TypeScript, tRPC y MySQL.
 
 - **Multi-tenant**: Múltiples organizaciones en una sola instancia
 - **Type-safe**: TypeScript end-to-end con tRPC
-- **Seguro**: Autenticación JWT, rate limiting, helmet
+- **Seguro**: Autenticación JWT, rate limiting, helmet, cookies persistentes (SameSite=Lax)
 - **Moderno**: React 19, Vite, Tailwind CSS, Shadcn/UI
 
 ## 📋 Requisitos

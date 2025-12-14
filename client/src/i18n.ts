@@ -16,6 +16,7 @@ i18n
       es: { translation: es },
       en: { translation: en },
     },
+    lng: 'en', // Force initial language to English
     fallbackLng: 'en', // Idioma por defecto: INGLÉS
     debug: false,
 
