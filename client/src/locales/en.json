@@ -39,7 +39,8 @@
       "date": "Date",
       "time": "Time",
       "event": "Event",
-      "noEvents": "No events in this range"
+      "noEvents": "No events in this range",
+      "subtitle": "Manage events and maintain regular contact with clients"
     },
     "alerts": {
       "title": "Contact Alerts",

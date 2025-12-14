@@ -4,18 +4,21 @@ import { Button } from "@/components/ui/button";
 import { useState } from "react";
 import { NewEventDialog } from "@/components/NewEventDialog";
 import { ClientContactDialog } from "@/components/ClientContactDialog";
+import { EventDetailsDialog } from "@/components/EventDetailsDialog";
 import { ClaimStatusCards } from "@/components/ClaimStatusCards";
 import { trpc } from "@/lib/trpc";
 import { useLocation } from "wouter";
 import DashboardLayout from "@/components/DashboardLayout";
 import { Calendar as BigCalendar, dateFnsLocalizer } from 'react-big-calendar';
 import { format, parse, startOfWeek, getDay, differenceInDays } from 'date-fns';
-import { es } from 'date-fns/locale';
+import { es, enUS } from 'date-fns/locale';
 import 'react-big-calendar/lib/css/react-big-calendar.css';
 import { Badge } from "@/components/ui/badge";
+import { useTranslation } from "react-i18next";
 
 const locales = {
   'es': es,
+  'en': enUS,
 };
 
 const localizer = dateFnsLocalizer({
@@ -27,8 +30,11 @@ const localizer = dateFnsLocalizer({
 });
 
 export default function Dashboard() {
+  const { t, i18n } = useTranslation();
   const [, setLocation] = useLocation();
   const [selectedClient, setSelectedClient] = useState<{ id: string; name: string } | null>(null);
+  const [selectedEvent, setSelectedEvent] = useState<any>(null);
+  const [eventDetailsOpen, setEventDetailsOpen] = useState(false);
 
   // Obtener datos de KPIs
   const { data: totalClients, isLoading: loadingTotal } = trpc.dashboard.totalClients.useQuery();
@@ -102,21 +108,27 @@ export default function Dashboard() {
     setLocation(`/clients?filter=${filter}`);
   };
 
+  const handleEventClick = (event: any) => {
+    // resource contains the raw event object
+    setSelectedEvent(event.resource);
+    setEventDetailsOpen(true);
+  };
+
   return (
     <DashboardLayout>
       <div className="space-y-8">
         <div>
-          <h1 className="text-3xl font-bold text-foreground">Dashboard</h1>
+          <h1 className="text-3xl font-bold text-foreground">{t('dashboard.title')}</h1>
           <p className="text-muted-foreground mt-2">
-            Vista general de métricas y KPIs del CRM
+            {t('dashboard.subtitle')}
           </p>
         </div>
 
         {/* Sección de Estados de Reclamo */}
         <div>
-          <h2 className="text-2xl font-bold text-foreground mb-4">Clientes por Estado de Reclamo</h2>
+          <h2 className="text-2xl font-bold text-foreground mb-4">{t('dashboard.claimStatus.title')}</h2>
           <p className="text-muted-foreground mb-6">
-            Conteo de clientes agrupados por estado (predeterminados y personalizados)
+            {t('dashboard.claimStatus.subtitle')}
           </p>
           <ClaimStatusCards />
         </div>
@@ -128,7 +140,7 @@ export default function Dashboard() {
             onClick={() => handleCardClick('all')}
           >
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Total de Clientes</CardTitle>
+              <CardTitle className="text-sm font-medium">{t('dashboard.kpis.totalClients.title')}</CardTitle>
               <Users className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
@@ -136,7 +148,7 @@ export default function Dashboard() {
                 {loadingTotal ? "..." : totalClients?.count || 0}
               </div>
               <p className="text-xs text-muted-foreground mt-1">
-                Todos los clientes en el sistema
+                {t('dashboard.kpis.totalClients.subtitle')}
               </p>
             </CardContent>
           </Card>
@@ -147,7 +159,7 @@ export default function Dashboard() {
             onClick={() => handleCardClick('late-contact')}
           >
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Contacto Atrasado</CardTitle>
+              <CardTitle className="text-sm font-medium">{t('dashboard.kpis.lateContact.title')}</CardTitle>
               <Clock className="h-4 w-4 text-destructive" />
             </CardHeader>
             <CardContent>
@@ -155,7 +167,7 @@ export default function Dashboard() {
                 {loadingLate ? "..." : lateContact?.count || 0}
               </div>
               <p className="text-xs text-muted-foreground mt-1">
-                Más de 7 días sin contacto
+                {t('dashboard.kpis.lateContact.subtitle')}
               </p>
             </CardContent>
           </Card>
@@ -166,7 +178,7 @@ export default function Dashboard() {
             onClick={() => handleCardClick('not-supplemented')}
           >
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">No Suplementado</CardTitle>
+              <CardTitle className="text-sm font-medium">{t('dashboard.kpis.notSupplemented.title')}</CardTitle>
               <FileX className="h-4 w-4 text-yellow-500" />
             </CardHeader>
             <CardContent>
@@ -174,7 +186,7 @@ export default function Dashboard() {
                 {loadingSupp ? "..." : notSupplemented?.count || 0}
               </div>
               <p className="text-xs text-muted-foreground mt-1">
-                Clientes sin suplemento
+                {t('dashboard.kpis.notSupplemented.subtitle')}
               </p>
             </CardContent>
           </Card>
@@ -185,7 +197,7 @@ export default function Dashboard() {
             onClick={() => handleCardClick('pending-submission')}
           >
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Pendientes por Someter</CardTitle>
+              <CardTitle className="text-sm font-medium">{t('dashboard.kpis.pendingSubmission.title')}</CardTitle>
               <AlertCircle className="h-4 w-4 text-orange-500" />
             </CardHeader>
             <CardContent>
@@ -193,7 +205,7 @@ export default function Dashboard() {
                 {loadingPending ? "..." : pendingSubmission?.count || 0}
               </div>
               <p className="text-xs text-muted-foreground mt-1">
-                Reclamos no sometidos
+                {t('dashboard.kpis.pendingSubmission.subtitle')}
               </p>
             </CardContent>
           </Card>
@@ -204,7 +216,7 @@ export default function Dashboard() {
             onClick={() => handleCardClick('ready-construction')}
           >
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Listas para Construir</CardTitle>
+              <CardTitle className="text-sm font-medium">{t('dashboard.kpis.readyConstruction.title')}</CardTitle>
               <Building2 className="h-4 w-4 text-green-500" />
             </CardHeader>
             <CardContent>
@@ -212,7 +224,7 @@ export default function Dashboard() {
                 {loadingReady ? "..." : readyForConstruction?.count || 0}
               </div>
               <p className="text-xs text-muted-foreground mt-1">
-                Aprobadas con primer cheque
+                {t('dashboard.kpis.readyConstruction.subtitle')}
               </p>
             </CardContent>
           </Card>
@@ -223,7 +235,7 @@ export default function Dashboard() {
             onClick={() => handleCardClick('upcoming-contacts')}
           >
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Próximos Contactos</CardTitle>
+              <CardTitle className="text-sm font-medium">{t('dashboard.kpis.upcomingContacts.title')}</CardTitle>
               <Calendar className="h-4 w-4 text-blue-500" />
             </CardHeader>
             <CardContent>
@@ -231,7 +243,7 @@ export default function Dashboard() {
                 {loadingUpcoming ? "..." : upcomingContacts?.count || 0}
               </div>
               <p className="text-xs text-muted-foreground mt-1">
-                Próximos 7 días
+                {t('dashboard.kpis.upcomingContacts.subtitle')}
               </p>
             </CardContent>
           </Card>
@@ -244,10 +256,10 @@ export default function Dashboard() {
               <div>
                 <CardTitle className="flex items-center gap-2">
                   <CheckSquare className="h-5 w-5 text-primary" />
-                  Tareas Pendientes
+                  {t('dashboard.tasks.title')}
                 </CardTitle>
                 <CardDescription>
-                  Tareas activas con fechas límite y asignaciones
+                  {t('dashboard.tasks.subtitle')}
                 </CardDescription>
               </div>
               <Button
@@ -255,14 +267,14 @@ export default function Dashboard() {
                 size="sm"
                 onClick={() => setLocation('/tasks')}
               >
-                Ver Todas
+                {t('dashboard.tasks.viewAll')}
               </Button>
             </div>
           </CardHeader>
           <CardContent>
             {pendingTasks.length === 0 ? (
               <p className="text-sm text-muted-foreground text-center py-8">
-                No hay tareas pendientes
+                {t('dashboard.tasks.noTasks')}
               </p>
             ) : (
               <div className="space-y-4">
@@ -276,14 +288,14 @@ export default function Dashboard() {
                       <div className="flex items-center gap-2 mb-1">
                         <h4 className="font-medium text-sm">{task.title}</h4>
                         <Badge variant={task.status === 'EN_PROGRESO' ? 'default' : 'secondary'}>
-                          {task.status === 'PENDIENTE' ? 'Pendiente' : 'En Progreso'}
+                          {task.status === 'PENDIENTE' ? t('dashboard.tasks.pending') : t('dashboard.tasks.inProgress')}
                         </Badge>
                         {task.priority && (
                           <Badge
                             variant={task.priority === 'ALTA' ? 'destructive' : task.priority === 'MEDIA' ? 'default' : 'outline'}
                             className="text-xs"
                           >
-                            {task.priority}
+                            {task.priority === 'ALTA' ? t('dashboard.tasks.priority.high') : task.priority === 'MEDIA' ? t('dashboard.tasks.priority.medium') : t('dashboard.tasks.priority.low')}
                           </Badge>
                         )}
                       </div>
@@ -296,9 +308,9 @@ export default function Dashboard() {
                     <div className="flex items-center gap-6 ml-4">
                       {task.dueDate && (
                         <div className="text-right">
-                          <div className="text-xs text-muted-foreground">Fecha Límite</div>
+                          <div className="text-xs text-muted-foreground">{t('dashboard.tasks.dueDate')}</div>
                           <div className="text-sm font-medium">
-                            {new Date(task.dueDate).toLocaleDateString('es-ES', {
+                            {new Date(task.dueDate).toLocaleDateString(i18n.language, {
                               day: '2-digit',
                               month: 'short'
                             })}
@@ -328,7 +340,7 @@ export default function Dashboard() {
                 <div className="flex items-center justify-between">
                   <CardTitle className="flex items-center gap-2">
                     <Calendar className="h-5 w-5 text-primary" />
-                    Calendario de Eventos
+                    {t('dashboard.calendar.title')}
                   </CardTitle>
                   <NewEventDialog />
                 </div>
@@ -340,19 +352,20 @@ export default function Dashboard() {
                     events={calendarEvents}
                     startAccessor="start"
                     endAccessor="end"
-                    culture="es"
+                    culture={i18n.language}
+                    onSelectEvent={handleEventClick}
                     messages={{
-                      next: 'Siguiente',
-                      previous: 'Anterior',
-                      today: 'Hoy',
-                      month: 'Mes',
-                      week: 'Semana',
-                      day: 'Día',
-                      agenda: 'Agenda',
-                      date: 'Fecha',
-                      time: 'Hora',
-                      event: 'Evento',
-                      noEventsInRange: 'No hay eventos en este rango',
+                      next: t('dashboard.calendar.next'),
+                      previous: t('dashboard.calendar.previous'),
+                      today: t('dashboard.calendar.today'),
+                      month: t('dashboard.calendar.month'),
+                      week: t('dashboard.calendar.week'),
+                      day: t('dashboard.calendar.day'),
+                      agenda: t('dashboard.calendar.agenda'),
+                      date: t('dashboard.calendar.date'),
+                      time: t('dashboard.calendar.time'),
+                      event: t('dashboard.calendar.event'),
+                      noEventsInRange: t('dashboard.calendar.noEvents'),
                     }}
                   />
                 </div>
@@ -366,17 +379,17 @@ export default function Dashboard() {
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <Bell className="h-5 w-5" />
-                  Alertas de Contacto
+                  {t('dashboard.alerts.title')}
                 </CardTitle>
                 <p className="text-sm text-muted-foreground">
-                  Clientes que necesitan seguimiento
+                  {t('dashboard.alerts.subtitle')}
                 </p>
               </CardHeader>
               <CardContent>
                 <div className="space-y-4 max-h-[350px] overflow-y-auto">
                   {contactAlerts.length === 0 ? (
                     <p className="text-sm text-muted-foreground text-center py-8">
-                      No hay clientes pendientes de contacto
+                      {t('dashboard.alerts.noAlerts')}
                     </p>
                   ) : (
                     contactAlerts.map((alert: any) => (
@@ -403,10 +416,10 @@ export default function Dashboard() {
                                     'text-xs bg-green-500'
                             }
                           >
-                            {alert.daysUntilContact < 0 ? '¡Atrasado!' :
-                              alert.daysUntilContact === 0 ? '¡Hoy!' :
-                                alert.daysUntilContact === 1 ? 'Mañana' :
-                                  `${alert.daysUntilContact}d`}
+                            {alert.daysUntilContact < 0 ? t('dashboard.alerts.overdue') :
+                              alert.daysUntilContact === 0 ? t('dashboard.alerts.today') :
+                                alert.daysUntilContact === 1 ? t('dashboard.alerts.tomorrow') :
+                                  `${alert.daysUntilContact}${t('dashboard.alerts.days')}`}
                           </Badge>
                         </div>
                         <div className="space-y-1">
@@ -425,13 +438,13 @@ export default function Dashboard() {
                         </div>
                         <div className="mt-2 text-xs font-medium">
                           {alert.daysUntilContact < 0 ? (
-                            <span className="text-red-600 font-bold">¡Atrasado! Contactar urgente</span>
+                            <span className="text-red-600 font-bold">{t('dashboard.alerts.overdueMessage')}</span>
                           ) : alert.daysUntilContact === 0 ? (
-                            <span className="text-orange-500 font-bold">¡Contactar hoy!</span>
+                            <span className="text-orange-500 font-bold">{t('dashboard.alerts.todayMessage')}</span>
                           ) : alert.daysUntilContact === 1 ? (
-                            <span className="text-yellow-600">Falta 1 día para contactar</span>
+                            <span className="text-yellow-600">{t('dashboard.alerts.oneDayMessage')}</span>
                           ) : (
-                            <span className="text-green-600">Faltan {alert.daysUntilContact} días para contactar</span>
+                            <span className="text-green-600">{t('dashboard.alerts.daysMessage', { days: alert.daysUntilContact })}</span>
                           )}
                         </div>
                       </div>
@@ -451,6 +464,14 @@ export default function Dashboard() {
           onOpenChange={(open) => !open && setSelectedClient(null)}
           clientId={selectedClient.id}
           clientName={selectedClient.name}
+        />
+      )}
+
+      {selectedEvent && (
+        <EventDetailsDialog
+          event={selectedEvent}
+          open={eventDetailsOpen}
+          onOpenChange={setEventDetailsOpen}
         />
       )}
     </DashboardLayout>
