@@ -12,17 +12,10 @@ import {
 import { Button } from "@/components/ui/button";
 import { useLocation } from "wouter";
 import { Badge } from "@/components/ui/badge";
-
-// Mapeo de nombres de estados predeterminados para mostrar
-const STATUS_DISPLAY_NAMES: Record<string, string> = {
-  NO_SOMETIDA: "No Sometida",
-  EN_PROCESO: "En Proceso",
-  APROVADA: "Aprobada",
-  RECHAZADA: "Rechazada",
-  CERRADA: "Cerrada",
-};
+import { useTranslation } from "react-i18next";
 
 export function ClaimStatusCards() {
+  const { t } = useTranslation();
   const [, setLocation] = useLocation();
   const [selectedStatus, setSelectedStatus] = useState<{
     status: string;
@@ -38,9 +31,10 @@ export function ClaimStatusCards() {
 
   // Función para obtener el nombre para mostrar de un estado
   const getStatusDisplayName = (status: string) => {
-    // Primero verificar si es un estado predeterminado
-    if (STATUS_DISPLAY_NAMES[status]) {
-      return STATUS_DISPLAY_NAMES[status];
+    // Check if it's a default status and translate it
+    const defaultStatuses = ["NO_SOMETIDA", "EN_PROCESO", "APROVADA", "RECHAZADA", "CERRADA"];
+    if (defaultStatuses.includes(status)) {
+        return t(`claimStatus.status.${status}`);
     }
     
     // Buscar en estados personalizados
@@ -91,7 +85,7 @@ export function ClaimStatusCards() {
       <Card>
         <CardContent className="pt-6">
           <p className="text-sm text-muted-foreground text-center">
-            No hay clientes registrados aún
+            {t('claimStatus.noClients')}
           </p>
         </CardContent>
       </Card>
@@ -116,7 +110,7 @@ export function ClaimStatusCards() {
             <CardContent>
               <div className="text-2xl font-bold">{statusInfo.count}</div>
               <p className="text-xs text-muted-foreground">
-                {statusInfo.count === 1 ? 'cliente' : 'clientes'}
+                {statusInfo.count === 1 ? t('claimStatus.client') : t('claimStatus.clients')}
               </p>
             </CardContent>
           </Card>
@@ -133,15 +127,15 @@ export function ClaimStatusCards() {
             </DialogTitle>
             <DialogDescription>
               {selectedStatus?.clients.length === 1 
-                ? '1 cliente en este estado' 
-                : `${selectedStatus?.clients.length} clientes en este estado`}
+                ? t('claimStatus.oneClient')
+                : t('claimStatus.manyClients', { count: selectedStatus?.clients.length })}
             </DialogDescription>
           </DialogHeader>
 
           <div className="space-y-2">
             {selectedStatus?.clients.length === 0 ? (
               <p className="text-sm text-muted-foreground text-center py-4">
-                No hay clientes en este estado
+                {t('claimStatus.noClientsInStatus')}
               </p>
             ) : (
               selectedStatus?.clients.map((client: any) => (
@@ -165,7 +159,7 @@ export function ClaimStatusCards() {
                         </div>
                       </div>
                     </div>
-                    <Badge variant="outline">Ver perfil</Badge>
+                    <Badge variant="outline">{t('claimStatus.viewProfile')}</Badge>
                   </CardContent>
                 </Card>
               ))
@@ -174,7 +168,7 @@ export function ClaimStatusCards() {
 
           <div className="flex justify-end mt-4">
             <Button variant="outline" onClick={() => setSelectedStatus(null)}>
-              Cerrar
+              {t('claimStatus.close')}
             </Button>
           </div>
         </DialogContent>

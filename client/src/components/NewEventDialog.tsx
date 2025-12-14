@@ -37,8 +37,10 @@ import { Plus, Check, ChevronsUpDown, Calendar } from "lucide-react";
 import { trpc } from "@/lib/trpc";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { useTranslation } from "react-i18next";
 
 export function NewEventDialog() {
+  const { t } = useTranslation();
   const { user } = useAuth();
   const [open, setOpen] = useState(false);
   const [clientSearchOpen, setClientSearchOpen] = useState(false);
@@ -137,7 +139,7 @@ export function NewEventDialog() {
       <DialogTrigger asChild>
         <Button className="gap-2">
           <Plus className="h-4 w-4" />
-          Agregar Evento
+          {t('calendar.newEvent.button')}
         </Button>
       </DialogTrigger>
       <DialogContent className="sm:max-w-[700px] max-h-[90vh] overflow-y-auto">
@@ -145,15 +147,15 @@ export function NewEventDialog() {
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Calendar className="h-5 w-5" />
-              Crear Nuevo Evento
+              {t('calendar.newEvent.title')}
             </DialogTitle>
             <DialogDescription>
-              Programa juntas, ajustaciones, reuniones o cualquier evento importante. Se sincronizará automáticamente con el calendario del dashboard.
+              {t('calendar.newEvent.description')}
             </DialogDescription>
           </DialogHeader>
           <div className="grid gap-4 py-4">
             <div className="grid gap-2">
-              <Label htmlFor="eventType">Tipo de Evento *</Label>
+              <Label htmlFor="eventType">{t('calendar.newEvent.type')} *</Label>
               <Select
                 value={formData.eventType}
                 onValueChange={(value) =>
@@ -161,25 +163,25 @@ export function NewEventDialog() {
                 }
               >
                 <SelectTrigger id="eventType">
-                  <SelectValue placeholder="Selecciona el tipo" />
+                  <SelectValue placeholder={t('calendar.newEvent.selectType')} />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="MEETING">Reunión</SelectItem>
-                  <SelectItem value="ADJUSTMENT">Ajustación</SelectItem>
-                  <SelectItem value="ESTIMATE">Estimado</SelectItem>
-                  <SelectItem value="INSPECTION">Inspección</SelectItem>
-                  <SelectItem value="APPOINTMENT">Cita</SelectItem>
-                  <SelectItem value="DEADLINE">Fecha Límite</SelectItem>
-                  <SelectItem value="OTHER">Otro</SelectItem>
+                  <SelectItem value="MEETING">{t('calendar.newEvent.types.MEETING')}</SelectItem>
+                  <SelectItem value="ADJUSTMENT">{t('calendar.newEvent.types.ADJUSTMENT')}</SelectItem>
+                  <SelectItem value="ESTIMATE">{t('calendar.newEvent.types.ESTIMATE')}</SelectItem>
+                  <SelectItem value="INSPECTION">{t('calendar.newEvent.types.INSPECTION')}</SelectItem>
+                  <SelectItem value="APPOINTMENT">{t('calendar.newEvent.types.APPOINTMENT')}</SelectItem>
+                  <SelectItem value="DEADLINE">{t('calendar.newEvent.types.DEADLINE')}</SelectItem>
+                  <SelectItem value="OTHER">{t('calendar.newEvent.types.OTHER')}</SelectItem>
                 </SelectContent>
               </Select>
             </div>
 
             <div className="grid gap-2">
-              <Label htmlFor="title">Título del Evento *</Label>
+              <Label htmlFor="title">{t('calendar.newEvent.eventTitle')} *</Label>
               <Input
                 id="title"
-                placeholder="Ej: Reunión con aseguradora"
+                placeholder={t('calendar.newEvent.titlePlaceholder')}
                 value={formData.title}
                 onChange={(e) =>
                   setFormData({ ...formData, title: e.target.value })
@@ -189,7 +191,7 @@ export function NewEventDialog() {
             </div>
 
             <div className="grid gap-2">
-              <Label>Cliente Relacionado (opcional)</Label>
+              <Label>{t('calendar.newEvent.relatedClient')}</Label>
               <Popover open={clientSearchOpen} onOpenChange={setClientSearchOpen}>
                 <PopoverTrigger asChild>
                   <Button
@@ -198,15 +200,15 @@ export function NewEventDialog() {
                     aria-expanded={clientSearchOpen}
                     className="justify-between"
                   >
-                    {formData.clientName || "Buscar cliente..."}
+                    {formData.clientName || t('calendar.newEvent.searchClient')}
                     <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                   </Button>
                 </PopoverTrigger>
                 <PopoverContent className="w-[500px] p-0">
                   <Command>
-                    <CommandInput placeholder="Escribe el nombre del cliente..." />
+                    <CommandInput placeholder={t('calendar.newEvent.searchClient')} />
                     <CommandList>
-                      <CommandEmpty>No se encontraron clientes.</CommandEmpty>
+                      <CommandEmpty>No clients found.</CommandEmpty>
                       <CommandGroup>
                         {clients?.map((client: any) => (
                           <CommandItem
@@ -246,7 +248,7 @@ export function NewEventDialog() {
 
             <div className="grid grid-cols-2 gap-4">
               <div className="grid gap-2">
-                <Label htmlFor="eventDate">Fecha *</Label>
+                <Label htmlFor="eventDate">{t('calendar.newEvent.date')} *</Label>
                 <Input
                   id="eventDate"
                   type="date"
@@ -258,7 +260,7 @@ export function NewEventDialog() {
                 />
               </div>
               <div className="grid gap-2">
-                <Label htmlFor="eventTime">Hora</Label>
+                <Label htmlFor="eventTime">{t('calendar.newEvent.time')}</Label>
                 <Input
                   id="eventTime"
                   type="time"
@@ -271,10 +273,10 @@ export function NewEventDialog() {
             </div>
 
             <div className="grid gap-2">
-              <Label htmlFor="address">Dirección del Evento</Label>
+              <Label htmlFor="address">{t('calendar.newEvent.address')}</Label>
               <Input
                 id="address"
-                placeholder="Ej: 123 Main St, Chicago, IL 60601"
+                placeholder={t('calendar.newEvent.addressPlaceholder')}
                 value={formData.address}
                 onChange={(e) =>
                   setFormData({ ...formData, address: e.target.value })
@@ -285,11 +287,11 @@ export function NewEventDialog() {
             {/* Campos específicos para ajustaciones */}
             {isAdjustment && (
               <div className="border-t pt-4 mt-2 space-y-4">
-                <h3 className="font-semibold text-lg">Información de Ajustación</h3>
+                <h3 className="font-semibold text-lg">{t('calendar.newEvent.adjustmentInfo')}</h3>
                 
                 <div className="grid grid-cols-2 gap-4">
                   <div className="grid gap-2">
-                    <Label htmlFor="adjusterNumber">Número del Ajustador</Label>
+                    <Label htmlFor="adjusterNumber">{t('calendar.newEvent.adjusterNumber')}</Label>
                     <Input
                       id="adjusterNumber"
                       value={formData.adjusterNumber}
@@ -298,7 +300,7 @@ export function NewEventDialog() {
                     />
                   </div>
                   <div className="grid gap-2">
-                    <Label htmlFor="adjusterName">Nombre del Ajustador</Label>
+                    <Label htmlFor="adjusterName">{t('calendar.newEvent.adjusterName')}</Label>
                     <Input
                       id="adjusterName"
                       value={formData.adjusterName}
@@ -310,7 +312,7 @@ export function NewEventDialog() {
 
                 <div className="grid grid-cols-2 gap-4">
                   <div className="grid gap-2">
-                    <Label htmlFor="adjusterPhone">Teléfono del Ajustador</Label>
+                    <Label htmlFor="adjusterPhone">{t('calendar.newEvent.adjusterPhone')}</Label>
                     <Input
                       id="adjusterPhone"
                       value={formData.adjusterPhone}
@@ -319,7 +321,7 @@ export function NewEventDialog() {
                     />
                   </div>
                   <div className="grid gap-2">
-                    <Label htmlFor="adjusterEmail">Email del Ajustador</Label>
+                    <Label htmlFor="adjusterEmail">{t('calendar.newEvent.adjusterEmail')}</Label>
                     <Input
                       id="adjusterEmail"
                       type="email"
@@ -332,7 +334,7 @@ export function NewEventDialog() {
 
                 <div className="grid grid-cols-2 gap-4">
                   <div className="grid gap-2">
-                    <Label htmlFor="insuranceCompany">Aseguradora</Label>
+                    <Label htmlFor="insuranceCompany">{t('calendar.newEvent.insuranceCompany')}</Label>
                     <Input
                       id="insuranceCompany"
                       value={formData.insuranceCompany}
@@ -341,7 +343,7 @@ export function NewEventDialog() {
                     />
                   </div>
                   <div className="grid gap-2">
-                    <Label htmlFor="claimNumber">Número de Reclamo</Label>
+                    <Label htmlFor="claimNumber">{t('calendar.newEvent.claimNumber')}</Label>
                     <Input
                       id="claimNumber"
                       value={formData.claimNumber}
@@ -354,10 +356,10 @@ export function NewEventDialog() {
             )}
 
             <div className="grid gap-2">
-              <Label htmlFor="description">Descripción / Notas</Label>
+              <Label htmlFor="description">{t('calendar.newEvent.notes')}</Label>
               <Textarea
                 id="description"
-                placeholder="Detalles adicionales del evento..."
+                placeholder={t('calendar.newEvent.notesPlaceholder')}
                 value={formData.description}
                 onChange={(e) =>
                   setFormData({ ...formData, description: e.target.value })
@@ -372,10 +374,10 @@ export function NewEventDialog() {
               variant="outline"
               onClick={() => setOpen(false)}
             >
-              Cancelar
+              {t('calendar.newEvent.cancel')}
             </Button>
             <Button type="submit" disabled={createEvent.isPending}>
-              {createEvent.isPending ? "Guardando..." : "Crear Evento"}
+              {createEvent.isPending ? t('calendar.newEvent.saving') : t('calendar.newEvent.create')}
             </Button>
           </DialogFooter>
         </form>
