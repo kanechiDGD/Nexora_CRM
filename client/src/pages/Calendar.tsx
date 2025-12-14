@@ -8,8 +8,10 @@ import DashboardLayout from "@/components/DashboardLayout";
 import { NewEventDialog } from "@/components/NewEventDialog";
 import { ClientContactDialog } from "@/components/ClientContactDialog";
 import { EventDetailsDialog } from "@/components/EventDetailsDialog";
+import { useTranslation } from "react-i18next";
 
 export default function Calendar() {
+  const { t } = useTranslation();
   const [selectedClient, setSelectedClient] = useState<any>(null);
   const [contactDialogOpen, setContactDialogOpen] = useState(false);
   const [selectedEvent, setSelectedEvent] = useState<any>(null);
@@ -121,9 +123,9 @@ export default function Calendar() {
         {/* Header */}
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-3xl font-bold text-foreground">Calendario y Recordatorios</h1>
+            <h1 className="text-3xl font-bold text-foreground">{t('calendar.title')}</h1>
             <p className="text-muted-foreground mt-1">
-              Gestiona eventos y mantén contacto regular con clientes
+              {t('calendar.subtitle', 'Manage events and maintain regular contact with clients')}
             </p>
           </div>
           <NewEventDialog />

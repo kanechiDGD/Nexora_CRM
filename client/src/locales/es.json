@@ -39,7 +39,8 @@
       "date": "Fecha",
       "time": "Hora",
       "event": "Evento",
-      "noEvents": "No hay eventos en este rango"
+      "noEvents": "No hay eventos en este rango",
+      "subtitle": "Gestiona eventos y mantén contacto regular con clientes"
     },
     "alerts": {
       "title": "Alertas de Contacto",
