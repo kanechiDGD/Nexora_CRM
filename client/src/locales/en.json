@@ -40,7 +40,43 @@
       "time": "Time",
       "event": "Event",
       "noEvents": "No events in this range",
-      "subtitle": "Manage events and maintain regular contact with clients"
+      "subtitle": "Manage events and maintain regular contact with clients",
+      "newEvent": {
+        "title": "Create New Event",
+        "description": "Schedule meetings, adjustments, or any important event. It will automatically sync with the dashboard calendar.",
+        "type": "Event Type",
+        "selectType": "Select type",
+        "eventTitle": "Event Title",
+        "titlePlaceholder": "Ex: Meeting with insurance company",
+        "relatedClient": "Related Client (optional)",
+        "searchClient": "Search client...",
+        "date": "Date",
+        "time": "Time",
+        "address": "Event Address",
+        "addressPlaceholder": "Ex: 123 Main St, Chicago, IL 60601",
+        "adjustmentInfo": "Adjustment Information",
+        "adjusterNumber": "Adjuster Number",
+        "adjusterName": "Adjuster Name",
+        "adjusterPhone": "Adjuster Phone",
+        "adjusterEmail": "Adjuster Email",
+        "insuranceCompany": "Insurance Company",
+        "claimNumber": "Claim Number",
+        "notes": "Description / Notes",
+        "notesPlaceholder": "Additional event details...",
+        "cancel": "Cancel",
+        "saving": "Saving...",
+        "create": "Create Event",
+        "button": "Add Event",
+        "types": {
+          "MEETING": "Meeting",
+          "ADJUSTMENT": "Adjustment",
+          "ESTIMATE": "Estimate",
+          "INSPECTION": "Inspection",
+          "APPOINTMENT": "Appointment",
+          "DEADLINE": "Deadline",
+          "OTHER": "Other"
+        }
+      }
     },
     "alerts": {
       "title": "Contact Alerts",
@@ -57,7 +93,22 @@
     },
     "claimStatus": {
       "title": "Clients by Claim Status",
-      "subtitle": "Client count grouped by status (default and custom)"
+      "subtitle": "Client count grouped by status (default and custom)",
+      "noClients": "No clients registered yet",
+      "noClientsInStatus": "No clients in this status",
+      "client": "client",
+      "clients": "clients",
+      "viewProfile": "View profile",
+      "close": "Close",
+      "oneClient": "1 client in this status",
+      "manyClients": "{{count}} clients in this status",
+      "status": {
+        "NO_SOMETIDA": "Not Submitted",
+        "EN_PROCESO": "In Progress",
+        "APROVADA": "Approved",
+        "RECHAZADA": "Denied",
+        "CERRADA": "Closed"
+      }
     },
     "kpis": {
       "totalClients": {

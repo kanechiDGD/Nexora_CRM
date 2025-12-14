@@ -40,7 +40,43 @@
       "time": "Hora",
       "event": "Evento",
       "noEvents": "No hay eventos en este rango",
-      "subtitle": "Gestiona eventos y mantén contacto regular con clientes"
+      "subtitle": "Gestiona eventos y mantén contacto regular con clientes",
+      "newEvent": {
+        "title": "Crear Nuevo Evento",
+        "description": "Programa juntas, ajustaciones, reuniones o cualquier evento importante. Se sincronizará automáticamente con el calendario del dashboard.",
+        "type": "Tipo de Evento",
+        "selectType": "Selecciona el tipo",
+        "eventTitle": "Título del Evento",
+        "titlePlaceholder": "Ej: Reunión con aseguradora",
+        "relatedClient": "Cliente Relacionado (opcional)",
+        "searchClient": "Buscar cliente...",
+        "date": "Fecha",
+        "time": "Hora",
+        "address": "Dirección del Evento",
+        "addressPlaceholder": "Ej: 123 Main St, Chicago, IL 60601",
+        "adjustmentInfo": "Información de Ajustación",
+        "adjusterNumber": "Número del Ajustador",
+        "adjusterName": "Nombre del Ajustador",
+        "adjusterPhone": "Teléfono del Ajustador",
+        "adjusterEmail": "Email del Ajustador",
+        "insuranceCompany": "Aseguradora",
+        "claimNumber": "Número de Reclamo",
+        "notes": "Descripción / Notas",
+        "notesPlaceholder": "Detalles adicionales del evento...",
+        "cancel": "Cancelar",
+        "saving": "Guardando...",
+        "create": "Crear Evento",
+        "button": "Agregar Evento",
+        "types": {
+          "MEETING": "Reunión",
+          "ADJUSTMENT": "Ajustación",
+          "ESTIMATE": "Estimado",
+          "INSPECTION": "Inspección",
+          "APPOINTMENT": "Cita",
+          "DEADLINE": "Fecha Límite",
+          "OTHER": "Otro"
+        }
+      }
     },
     "alerts": {
       "title": "Alertas de Contacto",
@@ -57,7 +93,22 @@
     },
     "claimStatus": {
       "title": "Clientes por Estado de Reclamo",
-      "subtitle": "Conteo de clientes agrupados por estado (predeterminados y personalizados)"
+      "subtitle": "Conteo de clientes agrupados por estado (predeterminados y personalizados)",
+      "noClients": "No hay clientes registrados aún",
+      "noClientsInStatus": "No hay clientes en este estado",
+      "client": "cliente",
+      "clients": "clientes",
+      "viewProfile": "Ver perfil",
+      "close": "Cerrar",
+      "oneClient": "1 cliente en este estado",
+      "manyClients": "{{count}} clientes en este estado",
+      "status": {
+        "NO_SOMETIDA": "No Sometida",
+        "EN_PROCESO": "En Proceso",
+        "APROVADA": "Aprobada",
+        "RECHAZADA": "Rechazada",
+        "CERRADA": "Cerrada"
+      }
     },
     "kpis": {
       "totalClients": {
