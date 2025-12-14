@@ -15,8 +15,10 @@ import { Search, Plus, Eye } from "lucide-react";
 import { trpc } from "@/lib/trpc";
 import { useLocation, useSearch } from "wouter";
 import DashboardLayout from "@/components/DashboardLayout";
+import { useTranslation } from "react-i18next";
 
 export default function Clients() {
+  const { t, i18n } = useTranslation();
   const [, setLocation] = useLocation();
   const searchParams = new URLSearchParams(useSearch());
   const filterParam = searchParams.get('filter') || 'all';
@@ -83,27 +85,27 @@ export default function Clients() {
   }, [allClients, filterParam, searchTerm]);
 
   const getStatusBadge = (status: string) => {
-    const variants: Record<string, { variant: "default" | "secondary" | "destructive" | "outline", label: string }> = {
-      'NO_SOMETIDA': { variant: 'outline', label: 'No Sometida' },
-      'EN_PROCESO': { variant: 'secondary', label: 'En Proceso' },
-      'APROVADA': { variant: 'default', label: 'Aprobada' },
-      'RECHAZADA': { variant: 'destructive', label: 'Rechazada' },
-      'CERRADA': { variant: 'outline', label: 'Cerrada' },
+    const variants: Record<string, { variant: "default" | "secondary" | "destructive" | "outline" }> = {
+      'NO_SOMETIDA': { variant: 'outline' },
+      'EN_PROCESO': { variant: 'secondary' },
+      'APROVADA': { variant: 'default' },
+      'RECHAZADA': { variant: 'destructive' },
+      'CERRADA': { variant: 'outline' },
     };
-    const config = variants[status] || { variant: 'outline', label: status };
-    return <Badge variant={config.variant}>{config.label}</Badge>;
+    const config = variants[status] || { variant: 'outline' };
+    return <Badge variant={config.variant}>{t(`claimStatus.status.${status}`)}</Badge>;
   };
 
   const getFilterTitle = () => {
     const titles: Record<string, string> = {
-      'all': 'Todos los Clientes',
-      'late-contact': 'Clientes con Contacto Atrasado',
-      'not-supplemented': 'Clientes No Suplementados',
-      'pending-submission': 'Reclamos Pendientes por Someter',
-      'ready-construction': 'Clientes Listos para Construcción',
-      'upcoming-contacts': 'Próximos Contactos',
+      'all': t('dashboard.kpis.totalClients.title'),
+      'late-contact': t('dashboard.kpis.lateContact.title'),
+      'not-supplemented': t('dashboard.kpis.notSupplemented.title'),
+      'pending-submission': t('dashboard.kpis.pendingSubmission.title'),
+      'ready-construction': t('dashboard.kpis.readyConstruction.title'),
+      'upcoming-contacts': t('dashboard.kpis.upcomingContacts.title'),
     };
-    return titles[filterParam] || 'Clientes';
+    return titles[filterParam] || t('dashboard.menu.clients');
   };
 
   return (
@@ -113,12 +115,12 @@ export default function Clients() {
           <div>
             <h1 className="text-3xl font-bold text-foreground">{getFilterTitle()}</h1>
             <p className="text-muted-foreground mt-2">
-              {filteredClients.length} cliente{filteredClients.length !== 1 ? 's' : ''} encontrado{filteredClients.length !== 1 ? 's' : ''}
+              {filteredClients.length} {filteredClients.length === 1 ? t('clients.clientFound') : t('clients.clientsFound')}
             </p>
           </div>
           <Button onClick={() => setLocation('/clients/new')}>
             <Plus className="mr-2 h-4 w-4" />
-            Nuevo Cliente
+            {t('clients.newClient')}
           </Button>
         </div>
 
@@ -128,7 +130,7 @@ export default function Clients() {
               <div className="relative flex-1">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input
-                  placeholder="Buscar por nombre, email, teléfono o número de reclamo..."
+                  placeholder={t('clients.searchPlaceholder')}
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   className="pl-10"
@@ -139,23 +141,23 @@ export default function Clients() {
           <CardContent>
             {isLoading ? (
               <div className="text-center py-8 text-muted-foreground">
-                Cargando clientes...
+                {t('common.loading')}
               </div>
             ) : filteredClients.length === 0 ? (
               <div className="text-center py-8 text-muted-foreground">
-                No se encontraron clientes
+                {t('clients.noClientsFound')}
               </div>
             ) : (
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Nombre</TableHead>
-                    <TableHead>Contacto</TableHead>
-                    <TableHead>Aseguradora</TableHead>
-                    <TableHead>Estado</TableHead>
-                    <TableHead>Suplementado</TableHead>
-                    <TableHead>Último Contacto</TableHead>
-                    <TableHead className="text-right">Acciones</TableHead>
+                    <TableHead>{t('clients.table.name')}</TableHead>
+                    <TableHead>{t('clients.table.contact')}</TableHead>
+                    <TableHead>{t('clients.table.insurance')}</TableHead>
+                    <TableHead>{t('clients.table.status')}</TableHead>
+                    <TableHead>{t('clients.table.supplemented')}</TableHead>
+                    <TableHead>{t('clients.table.lastContact')}</TableHead>
+                    <TableHead className="text-right">{t('clients.table.actions')}</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -178,12 +180,12 @@ export default function Clients() {
                       <TableCell>{getStatusBadge(client.claimStatus || 'NO_SOMETIDA')}</TableCell>
                       <TableCell>
                         <Badge variant={client.suplementado === 'si' ? 'default' : 'outline'}>
-                          {client.suplementado === 'si' ? 'Sí' : 'No'}
+                          {client.suplementado === 'si' ? t('common.yes') : t('common.no')}
                         </Badge>
                       </TableCell>
                       <TableCell>
                         {client.lastContactDate 
-                          ? new Date(client.lastContactDate).toLocaleDateString('es-ES')
+                          ? new Date(client.lastContactDate).toLocaleDateString(i18n.language)
                           : '-'
                         }
                       </TableCell>

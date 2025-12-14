@@ -247,7 +247,7 @@ export default function Calendar() {
             {sortedEvents.length === 0 ? (
               <div className="text-center py-12">
                 <CalendarIcon className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                <p className="text-muted-foreground">No hay eventos programados</p>
+                <p className="text-muted-foreground">{t('calendar.noEvents')}</p>
                 <div className="mt-4">
                   <NewEventDialog />
                 </div>
@@ -309,20 +309,20 @@ export default function Calendar() {
         {/* Information Card */}
         <Card className="border-border bg-muted/50">
           <CardHeader>
-            <CardTitle className="text-base">Política de Contacto con Clientes</CardTitle>
+            <CardTitle className="text-base">{t('calendar.policy.title')}</CardTitle>
           </CardHeader>
           <CardContent className="space-y-2 text-sm text-muted-foreground">
             <p>
-              • <strong>Contacto cada 7 días:</strong> El sistema programa automáticamente el próximo contacto 7 días después del último
+              • <strong>{t('calendar.policy.frequency')}</strong> {t('calendar.policy.frequencyDesc')}
             </p>
             <p>
-              • <strong>Alertas progresivas:</strong> Recibirás alertas 2 días antes, 1 día antes, el día del contacto, y si está atrasado
+              • <strong>{t('calendar.policy.alerts')}</strong> {t('calendar.policy.alertsDesc')}
             </p>
             <p>
-              • <strong>Registro obligatorio:</strong> Documenta cada llamada, email o reunión en el sistema
+              • <strong>{t('calendar.policy.mandatory')}</strong> {t('calendar.policy.mandatoryDesc')}
             </p>
             <p>
-              • <strong>Priorización automática:</strong> Los clientes con contacto atrasado aparecen primero con prioridad urgente
+              • <strong>{t('calendar.policy.priority')}</strong> {t('calendar.policy.priorityDesc')}
             </p>
           </CardContent>
         </Card>

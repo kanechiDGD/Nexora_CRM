@@ -2,7 +2,28 @@
   "common": {
     "language": "Language",
     "english": "English",
-    "spanish": "Spanish"
+    "spanish": "Spanish",
+    "yes": "Yes",
+    "no": "No",
+    "loading": "Loading...",
+    "edit": "Edit",
+    "close": "Close"
+  },
+  "clients": {
+    "clientFound": "client found",
+    "clientsFound": "clients found",
+    "newClient": "New Client",
+    "searchPlaceholder": "Search by name, email, phone or claim number...",
+    "noClientsFound": "No clients found",
+    "table": {
+      "name": "Name",
+      "contact": "Contact",
+      "insurance": "Insurance",
+      "status": "Status",
+      "supplemented": "Supplemented",
+      "lastContact": "Last Contact",
+      "actions": "Actions"
+    }
   },
   "dashboard": {
     "title": "Dashboard",
@@ -76,6 +97,17 @@
           "DEADLINE": "Deadline",
           "OTHER": "Other"
         }
+      },
+      "policy": {
+        "title": "Client Contact Policy",
+        "frequency": "Contact every 7 days:",
+        "frequencyDesc": "The system automatically schedules the next contact 7 days after the last one",
+        "alerts": "Progressive alerts:",
+        "alertsDesc": "You will receive alerts 2 days before, 1 day before, the day of contact, and if overdue",
+        "mandatory": "Mandatory registration:",
+        "mandatoryDesc": "Document every call, email, or meeting in the system",
+        "priority": "Automatic prioritization:",
+        "priorityDesc": "Clients with overdue contact appear first with urgent priority"
       }
     },
     "alerts": {

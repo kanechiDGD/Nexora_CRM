@@ -2,7 +2,28 @@
   "common": {
     "language": "Idioma",
     "english": "Inglés",
-    "spanish": "Español"
+    "spanish": "Español",
+    "yes": "Sí",
+    "no": "No",
+    "loading": "Cargando...",
+    "edit": "Editar",
+    "close": "Cerrar"
+  },
+  "clients": {
+    "clientFound": "cliente encontrado",
+    "clientsFound": "clientes encontrados",
+    "newClient": "Nuevo Cliente",
+    "searchPlaceholder": "Buscar por nombre, email, teléfono o número de reclamo...",
+    "noClientsFound": "No se encontraron clientes",
+    "table": {
+      "name": "Nombre",
+      "contact": "Contacto",
+      "insurance": "Aseguradora",
+      "status": "Estado",
+      "supplemented": "Suplementado",
+      "lastContact": "Último Contacto",
+      "actions": "Acciones"
+    }
   },
   "dashboard": {
     "title": "Dashboard",
@@ -76,6 +97,17 @@
           "DEADLINE": "Fecha Límite",
           "OTHER": "Otro"
         }
+      },
+      "policy": {
+        "title": "Política de Contacto con Clientes",
+        "frequency": "Contacto cada 7 días:",
+        "frequencyDesc": "El sistema programa automáticamente el próximo contacto 7 días después del último",
+        "alerts": "Alertas progresivas:",
+        "alertsDesc": "Recibirás alertas 2 días antes, 1 día antes, el día del contacto, y si está atrasado",
+        "mandatory": "Registro obligatorio:",
+        "mandatoryDesc": "Documenta cada llamada, email o reunión en el sistema",
+        "priority": "Priorización automática:",
+        "priorityDesc": "Los clientes con contacto atrasado aparecen primero con prioridad urgente"
       }
     },
     "alerts": {
