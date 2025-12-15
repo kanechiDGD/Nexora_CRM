@@ -213,8 +213,37 @@ export async function storageGet(relKey: string): Promise<{ key: string; url: st
   const key = normalizeKey(relKey);
 
   if (config.type === 'r2' && config.r2Config) {
-    const url = `${config.r2Config.publicUrl}/${key}`;
-    return { key, url };
+    // Si la URL pública está configurada, usarla.
+    // PERO, si el upload usa presigned URLs, probablemente el bucket es privado.
+    // Para consistencia con uploadToR2, generamos una URL firmada fresca.
+
+    // Check if we can generate a signed URL
+    const s3Client = new S3Client({
+      region: 'auto',
+      endpoint: `https://${config.r2Config.accountId}.r2.cloudflarestorage.com`,
+      credentials: {
+        accessKeyId: config.r2Config.accessKeyId,
+        secretAccessKey: config.r2Config.secretAccessKey,
+      },
+      forcePathStyle: true,
+    });
+
+    const getCommand = new GetObjectCommand({
+      Bucket: config.r2Config.bucketName,
+      Key: key,
+    });
+
+    try {
+      const url = await getSignedUrl(s3Client as any, getCommand as any, {
+        expiresIn: 3600 // 1 hora de validez para visualización
+      });
+      return { key, url };
+    } catch (e) {
+      console.error("[Storage] Failed to sign URL, falling back to public URL", e);
+      const url = `${config.r2Config.publicUrl}/${key}`;
+      return { key, url };
+    }
+
   } else if (config.type === 'forge' && config.baseUrl && config.apiKey) {
     return {
       key,
@@ -223,4 +252,15 @@ export async function storageGet(relKey: string): Promise<{ key: string; url: st
   }
 
   throw new Error('Invalid storage configuration');
+}
+
+// Helper to get just the signed URL for an existing key
+export async function getSignedDocumentUrl(key: string): Promise<string | null> {
+  try {
+    const { url } = await storageGet(key);
+    return url;
+  } catch (error) {
+    console.error(`[Storage] Failed to get signed URL for key ${key}:`, error);
+    return null;
+  }
 }
