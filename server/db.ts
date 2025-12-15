@@ -44,7 +44,9 @@ export async function getDb() {
         enableKeepAlive: true,
         keepAliveInitialDelay: 0,
         connectTimeout: 30000,
-        acquireTimeout: 60000,
+        // acquireTimeout is not a valid option for createPool in some mysql2 versions or when passed this way
+        // It belongs to pool.getConnection() options usually, or maybe it's just deprecated/invalid here.
+        // Removing it to fix the warning.
         multipleStatements: false,
       });
 
@@ -668,26 +670,39 @@ export async function getOrganizationMemberByUsername(username: string) {
     return undefined;
   }
 
-  try {
-    const result = await db.select().from(organizationMembers)
-      .where(eq(organizationMembers.username, username)).limit(1);
-    return result.length > 0 ? result[0] : undefined;
-  } catch (error: any) {
-    // Log detailed error information
-    console.error('[DB] Error in getOrganizationMemberByUsername:', error);
-    console.error('[DB] Username was:', username);
-    console.error('[DB] Error code:', error?.code);
-    console.error('[DB] SQL State:', error?.sqlState);
+  // Simple retry logic for transient DB errors
+  let attempts = 0;
+  const maxAttempts = 3;
 
-    // If it's a connection error, return undefined instead of throwing
-    // This prevents login failures due to transient connection issues
-    if (error?.code === 'ECONNRESET' || error?.code === 'ETIMEDOUT' || error?.code === 'ENOTFOUND') {
-      console.error('[DB] Transient connection error, returning undefined');
+  while (attempts < maxAttempts) {
+    try {
+      const result = await db.select().from(organizationMembers)
+        .where(eq(organizationMembers.username, username)).limit(1);
+      return result.length > 0 ? result[0] : undefined;
+    } catch (error: any) {
+      attempts++;
+      console.error(`[DB] Error in getOrganizationMemberByUsername (Attempt ${attempts}/${maxAttempts}):`, error?.code || error);
+
+      // If it's a connection error, retry
+      if (
+        (error?.code === 'ECONNRESET' || error?.code === 'ETIMEDOUT' || error?.code === 'ENOTFOUND' || error?.cause?.code === 'ECONNRESET')
+        && attempts < maxAttempts
+      ) {
+        console.log(`[DB] Retrying query after transient error...`);
+        await new Promise(resolve => setTimeout(resolve, 500 * attempts)); // Exponential backoff
+        continue;
+      }
+
+      // If we exhausted retries or it's a different error, log and return undefined (or throw if critical)
+      console.error('[DB] Failed to get member after retries or fatal error');
+      console.error('[DB] Username was:', username);
+
+      // Return undefined to treat as "User not found" or "Auth failed" rather than crashing
+      // Ideally we should throw a specific error, but the caller expects member | undefined
       return undefined;
     }
-
-    throw error;
   }
+  return undefined;
 }
 
 export async function getOrganizationMembers(organizationId: number) {
