@@ -17,6 +17,14 @@ export function useAuth(options?: UseAuthOptions) {
     retry: 3, // Retry 3 times before failing to handle transient network issues
     retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
     refetchOnWindowFocus: false, // Keep disabled to avoid race conditions on tab switch
+    // Validación periódica de sesión cada 2 minutos para mantenerla activa
+    refetchInterval: 1000 * 60 * 2, // 2 minutos
+    // Mantener la query activa incluso en background
+    refetchIntervalInBackground: true,
+    // Datos frescos por 5 minutos
+    staleTime: 1000 * 60 * 5,
+    // Caché por 30 minutos
+    gcTime: 1000 * 60 * 30,
   });
 
   const logoutMutation = trpc.auth.logout.useMutation({
