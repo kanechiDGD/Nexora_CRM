@@ -65,7 +65,6 @@ export default function ClientProfile() {
       year: 'numeric',
       month: 'long',
       day: 'numeric'
-    });
   };
 
   const formatCurrency = (amount: number | null) => {
