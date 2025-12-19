@@ -574,5 +574,4 @@ export default function ClientProfile() {
         </Tabs>
       </div>
     </DashboardLayout>
-  );
 }
