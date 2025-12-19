@@ -25,3 +25,9 @@ export const getLoginUrl = () => {
 
   return url.toString();
 };
+
+export const getGoogleLoginUrl = (returnTo: string = "/dashboard") => {
+  const target = returnTo.startsWith("/") ? returnTo : `/${returnTo}`;
+  const search = new URLSearchParams({ returnTo: target }).toString();
+  return `/api/oauth/google/start?${search}`;
+};

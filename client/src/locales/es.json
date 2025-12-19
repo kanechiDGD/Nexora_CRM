@@ -388,6 +388,8 @@
     "password": "Contraseña",
     "passwordPlaceholder": "••••••••",
     "rememberMe": "Recuérdame",
+    "googleSignIn": "Continuar con Google",
+    "googleSignInDesc": "Usa tu cuenta de Google para acceder al instante",
     "loginButton": "Iniciar Sesión",
     "loggingIn": "Iniciando sesión...",
     "backToOptions": "← Volver a opciones",

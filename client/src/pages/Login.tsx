@@ -6,10 +6,10 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Loader2, Building2, LogIn, Languages } from "lucide-react";
+import { Loader2, Building2, LogIn, Languages, Chrome } from "lucide-react";
 import { trpc } from "@/lib/trpc";
 import { useLocation } from "wouter";
-import { APP_LOGO, getLoginUrl } from "@/const";
+import { APP_LOGO, getGoogleLoginUrl } from "@/const";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -49,6 +49,10 @@ export default function Login() {
 
   const handleShowLoginForm = () => {
     setShowLoginForm(true);
+  };
+
+  const handleGoogleLogin = () => {
+    window.location.href = getGoogleLoginUrl("/dashboard");
   };
 
   const changeLanguage = (lng: string) => {
@@ -131,6 +135,24 @@ export default function Login() {
                     </div>
                     <div className="text-[10px] sm:text-xs md:text-sm text-blue-100 font-normal break-words mt-0.5 sm:mt-1">
                       {t('login.loginExistingDesc')}
+                    </div>
+                  </div>
+                </Button>
+
+                {/* Botón para iniciar sesión con Google */}
+                <Button
+                  type="button"
+                  variant="secondary"
+                  className="w-full h-auto py-3 sm:py-4 md:py-5 lg:py-6 px-2 sm:px-3 md:px-4 flex items-start gap-2 bg-white text-slate-900 hover:bg-slate-100 text-left overflow-hidden"
+                  onClick={handleGoogleLogin}
+                >
+                  <Chrome className="h-4 w-4 sm:h-5 sm:w-5 flex-shrink-0 mt-0.5" />
+                  <div className="flex-1 min-w-0 overflow-hidden">
+                    <div className="text-xs sm:text-sm md:text-base lg:text-lg font-semibold leading-tight break-words">
+                      {t('login.googleSignIn')}
+                    </div>
+                    <div className="text-[10px] sm:text-xs md:text-sm text-slate-600 font-normal break-words mt-0.5 sm:mt-1">
+                      {t('login.googleSignInDesc')}
                     </div>
                   </div>
                 </Button>
@@ -243,6 +265,16 @@ export default function Login() {
                       {t('login.loginButton')}
                     </>
                   )}
+                </Button>
+
+                <Button
+                  type="button"
+                  variant="secondary"
+                  className="w-full h-9 sm:h-10 md:h-11 text-sm sm:text-base bg-white text-slate-900 hover:bg-slate-100"
+                  onClick={handleGoogleLogin}
+                >
+                  <Chrome className="mr-2 h-4 w-4" />
+                  {t('login.googleSignIn')}
                 </Button>
               </form>
 
