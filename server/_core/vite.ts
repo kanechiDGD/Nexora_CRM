@@ -48,14 +48,28 @@ export async function setupVite(app: Express, server: Server) {
 }
 
 export function serveStatic(app: Express) {
-  // Servimos desde dist/public relativo al bundle (dist/index.js)
-  const distPath = path.resolve(import.meta.dirname, "public");
+  // Intentamos varias rutas comunes para dist/public según dónde se ejecute el bundle
+  const candidatePaths = [
+    // Expected cuando se ejecuta dist/index.js (dirname = dist)
+    path.resolve(import.meta.dirname, "public"),
+    // Por si el cwd es la raíz del repo sin /src
+    path.resolve(process.cwd(), "dist", "public"),
+    // Por si el cwd incluye /src
+    path.resolve(process.cwd(), "src", "dist", "public"),
+  ];
 
-  if (!fs.existsSync(distPath)) {
+  const distPath = candidatePaths.find((p) => fs.existsSync(p));
+
+  if (!distPath) {
     console.error(
-      `[Static] Could not find the build directory: ${distPath}. Did you run ` +
-        "`pnpm build` before starting the server?"
+      `[Static] Could not find the build directory in any of: ${candidatePaths.join(
+        ", "
+      )}. Did you run "pnpm build" before starting the server?`
     );
+    // fallback to first candidate to avoid crash; responses will 404
+    candidatePaths[0] && app.use(express.static(candidatePaths[0]));
+    app.use("*", (_req, res) => res.status(500).send("Build not found"));
+    return;
   }
 
   app.use(express.static(distPath));
