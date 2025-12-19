@@ -60,9 +60,8 @@ export default function ClientProfile() {
     return <Badge variant={config.variant}>{config.label}</Badge>;
   };
 
-  const formatDate = (date: Date | string | null) => {
-    if (!date) return '-';
-    return new Date(date).toLocaleDateString('es-ES', {
+  const locale = i18n.language === 'es' ? 'es-ES' : 'en-US';  
+    return new Date(date).toLocaleDateString(locale, {
       year: 'numeric',
       month: 'long',
       day: 'numeric'
