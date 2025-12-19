@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useAuth } from "@/_core/hooks/useAuth";
+import { usePermissions } from "@/hooks/usePermissions";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -13,6 +14,7 @@ import { toast } from "sonner";
 
 export default function Profile() {
   const { user } = useAuth();
+  const { role, isAdmin, isCoAdmin, isVendedor } = usePermissions();
   const [isEditing, setIsEditing] = useState(false);
   const [formData, setFormData] = useState({
     name: user?.name || "",
@@ -223,8 +225,8 @@ export default function Profile() {
                 <Label>Rol en el Sistema</Label>
                 <div className="flex items-center gap-2">
                   <Shield className="h-4 w-4 text-muted-foreground" />
-                  <Badge variant={user.role === 'admin' ? 'default' : 'secondary'}>
-                    {user.role === 'admin' ? 'Administrador' : 'Usuario'}
+                  <Badge variant={isAdmin ? 'default' : isCoAdmin ? 'secondary' : 'outline'}>
+                    {isAdmin ? 'Administrador' : isCoAdmin ? 'Co-Administrador' : 'Vendedor'}
                   </Badge>
                 </div>
               </div>

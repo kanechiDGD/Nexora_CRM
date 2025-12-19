@@ -22,7 +22,10 @@ export default function ClientEdit() {
   const { user } = useAuth();
   const { canEdit } = usePermissions();
 
-  const { data: client, isLoading } = trpc.clients.getById.useQuery({ id: clientId });
+  const { data: client, isLoading } = trpc.clients.getById.useQuery(
+    { id: clientId },
+    { enabled: !!clientId }
+  );
   const { data: organizationMembers } = trpc.organizations.getMembers.useQuery();
   const { data: customClaimStatuses = [] } = trpc.customClaimStatuses.list.useQuery();
   const updateMutation = trpc.clients.update.useMutation();
@@ -89,10 +92,55 @@ export default function ClientEdit() {
     }
   }, [client]);
 
+  // Funciones de validación
+  const validateEmail = (email: string): boolean => {
+    if (!email) return true;
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return emailRegex.test(email);
+  };
+
+  const validatePhone = (phone: string): boolean => {
+    if (!phone) return true;
+    const phoneRegex = /^[0-9\s\-\(\)]+$/;
+    return phoneRegex.test(phone) && phone.replace(/\D/g, '').length >= 10;
+  };
+
+  const validateZipCode = (zipCode: string): boolean => {
+    if (!zipCode) return true;
+    const zipRegex = /^\d{5}$/;
+    return zipRegex.test(zipCode);
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    try {
+    // Validaciones
+    if (!formData.firstName || !formData.lastName) {
+      toast.error("Nombre y apellido son obligatorios");
+      return;
+    }
+
+    if (formData.email && !validateEmail(formData.email)) {
+      toast.error("El formato del email no es válido");
+      return;
+    }
+
+    if (formData.phone && !validatePhone(formData.phone)) {
+      toast.error("El número de teléfono principal no es válido (mínimo 10 dígitos)");
+      return;
+    }
+
+    if (formData.alternatePhone && !validatePhone(formData.alternatePhone)) {
+      toast.error("El número de teléfono alternativo no es válido (mínimo 10 dígitos)");
+      return;
+    }
+
+    if (formData.zipCode && !validateZipCode(formData.zipCode)) {
+      toast.error("El código postal debe tener exactamente 5 dígitos");
+      return;
+    }
+
+    try{
       await updateMutation.mutateAsync({
         id: clientId,
         data: {
@@ -123,8 +171,10 @@ export default function ClientEdit() {
         },
       });
 
+      // Invalidar solo el cliente específico y las queries del dashboard que puedan verse afectadas
       utils.clients.getById.invalidate({ id: clientId });
-      utils.clients.list.invalidate();
+      utils.dashboard.lateContact.invalidate();
+      utils.dashboard.upcomingContacts.invalidate();
       toast.success("Cliente actualizado correctamente");
       setLocation(`/clients/${clientId}`);
     } catch (error) {

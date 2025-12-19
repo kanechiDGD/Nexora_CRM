@@ -1,6 +1,5 @@
 // Storage abstraction - Cloudflare R2 with AWS SDK
-import { S3Client, PutObjectCommand, GetObjectCommand } from '@aws-sdk/client-s3';
-import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
+import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3';
 import { ENV } from './_core/env';
 
 type StorageConfig = {
@@ -89,17 +88,11 @@ async function uploadToR2(
     await s3Client.send(command);
     console.log('[R2] Upload successful');
 
-    // Generar URL presignada (válida por 7 días)
-    const getCommand = new GetObjectCommand({
-      Bucket: config.bucketName,
-      Key: key,
-    });
+    // Usar URL pública permanente (sin expiración)
+    // El bucket debe estar configurado con acceso público en R2
+    const url = `${config.publicUrl}/${key}`;
 
-    const url = await getSignedUrl(s3Client as any, getCommand as any, {
-      expiresIn: 604800 // 7 días en segundos
-    });
-
-    console.log('[R2] Presigned URL generated');
+    console.log('[R2] Public URL generated:', url);
 
     return { key, url };
   } catch (error: any) {

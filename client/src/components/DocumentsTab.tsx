@@ -9,21 +9,94 @@ interface DocumentsTabProps {
     clientId: string;
 }
 
+// Constantes de validación
+const MAX_FILE_SIZE_MB = 50;
+const MAX_FILE_SIZE_BYTES = MAX_FILE_SIZE_MB * 1024 * 1024;
+const ALLOWED_FILE_TYPES = [
+    'application/pdf',
+    'image/jpeg',
+    'image/jpg',
+    'image/png',
+    'image/gif',
+    'image/webp',
+    'application/msword',
+    'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+    'application/vnd.ms-excel',
+    'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+];
+
+const ALLOWED_EXTENSIONS = ['.pdf', '.jpg', '.jpeg', '.png', '.gif', '.webp', '.doc', '.docx', '.xls', '.xlsx'];
+
 export default function DocumentsTab({ clientId }: DocumentsTabProps) {
-    const { data: documents } = trpc.documents.getByClientId.useQuery({ clientId });
+    const { data: documents } = trpc.documents.getByClientId.useQuery(
+        { clientId },
+        { enabled: !!clientId }
+    );
     const utils = trpc.useUtils();
 
+    const validateFile = (file: File): { valid: boolean; error?: string } => {
+        // Validar tamaño
+        if (file.size > MAX_FILE_SIZE_BYTES) {
+            return {
+                valid: false,
+                error: `El archivo "${file.name}" excede el límite de ${MAX_FILE_SIZE_MB}MB (tamaño: ${(file.size / 1024 / 1024).toFixed(2)}MB)`
+            };
+        }
+
+        // Validar tipo MIME
+        if (!ALLOWED_FILE_TYPES.includes(file.type)) {
+            return {
+                valid: false,
+                error: `El tipo de archivo "${file.type}" no está permitido para "${file.name}"`
+            };
+        }
+
+        // Validar extensión
+        const extension = '.' + file.name.split('.').pop()?.toLowerCase();
+        if (!ALLOWED_EXTENSIONS.includes(extension)) {
+            return {
+                valid: false,
+                error: `La extensión "${extension}" no está permitida para "${file.name}"`
+            };
+        }
+
+        return { valid: true };
+    };
+
     const handleFileUpload = async (files: FileList) => {
+        if (!files || files.length === 0) return;
+
+        // Validar todos los archivos antes de subir
+        const validationErrors: string[] = [];
+        const validFiles: File[] = [];
+
+        for (let i = 0; i < files.length; i++) {
+            const file = files[i];
+            const validation = validateFile(file);
+            
+            if (!validation.valid) {
+                validationErrors.push(validation.error!);
+            } else {
+                validFiles.push(file);
+            }
+        }
+
+        // Mostrar errores de validación
+        if (validationErrors.length > 0) {
+            validationErrors.forEach(error => toast.error(error));
+            if (validFiles.length === 0) return;
+        }
+
         try {
             const formData = new FormData();
 
-            for (let i = 0; i < files.length; i++) {
-                formData.append('files', files[i]);
-            }
+            validFiles.forEach(file => {
+                formData.append('files', file);
+            });
 
             formData.append('clientId', clientId);
 
-            toast.info(`Subiendo ${files.length} archivo(s)...`);
+            toast.info(`Subiendo ${validFiles.length} archivo(s)...`);
 
             const response = await fetch('/api/upload/documents', {
                 method: 'POST',
@@ -38,18 +111,19 @@ export default function DocumentsTab({ clientId }: DocumentsTabProps) {
 
             const result = await response.json();
 
-            toast.success(result.message || 'Archivos subidos correctamente');
+            toast.success(result.message || `${validFiles.length} archivo(s) subido(s) correctamente`);
 
             utils.documents.getByClientId.invalidate({ clientId });
 
         } catch (error) {
             console.error('Error uploading files:', error);
-            toast.error(error instanceof Error ? error.message : 'Error al subir archivos');
+            toast.error(error instanceof Error ? error.message : 'Error al subir archivos. Por favor intenta de nuevo.');
         }
     };
 
-    const handleDeleteDocument = async (documentId: number) => {
-        if (!confirm('¿Estás seguro de eliminar este documento? Esta acción no se puede deshacer.')) {
+    const handleDeleteDocument = async (documentId: number, documentName: string) => {
+        // Usar window.confirm simple en lugar de AlertDialog
+        if (!window.confirm(`¿Estás seguro de que deseas eliminar "${documentName}"? Esta acción no se puede deshacer.`)) {
             return;
         }
 
@@ -66,8 +140,7 @@ export default function DocumentsTab({ clientId }: DocumentsTabProps) {
                 throw new Error(error.error || 'Error al eliminar documento');
             }
 
-            const result = await response.json();
-            toast.success(result.message || 'Documento eliminado correctamente');
+            toast.success('Documento eliminado correctamente');
 
             utils.documents.getByClientId.invalidate({ clientId });
 
@@ -77,104 +150,102 @@ export default function DocumentsTab({ clientId }: DocumentsTabProps) {
         }
     };
 
-    return (
-        <div className="space-y-4">
-            {/* Upload Section */}
-            <Card className="border-border">
-                <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                        <Upload className="h-5 w-5" />
-                        Subir Documentos
-                    </CardTitle>
-                </CardHeader>
-                <CardContent>
-                    <div className="border-2 border-dashed border-border rounded-lg p-8 text-center">
-                        <input
-                            type="file"
-                            multiple
-                            accept=".pdf,.jpg,.jpeg,.png,.gif,.webp,.doc,.docx,.xls,.xlsx"
-                            className="hidden"
-                            id="document-upload"
-                            onChange={(e) => {
-                                if (e.target.files && e.target.files.length > 0) {
-                                    handleFileUpload(e.target.files);
-                                    e.target.value = '';
-                                }
-                            }}
-                        />
-                        <label
-                            htmlFor="document-upload"
-                            className="cursor-pointer inline-flex flex-col items-center gap-2"
-                        >
-                            <Upload className="h-12 w-12 text-muted-foreground" />
-                            <p className="text-sm font-medium">Click para seleccionar archivos</p>
-                            <p className="text-xs text-muted-foreground">
-                                PDF, Imágenes, Word, Excel (máx. 50MB)
-                            </p>
-                        </label>
-                    </div>
-                </CardContent>
-            </Card>
+    const getDocumentIcon = (mimeType: string | null) => {
+        if (!mimeType) return <File className="h-4 w-4" />;
+        
+        if (mimeType.includes('pdf')) return <FileText className="h-4 w-4" />;
+        if (mimeType.includes('image')) return <File className="h-4 w-4" />;
+        if (mimeType.includes('word') || mimeType.includes('document')) return <FileText className="h-4 w-4" />;
+        if (mimeType.includes('excel') || mimeType.includes('sheet')) return <FileText className="h-4 w-4" />;
+        
+        return <File className="h-4 w-4" />;
+    };
 
-            {/* Documents List */}
-            <Card className="border-border">
-                <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                        <FileText className="h-5 w-5" />
-                        Documentos Subidos
-                    </CardTitle>
-                </CardHeader>
-                <CardContent>
-                    {documents && documents.length > 0 ? (
-                        <div className="space-y-3">
-                            {documents.map((doc) => (
-                                <div
-                                    key={doc.id}
-                                    className="flex items-center justify-between p-4 border border-border rounded-lg hover:bg-accent/50 transition-colors"
-                                >
-                                    <div className="flex items-center gap-3 flex-1">
-                                        <File className="h-5 w-5 text-muted-foreground" />
-                                        <div className="flex-1 min-w-0">
-                                            <p className="font-medium truncate">{doc.fileName}</p>
-                                            <div className="flex items-center gap-3 mt-1">
-                                                <Badge variant="outline">{doc.documentType}</Badge>
-                                                <span className="text-xs text-muted-foreground">
-                                                    {new Date(doc.uploadedAt).toLocaleDateString('es-ES')}
-                                                </span>
-                                                {doc.fileSize && (
-                                                    <span className="text-xs text-muted-foreground">
-                                                        {(doc.fileSize / 1024 / 1024).toFixed(2)} MB
-                                                    </span>
-                                                )}
-                                            </div>
-                                        </div>
+    const getDocumentTypeBadge = (type: string) => {
+        const types: Record<string, { label: string; variant: "default" | "secondary" | "outline" }> = {
+            POLIZA: { label: "Póliza", variant: "default" },
+            CONTRATO: { label: "Contrato", variant: "secondary" },
+            FOTO: { label: "Foto", variant: "outline" },
+            ESTIMADO: { label: "Estimado", variant: "default" },
+            FACTURA: { label: "Factura", variant: "secondary" },
+            PERMISO: { label: "Permiso", variant: "outline" },
+            OTRO: { label: "Otro", variant: "outline" },
+        };
+
+        const typeInfo = types[type] || types.OTRO;
+        return <Badge variant={typeInfo.variant}>{typeInfo.label}</Badge>;
+    };
+
+    return (
+        <Card>
+            <CardHeader>
+                <CardTitle className="flex items-center justify-between">
+                    <span>Documentos</span>
+                    <Button
+                        size="sm"
+                        onClick={() => document.getElementById('file-upload')?.click()}
+                    >
+                        <Upload className="mr-2 h-4 w-4" />
+                        Subir Documentos
+                    </Button>
+                </CardTitle>
+                <input
+                    id="file-upload"
+                    type="file"
+                    multiple
+                    className="hidden"
+                    onChange={(e) => {
+                        if (e.target.files) {
+                            handleFileUpload(e.target.files);
+                            e.target.value = '';
+                        }
+                    }}
+                    accept={ALLOWED_EXTENSIONS.join(',')}
+                />
+            </CardHeader>
+            <CardContent>
+                {!documents || documents.length === 0 ? (
+                    <p className="text-muted-foreground text-center py-8">
+                        No hay documentos subidos para este cliente
+                    </p>
+                ) : (
+                    <div className="space-y-2">
+                        {documents.map((doc: any) => (
+                            <div
+                                key={doc.id}
+                                className="flex items-center justify-between p-3 border rounded-lg hover:bg-accent/50 transition-colors"
+                            >
+                                <div className="flex items-center gap-3 flex-1">
+                                    {getDocumentIcon(doc.mimeType)}
+                                    <div className="flex-1 min-w-0">
+                                        <p className="font-medium truncate">{doc.fileName}</p>
+                                        <p className="text-sm text-muted-foreground">
+                                            {doc.fileSize ? `${(doc.fileSize / 1024).toFixed(2)} KB` : 'Tamaño desconocido'}
+                                        </p>
                                     </div>
-                                    <div className="flex items-center gap-2">
-                                        <Button variant="outline" size="sm" asChild>
-                                            <a href={doc.fileUrl} target="_blank" rel="noopener noreferrer">
-                                                <Download className="h-4 w-4 mr-2" />
-                                                Descargar
-                                            </a>
-                                        </Button>
-                                        <Button
-                                            variant="destructive"
-                                            size="sm"
-                                            onClick={() => handleDeleteDocument(doc.id)}
-                                        >
-                                            <Trash2 className="h-4 w-4 mr-2" />
-                                            Eliminar
-                                        </Button>
-                                    </div>
+                                    {getDocumentTypeBadge(doc.documentType)}
                                 </div>
-                            ))}
-                        </div>
-                    ) : (
-                        <p className="text-center text-muted-foreground py-8">
-                            No hay documentos subidos
-                        </p>
-                    )}
-                </CardContent>
-            </Card>
-        </div>
+                                <div className="flex items-center gap-2">
+                                    <Button
+                                        size="sm"
+                                        variant="outline"
+                                        onClick={() => window.open(doc.fileUrl, '_blank')}
+                                    >
+                                        <Download className="h-4 w-4" />
+                                    </Button>
+                                    <Button
+                                        size="sm"
+                                        variant="destructive"
+                                        onClick={() => handleDeleteDocument(doc.id, doc.fileName)}
+                                    >
+                                        <Trash2 className="h-4 w-4" />
+                                    </Button>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                )}
+            </CardContent>
+        </Card>
     );
 }
