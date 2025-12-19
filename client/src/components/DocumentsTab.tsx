@@ -17,6 +17,15 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 
+type ClientDocument = {
+    id: number;
+    fileName: string;
+    documentType: string;
+    uploadedAt: string | Date;
+    fileSize?: number | null;
+    fileUrl: string;
+};
+
 interface DocumentsTabProps {
     clientId: string;
 }
@@ -238,7 +247,7 @@ export default function DocumentsTab({ clientId }: DocumentsTabProps) {
                         </p>
                     ) : documents && documents.length > 0 ? (
                         <div className="space-y-3">
-                            {documents.map((doc) => (
+                            {(documents as ClientDocument[]).map((doc) => (
                                 <div
                                     key={doc.id}
                                     className="flex items-center justify-between p-4 border border-border rounded-lg hover:bg-accent/50 transition-colors"

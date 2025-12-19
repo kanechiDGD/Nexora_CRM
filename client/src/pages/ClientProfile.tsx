@@ -19,13 +19,22 @@ import {
   Upload,
   Download,
   Trash2,
-  File
+  File,
 } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 import { trpc } from "@/lib/trpc";
 import DashboardLayout from "@/components/DashboardLayout";
 import DocumentsTab from "@/components/DocumentsTab";
+
+type ActivityLog = {
+  id: number;
+  activityType: string;
+  performedAt: string | Date;
+  performedBy: number | string;
+  subject?: string | null;
+  description?: string | null;
+};
 
 export default function ClientProfile() {
   const { id } = useParams();
@@ -49,32 +58,36 @@ export default function ClientProfile() {
 
   // Definir todas las funciones ANTES de los early returns
   const getStatusBadge = (status: string) => {
-    const variants: Record<string, { variant: "default" | "secondary" | "destructive" | "outline", label: string }> = {
-      'NO_SOMETIDA': { variant: 'outline', label: 'No Sometida' },
-      'EN_PROCESO': { variant: 'secondary', label: 'En Proceso' },
-      'APROVADA': { variant: 'default', label: 'Aprobada' },
-      'RECHAZADA': { variant: 'destructive', label: 'Rechazada' },
-      'CERRADA': { variant: 'outline', label: 'Cerrada' },
+    const variants: Record<
+      string,
+      { variant: "default" | "secondary" | "destructive" | "outline"; label: string }
+    > = {
+      NO_SOMETIDA: { variant: "outline", label: "No Sometida" },
+      EN_PROCESO: { variant: "secondary", label: "En Proceso" },
+      APROVADA: { variant: "default", label: "Aprobada" },
+      RECHAZADA: { variant: "destructive", label: "Rechazada" },
+      CERRADA: { variant: "outline", label: "Cerrada" },
     };
-    const config = variants[status] || { variant: 'outline', label: status };
+    const config = variants[status] || { variant: "outline", label: status };
     return <Badge variant={config.variant}>{config.label}</Badge>;
   };
 
-  const locale = i18n.language === 'es' ? 'es-ES' : 'en-US';  
-    return new Date(date).toLocaleDateString(locale, {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric'
+  const formatDate = (date: Date | string | null) => {
+    if (!date) return "-";
+    return new Date(date).toLocaleDateString("es-ES", {
+      year: "numeric",
+      month: "long",
+      day: "numeric",
+    });
   };
 
   const formatCurrency = (amount: number | null) => {
-    if (!amount) return '-';
-    return new Intl.NumberFormat('es-US', {
-      style: 'currency',
-      currency: 'USD'
+    if (!amount) return "-";
+    return new Intl.NumberFormat("es-US", {
+      style: "currency",
+      currency: "USD",
     }).format(amount);
   };
-
 
   // AHORA los early returns DESPUÉS de todos los hooks y funciones
   if (isLoading) {
@@ -93,7 +106,7 @@ export default function ClientProfile() {
         <div className="flex flex-col items-center justify-center min-h-[400px] gap-4">
           <AlertCircle className="h-12 w-12 text-muted-foreground" />
           <p className="text-muted-foreground">Cliente no encontrado</p>
-          <Button onClick={() => setLocation('/clients')}>
+          <Button onClick={() => setLocation("/clients")}>
             Volver a Clientes
           </Button>
         </div>
@@ -107,20 +120,14 @@ export default function ClientProfile() {
         {/* Header */}
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-4">
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => setLocation('/clients')}
-            >
+            <Button variant="ghost" size="icon" onClick={() => setLocation("/clients")}>
               <ArrowLeft className="h-4 w-4" />
             </Button>
             <div>
               <h1 className="text-3xl font-bold text-foreground">
                 {client.firstName} {client.lastName}
               </h1>
-              <p className="text-muted-foreground mt-1">
-                Cliente ID: {client.id}
-              </p>
+              <p className="text-muted-foreground mt-1">Cliente ID: {client.id}</p>
             </div>
           </div>
           <Button onClick={() => setLocation(`/clients/${client.id}/edit`)}>
@@ -139,7 +146,7 @@ export default function ClientProfile() {
                 </div>
                 <div>
                   <p className="text-sm text-muted-foreground">Estado</p>
-                  <div className="mt-1">{getStatusBadge(client.claimStatus || 'NO_SOMETIDA')}</div>
+                  <div className="mt-1">{getStatusBadge(client.claimStatus || "NO_SOMETIDA")}</div>
                 </div>
               </div>
             </CardContent>
@@ -153,7 +160,7 @@ export default function ClientProfile() {
                 </div>
                 <div>
                   <p className="text-sm text-muted-foreground">Aseguradora</p>
-                  <p className="font-medium mt-1">{client.insuranceCompany || '-'}</p>
+                  <p className="font-medium mt-1">{client.insuranceCompany || "-"}</p>
                 </div>
               </div>
             </CardContent>
@@ -181,7 +188,7 @@ export default function ClientProfile() {
                 </div>
                 <div>
                   <p className="text-sm text-muted-foreground">Vendedor</p>
-                  <p className="font-medium mt-1">{client.salesPerson || '-'}</p>
+                  <p className="font-medium mt-1">{client.salesPerson || "-"}</p>
                 </div>
               </div>
             </CardContent>
@@ -239,7 +246,9 @@ export default function ClientProfile() {
               <CardContent className="grid gap-4 md:grid-cols-2">
                 <div>
                   <label className="text-sm text-muted-foreground">Nombre Completo</label>
-                  <p className="font-medium mt-1">{client.firstName} {client.lastName}</p>
+                  <p className="font-medium mt-1">
+                    {client.firstName} {client.lastName}
+                  </p>
                 </div>
                 <div>
                   <label className="text-sm text-muted-foreground">Email</label>
@@ -302,11 +311,11 @@ export default function ClientProfile() {
               <CardContent className="grid gap-4 md:grid-cols-2">
                 <div>
                   <label className="text-sm text-muted-foreground">Vendedor</label>
-                  <p className="font-medium mt-1">{client.salesPerson || '-'}</p>
+                  <p className="font-medium mt-1">{client.salesPerson || "-"}</p>
                 </div>
                 <div>
                   <label className="text-sm text-muted-foreground">Ajustador Asignado</label>
-                  <p className="font-medium mt-1">{client.assignedAdjuster || '-'}</p>
+                  <p className="font-medium mt-1">{client.assignedAdjuster || "-"}</p>
                 </div>
               </CardContent>
             </Card>
@@ -324,19 +333,19 @@ export default function ClientProfile() {
               <CardContent className="grid gap-4 md:grid-cols-2">
                 <div>
                   <label className="text-sm text-muted-foreground">Aseguradora</label>
-                  <p className="font-medium mt-1">{client.insuranceCompany || '-'}</p>
+                  <p className="font-medium mt-1">{client.insuranceCompany || "-"}</p>
                 </div>
                 <div>
                   <label className="text-sm text-muted-foreground">Número de Póliza</label>
-                  <p className="font-medium mt-1">{client.policyNumber || '-'}</p>
+                  <p className="font-medium mt-1">{client.policyNumber || "-"}</p>
                 </div>
                 <div>
                   <label className="text-sm text-muted-foreground">Número de Reclamo</label>
-                  <p className="font-medium mt-1">{client.claimNumber || '-'}</p>
+                  <p className="font-medium mt-1">{client.claimNumber || "-"}</p>
                 </div>
                 <div>
                   <label className="text-sm text-muted-foreground">Estado del Reclamo</label>
-                  <div className="mt-1">{getStatusBadge(client.claimStatus || 'NO_SOMETIDA')}</div>
+                  <div className="mt-1">{getStatusBadge(client.claimStatus || "NO_SOMETIDA")}</div>
                 </div>
                 <div>
                   <label className="text-sm text-muted-foreground">Deducible</label>
@@ -348,14 +357,14 @@ export default function ClientProfile() {
                 </div>
                 <div>
                   <label className="text-sm text-muted-foreground">Suplementado</label>
-                  <Badge variant={client.suplementado === 'si' ? 'default' : 'outline'} className="mt-1">
-                    {client.suplementado === 'si' ? 'Sí' : 'No'}
+                  <Badge variant={client.suplementado === "si" ? "default" : "outline"} className="mt-1">
+                    {client.suplementado === "si" ? "Sí" : "No"}
                   </Badge>
                 </div>
                 <div>
                   <label className="text-sm text-muted-foreground">Primer Cheque</label>
-                  <Badge variant={client.primerCheque === 'OBTENIDO' ? 'default' : 'outline'} className="mt-1">
-                    {client.primerCheque === 'OBTENIDO' ? 'Obtenido' : 'Pendiente'}
+                  <Badge variant={client.primerCheque === "OBTENIDO" ? "default" : "outline"} className="mt-1">
+                    {client.primerCheque === "OBTENIDO" ? "Obtenido" : "Pendiente"}
                   </Badge>
                 </div>
                 <div>
@@ -376,11 +385,11 @@ export default function ClientProfile() {
               <CardContent className="space-y-4">
                 <div>
                   <label className="text-sm text-muted-foreground">Tipo de Daño</label>
-                  <p className="font-medium mt-1">{client.damageType || '-'}</p>
+                  <p className="font-medium mt-1">{client.damageType || "-"}</p>
                 </div>
                 <div>
                   <label className="text-sm text-muted-foreground">Descripción del Daño</label>
-                  <p className="mt-1 text-sm whitespace-pre-wrap">{client.damageDescription || '-'}</p>
+                  <p className="mt-1 text-sm whitespace-pre-wrap">{client.damageDescription || "-"}</p>
                 </div>
               </CardContent>
             </Card>
@@ -398,23 +407,23 @@ export default function ClientProfile() {
               <CardContent className="grid gap-4 md:grid-cols-2">
                 <div className="md:col-span-2">
                   <label className="text-sm text-muted-foreground">Dirección</label>
-                  <p className="font-medium mt-1">{client.propertyAddress || '-'}</p>
+                  <p className="font-medium mt-1">{client.propertyAddress || "-"}</p>
                 </div>
                 <div>
                   <label className="text-sm text-muted-foreground">Ciudad</label>
-                  <p className="font-medium mt-1">{client.city || '-'}</p>
+                  <p className="font-medium mt-1">{client.city || "-"}</p>
                 </div>
                 <div>
                   <label className="text-sm text-muted-foreground">Estado</label>
-                  <p className="font-medium mt-1">{client.state || '-'}</p>
+                  <p className="font-medium mt-1">{client.state || "-"}</p>
                 </div>
                 <div>
                   <label className="text-sm text-muted-foreground">Código Postal</label>
-                  <p className="font-medium mt-1">{client.zipCode || '-'}</p>
+                  <p className="font-medium mt-1">{client.zipCode || "-"}</p>
                 </div>
                 <div>
                   <label className="text-sm text-muted-foreground">Tipo de Propiedad</label>
-                  <p className="font-medium mt-1">{client.propertyType || '-'}</p>
+                  <p className="font-medium mt-1">{client.propertyType || "-"}</p>
                 </div>
               </CardContent>
             </Card>
@@ -426,7 +435,7 @@ export default function ClientProfile() {
               <CardContent>
                 <div>
                   <label className="text-sm text-muted-foreground">Estado</label>
-                  <p className="font-medium mt-1">{client.constructionStatus || '-'}</p>
+                  <p className="font-medium mt-1">{client.constructionStatus || "-"}</p>
                 </div>
               </CardContent>
             </Card>
@@ -470,7 +479,6 @@ export default function ClientProfile() {
             </Card>
           </TabsContent>
 
-
           {/* Activity Tab */}
           <TabsContent value="activity" className="space-y-4">
             {/* Historial de Contactos */}
@@ -482,9 +490,9 @@ export default function ClientProfile() {
                     variant="outline"
                     size="sm"
                     onClick={() => {
-                      const showAll = document.getElementById('all-contacts');
+                      const showAll = document.getElementById("all-contacts");
                       if (showAll) {
-                        showAll.style.display = showAll.style.display === 'none' ? 'block' : 'none';
+                        showAll.style.display = showAll.style.display === "none" ? "block" : "none";
                       }
                     }}
                   >
@@ -497,71 +505,71 @@ export default function ClientProfile() {
                   <>
                     {/* Últimos 4 contactos */}
                     <div className="space-y-4">
-                      {activityLogs.slice(0, 4).map((log) => (
-                        <div key={log.id} className="flex gap-4 p-4 border border-border rounded-lg hover:bg-accent/50 transition-colors">
+                      {(activityLogs as ActivityLog[]).slice(0, 4).map((log) => (
+                        <div
+                          key={log.id}
+                          className="flex gap-4 p-4 border border-border rounded-lg hover:bg-accent/50 transition-colors"
+                        >
                           <div className="flex-1">
                             <div className="flex items-center gap-3 mb-2">
                               <Badge variant="outline">{log.activityType}</Badge>
                               <span className="text-sm font-medium">
-                                {new Date(log.performedAt).toLocaleDateString('es-ES', {
-                                  year: 'numeric',
-                                  month: 'short',
-                                  day: 'numeric',
-                                  hour: '2-digit',
-                                  minute: '2-digit'
+                                {new Date(log.performedAt).toLocaleDateString("es-ES", {
+                                  year: "numeric",
+                                  month: "short",
+                                  day: "numeric",
+                                  hour: "2-digit",
+                                  minute: "2-digit",
                                 })}
                               </span>
                               <span className="text-sm text-muted-foreground">
                                 por Usuario #{log.performedBy}
                               </span>
                             </div>
-                            {log.subject && (
-                              <p className="font-medium mb-1">{log.subject}</p>
-                            )}
-                            {log.description && (
-                              <p className="text-sm text-muted-foreground">{log.description}</p>
-                            )}
+                            {log.subject && <p className="font-medium mb-1">{log.subject}</p>}
+                            {log.description && <p className="text-sm text-muted-foreground">{log.description}</p>}
                           </div>
                         </div>
                       ))}
                     </div>
 
                     {/* Todos los contactos (oculto por defecto) */}
-                    <div id="all-contacts" style={{ display: 'none' }} className="space-y-4 mt-4 pt-4 border-t border-border">
+                    <div
+                      id="all-contacts"
+                      style={{ display: "none" }}
+                      className="space-y-4 mt-4 pt-4 border-t border-border"
+                    >
                       <h4 className="font-semibold mb-3">Historial Completo</h4>
-                      {activityLogs.slice(4).map((log) => (
-                        <div key={log.id} className="flex gap-4 p-4 border border-border rounded-lg hover:bg-accent/50 transition-colors">
+                      {(activityLogs as ActivityLog[]).slice(4).map((log) => (
+                        <div
+                          key={log.id}
+                          className="flex gap-4 p-4 border border-border rounded-lg hover:bg-accent/50 transition-colors"
+                        >
                           <div className="flex-1">
                             <div className="flex items-center gap-3 mb-2">
                               <Badge variant="outline">{log.activityType}</Badge>
                               <span className="text-sm font-medium">
-                                {new Date(log.performedAt).toLocaleDateString('es-ES', {
-                                  year: 'numeric',
-                                  month: 'short',
-                                  day: 'numeric',
-                                  hour: '2-digit',
-                                  minute: '2-digit'
+                                {new Date(log.performedAt).toLocaleDateString("es-ES", {
+                                  year: "numeric",
+                                  month: "short",
+                                  day: "numeric",
+                                  hour: "2-digit",
+                                  minute: "2-digit",
                                 })}
                               </span>
                               <span className="text-sm text-muted-foreground">
                                 por Usuario #{log.performedBy}
                               </span>
                             </div>
-                            {log.subject && (
-                              <p className="font-medium mb-1">{log.subject}</p>
-                            )}
-                            {log.description && (
-                              <p className="text-sm text-muted-foreground">{log.description}</p>
-                            )}
+                            {log.subject && <p className="font-medium mb-1">{log.subject}</p>}
+                            {log.description && <p className="text-sm text-muted-foreground">{log.description}</p>}
                           </div>
                         </div>
                       ))}
                     </div>
                   </>
                 ) : (
-                  <p className="text-center text-muted-foreground py-8">
-                    No hay actividad registrada
-                  </p>
+                  <p className="text-center text-muted-foreground py-8">No hay actividad registrada</p>
                 )}
               </CardContent>
             </Card>
@@ -574,4 +582,5 @@ export default function ClientProfile() {
         </Tabs>
       </div>
     </DashboardLayout>
+  );
 }

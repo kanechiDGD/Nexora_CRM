@@ -28,7 +28,7 @@ export function EventDetailsDialog({ event, open, onOpenChange, onEdit }: EventD
   if (!event) return null;
 
   const getEventBadge = (type: string) => {
-    const variants: Record<string, { variant: "default" | "secondary" | "outline", label: string }> = {
+    const variants: Record<string, { variant: "default" | "secondary" | "outline" | "destructive"; label: string }> = {
       'ESTIMADO': { variant: 'default', label: 'Estimado' },
       'REUNION': { variant: 'secondary', label: 'Reunión' },
       'AJUSTACION': { variant: 'outline', label: 'Ajustación' },

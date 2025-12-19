@@ -92,7 +92,7 @@ router.post('/documents', upload.array('files', 10), async (req: Request, res: R
                     organizationMember.organizationId
                 );
 
-                const duplicates = existingDocs.filter(doc => {
+                const duplicates = existingDocs.filter((doc: any) => {
                     const docBase = doc.fileName.replace(/\s*\(\d+\)(\.[^.]+)?$/, '$1');
                     const fileBase = finalFileName.replace(/\s*\(\d+\)(\.[^.]+)?$/, '$1');
                     return docBase === fileBase || doc.fileName === finalFileName;

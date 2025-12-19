@@ -35,6 +35,13 @@ import { format } from "date-fns";
 import { es } from "date-fns/locale";
 import DashboardLayout from "@/components/DashboardLayout";
 
+type OrgMember = {
+  id: number;
+  username: string;
+  role: "ADMIN" | "CO_ADMIN" | "VENDEDOR";
+  createdAt: string | Date;
+};
+
 export default function Users() {
   const [showAddDialog, setShowAddDialog] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
@@ -171,7 +178,7 @@ export default function Users() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {members?.map((member) => (
+                  {(members as OrgMember[] | undefined)?.map((member) => (
                     <TableRow key={member.id}>
                       <TableCell className="font-medium">{member.username}</TableCell>
                       <TableCell>

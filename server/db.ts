@@ -27,7 +27,9 @@ import {
 } from "../drizzle/schema";
 import { ENV } from './_core/env';
 
-let _db: ReturnType<typeof drizzle> | null = null;
+// Typing for drizzle/mysql2 can be finicky with mysql2's dual callback/promise types.
+// We keep _db as any to avoid type conflicts while still leveraging runtime safety.
+let _db: any = null;
 let _pool: mysql.Pool | null = null;
 
 // Lazily create the drizzle instance with proper connection pooling
@@ -782,12 +784,24 @@ export async function getClientCountByClaimStatus(organizationId: number) {
   const db = await getDb();
   if (!db) return [];
 
-  // Obtener todos los clientes de la organización
-  const allClients = await db.select().from(clients)
-    .where(eq(clients.organizationId, organizationId));
+  type ClientRecord = typeof clients.$inferSelect;
 
-  // Agrupar por claimStatus y contar
-  const statusCounts = allClients.reduce((acc: any, client) => {
+  const allClients = await db.select().from(clients)
+    .where(eq(clients.organizationId, organizationId)) as ClientRecord[];
+
+  type StatusEntry = {
+    status: string;
+    count: number;
+    clients: Array<{
+      id: string;
+      firstName: string | null;
+      lastName: string | null;
+      email: string | null;
+      phone: string | null;
+    }>;
+  };
+
+  const statusCounts = (allClients as ClientRecord[]).reduce<Record<string, StatusEntry>>((acc, client) => {
     const status = client.claimStatus || 'NO_SOMETIDA';
     if (!acc[status]) {
       acc[status] = {
