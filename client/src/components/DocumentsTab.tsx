@@ -10,7 +10,10 @@ interface DocumentsTabProps {
 }
 
 export default function DocumentsTab({ clientId }: DocumentsTabProps) {
-    const { data: documents } = trpc.documents.getByClientId.useQuery({ clientId });
+    const { data: documents } = trpc.documents.getByClientId.useQuery(
+        { clientId },
+        { enabled: !!clientId }
+    );
     const utils = trpc.useUtils();
 
     const handleFileUpload = async (files: FileList) => {

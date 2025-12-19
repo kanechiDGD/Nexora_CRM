@@ -32,9 +32,18 @@ export default function ClientProfile() {
   const [, setLocation] = useLocation();
   const clientId = id || "";
 
-  const { data: client, isLoading } = trpc.clients.getById.useQuery({ id: clientId });
-  const { data: activityLogs } = trpc.activityLogs.getByClientId.useQuery({ clientId });
-  const { data: documents } = trpc.documents.getByClientId.useQuery({ clientId });
+  const { data: client, isLoading } = trpc.clients.getById.useQuery(
+    { id: clientId },
+    { enabled: !!clientId }
+  );
+  const { data: activityLogs } = trpc.activityLogs.getByClientId.useQuery(
+    { clientId },
+    { enabled: !!clientId }
+  );
+  const { data: documents } = trpc.documents.getByClientId.useQuery(
+    { clientId },
+    { enabled: !!clientId }
+  );
 
   const utils = trpc.useUtils();
 

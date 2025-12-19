@@ -65,9 +65,11 @@ export function ClientContactDialog({ open, onOpenChange, clientId, clientName }
   const updateClientContact = trpc.clients.update.useMutation({
     onSuccess: () => {
       toast.success("Contacto registrado y cliente actualizado");
+      // Invalidar solo las queries específicas que se ven afectadas
       utils.dashboard.lateContact.invalidate();
-      utils.clients.list.invalidate();
-      utils.activityLogs.getByClientId.invalidate();
+      utils.dashboard.upcomingContacts.invalidate();
+      utils.clients.getById.invalidate({ id: clientId });
+      utils.activityLogs.getByClientId.invalidate({ clientId });
       setDescription("");
       setSubject("");
       onOpenChange(false);

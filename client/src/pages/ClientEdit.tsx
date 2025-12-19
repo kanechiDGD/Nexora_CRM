@@ -22,7 +22,10 @@ export default function ClientEdit() {
   const { user } = useAuth();
   const { canEdit } = usePermissions();
 
-  const { data: client, isLoading } = trpc.clients.getById.useQuery({ id: clientId });
+  const { data: client, isLoading } = trpc.clients.getById.useQuery(
+    { id: clientId },
+    { enabled: !!clientId }
+  );
   const { data: organizationMembers } = trpc.organizations.getMembers.useQuery();
   const { data: customClaimStatuses = [] } = trpc.customClaimStatuses.list.useQuery();
   const updateMutation = trpc.clients.update.useMutation();
@@ -123,8 +126,10 @@ export default function ClientEdit() {
         },
       });
 
+      // Invalidar solo el cliente específico y las queries del dashboard que puedan verse afectadas
       utils.clients.getById.invalidate({ id: clientId });
-      utils.clients.list.invalidate();
+      utils.dashboard.lateContact.invalidate();
+      utils.dashboard.upcomingContacts.invalidate();
       toast.success("Cliente actualizado correctamente");
       setLocation(`/clients/${clientId}`);
     } catch (error) {

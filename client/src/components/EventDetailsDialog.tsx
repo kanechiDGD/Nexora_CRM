@@ -129,7 +129,10 @@ export function EventDetailsDialog({ event, open, onOpenChange, onEdit }: EventD
 }
 
 function ClientInfoSection({ clientId }: { clientId: string }) {
-  const { data: client } = trpc.clients.getById.useQuery({ id: clientId });
+  const { data: client } = trpc.clients.getById.useQuery(
+    { id: clientId },
+    { enabled: !!clientId }
+  );
   const { t } = useTranslation();
 
   if (!client) return null;
