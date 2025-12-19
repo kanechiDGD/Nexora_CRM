@@ -22,12 +22,14 @@ import {
 import { Edit } from "lucide-react";
 import { trpc } from "@/lib/trpc";
 import { toast } from "sonner";
+import { useTranslation } from "react-i18next";
 
 interface EditTaskDialogProps {
   task: any;
 }
 
 export function EditTaskDialog({ task }: EditTaskDialogProps) {
+  const { t, i18n } = useTranslation();
   const [open, setOpen] = useState(false);
   const [formData, setFormData] = useState({
     title: task.title || "",
