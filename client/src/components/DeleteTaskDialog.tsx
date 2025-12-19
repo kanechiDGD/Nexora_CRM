@@ -12,12 +12,14 @@ import {
 import { Trash2 } from "lucide-react";
 import { trpc } from "@/lib/trpc";
 import { toast } from "sonner";
+import { useTranslation } from "react-i18next";
 
 interface DeleteTaskDialogProps {
   task: any;
 }
 
 export function DeleteTaskDialog({ task }: DeleteTaskDialogProps) {
+  const { t, i18n } = useTranslation();
   const [open, setOpen] = useState(false);
   const utils = trpc.useUtils();
   
