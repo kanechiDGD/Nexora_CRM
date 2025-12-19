@@ -48,13 +48,14 @@ export async function setupVite(app: Express, server: Server) {
 }
 
 export function serveStatic(app: Express) {
-  // Siempre servimos desde dist/public (build de Vite). El path relativo a server/_core/.
-  const distPath = path.resolve(import.meta.dirname, "../..", "dist", "public");
+  // Siempre servimos desde dist/public generado por "pnpm build"
+  // Usamos process.cwd() para evitar que al ejecutar el bundle (dist/index.js) cambie la base.
+  const distPath = path.resolve(process.cwd(), "dist", "public");
 
   if (!fs.existsSync(distPath)) {
     console.error(
       `[Static] Could not find the build directory: ${distPath}. Did you run ` +
-      "`pnpm build` before starting the server?"
+        "`pnpm build` before starting the server?"
     );
   }
 
