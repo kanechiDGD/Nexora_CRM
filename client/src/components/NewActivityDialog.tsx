@@ -36,9 +36,11 @@ import {
 import { Plus, Check, ChevronsUpDown } from "lucide-react";
 import { trpc } from "@/lib/trpc";
 import { toast } from "sonner";
+import { useTranslation } from "react-i18next";
 import { cn } from "@/lib/utils";
 
 export function NewActivityDialog() {
+  const { t, i18n } = useTranslation();
   const { user } = useAuth();
   const [open, setOpen] = useState(false);
   const [clientSearchOpen, setClientSearchOpen] = useState(false);
