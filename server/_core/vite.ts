@@ -48,9 +48,8 @@ export async function setupVite(app: Express, server: Server) {
 }
 
 export function serveStatic(app: Express) {
-  // Siempre servimos desde dist/public generado por "pnpm build"
-  // Usamos process.cwd() para evitar que al ejecutar el bundle (dist/index.js) cambie la base.
-  const distPath = path.resolve(process.cwd(), "dist", "public");
+  // Servimos desde dist/public relativo al bundle (dist/index.js)
+  const distPath = path.resolve(import.meta.dirname, "public");
 
   if (!fs.existsSync(distPath)) {
     console.error(
