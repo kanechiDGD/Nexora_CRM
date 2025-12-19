@@ -12,6 +12,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
+import { useTranslation } from "react-i18next";
 
 interface ClientContactDialogProps {
   open: boolean;
@@ -19,7 +20,7 @@ interface ClientContactDialogProps {
   clientId: string;
   clientName: string;
 }
-
+const { t, i18n } = useTranslation();
 export function ClientContactDialog({ open, onOpenChange, clientId, clientName }: ClientContactDialogProps) {
   const utils = trpc.useUtils();
   const [contactMethod, setContactMethod] = useState<string>("LLAMADA");
