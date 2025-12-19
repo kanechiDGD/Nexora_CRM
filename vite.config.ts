@@ -6,8 +6,12 @@ import path from "path";
 import { defineConfig } from "vite";
 import { vitePluginManusRuntime } from "vite-plugin-manus-runtime";
 
+const isManusEnabled = process.env.MANUS_RUNTIME === "true";
 
-const plugins = [react(), tailwindcss(), jsxLocPlugin(), vitePluginManusRuntime()];
+const plugins = [react(), tailwindcss(), jsxLocPlugin()];
+if (isManusEnabled) {
+  plugins.push(vitePluginManusRuntime());
+}
 
 export default defineConfig({
   plugins,
