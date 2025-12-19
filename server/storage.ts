@@ -88,8 +88,11 @@ async function uploadToR2(
     await s3Client.send(command);
     console.log('[R2] Upload successful');
 
+    // Usar URL pública permanente (sin expiración)
+    // El bucket debe estar configurado con acceso público en R2
     const url = `${config.publicUrl}/${key}`;
-    console.log('[R2] Public URL generated');
+
+    console.log('[R2] Public URL generated:', url);
 
     return { key, url };
   } catch (error: any) {
