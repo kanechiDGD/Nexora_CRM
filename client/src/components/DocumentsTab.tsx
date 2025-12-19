@@ -1,32 +1,119 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Upload, Download, Trash2, File, FileText } from "lucide-react";
+import { Upload, Download, Trash2, File, FileText, AlertCircle } from "lucide-react";
 import { toast } from "sonner";
 import { trpc } from "@/lib/trpc";
+import { useState } from "react";
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 interface DocumentsTabProps {
     clientId: string;
 }
 
+// Constantes de validación
+const MAX_FILE_SIZE_MB = 50;
+const MAX_FILE_SIZE_BYTES = MAX_FILE_SIZE_MB * 1024 * 1024;
+const ALLOWED_FILE_TYPES = [
+    'application/pdf',
+    'image/jpeg',
+    'image/jpg',
+    'image/png',
+    'image/gif',
+    'image/webp',
+    'application/msword',
+    'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+    'application/vnd.ms-excel',
+    'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+];
+
+const ALLOWED_EXTENSIONS = ['.pdf', '.jpg', '.jpeg', '.png', '.gif', '.webp', '.doc', '.docx', '.xls', '.xlsx'];
+
 export default function DocumentsTab({ clientId }: DocumentsTabProps) {
-    const { data: documents } = trpc.documents.getByClientId.useQuery(
+    const { data: documents, isLoading: loadingDocuments } = trpc.documents.getByClientId.useQuery(
         { clientId },
         { enabled: !!clientId }
     );
     const utils = trpc.useUtils();
+    const [isUploading, setIsUploading] = useState(false);
+    const [documentToDelete, setDocumentToDelete] = useState<{ id: number; name: string } | null>(null);
+    const [isDeleting, setIsDeleting] = useState(false);
+
+    const validateFile = (file: File): { valid: boolean; error?: string } => {
+        // Validar tamaño
+        if (file.size > MAX_FILE_SIZE_BYTES) {
+            return {
+                valid: false,
+                error: `El archivo "${file.name}" excede el límite de ${MAX_FILE_SIZE_MB}MB (tamaño: ${(file.size / 1024 / 1024).toFixed(2)}MB)`
+            };
+        }
+
+        // Validar tipo MIME
+        if (!ALLOWED_FILE_TYPES.includes(file.type)) {
+            return {
+                valid: false,
+                error: `El tipo de archivo "${file.type}" no está permitido para "${file.name}"`
+            };
+        }
+
+        // Validar extensión
+        const extension = '.' + file.name.split('.').pop()?.toLowerCase();
+        if (!ALLOWED_EXTENSIONS.includes(extension)) {
+            return {
+                valid: false,
+                error: `La extensión "${extension}" no está permitida para "${file.name}"`
+            };
+        }
+
+        return { valid: true };
+    };
 
     const handleFileUpload = async (files: FileList) => {
+        if (!files || files.length === 0) return;
+
+        // Validar todos los archivos antes de subir
+        const validationErrors: string[] = [];
+        const validFiles: File[] = [];
+
+        for (let i = 0; i < files.length; i++) {
+            const file = files[i];
+            const validation = validateFile(file);
+            
+            if (!validation.valid) {
+                validationErrors.push(validation.error!);
+            } else {
+                validFiles.push(file);
+            }
+        }
+
+        // Mostrar errores de validación
+        if (validationErrors.length > 0) {
+            validationErrors.forEach(error => toast.error(error));
+            if (validFiles.length === 0) return;
+        }
+
+        setIsUploading(true);
+
         try {
             const formData = new FormData();
 
-            for (let i = 0; i < files.length; i++) {
-                formData.append('files', files[i]);
-            }
+            validFiles.forEach(file => {
+                formData.append('files', file);
+            });
 
             formData.append('clientId', clientId);
 
-            toast.info(`Subiendo ${files.length} archivo(s)...`);
+            toast.info(`Subiendo ${validFiles.length} archivo(s)...`);
 
             const response = await fetch('/api/upload/documents', {
                 method: 'POST',
@@ -41,25 +128,27 @@ export default function DocumentsTab({ clientId }: DocumentsTabProps) {
 
             const result = await response.json();
 
-            toast.success(result.message || 'Archivos subidos correctamente');
+            toast.success(result.message || `${validFiles.length} archivo(s) subido(s) correctamente`);
 
             utils.documents.getByClientId.invalidate({ clientId });
 
         } catch (error) {
             console.error('Error uploading files:', error);
-            toast.error(error instanceof Error ? error.message : 'Error al subir archivos');
+            toast.error(error instanceof Error ? error.message : 'Error al subir archivos. Por favor intenta de nuevo.');
+        } finally {
+            setIsUploading(false);
         }
     };
 
-    const handleDeleteDocument = async (documentId: number) => {
-        if (!confirm('¿Estás seguro de eliminar este documento? Esta acción no se puede deshacer.')) {
-            return;
-        }
+    const handleDeleteDocument = async () => {
+        if (!documentToDelete) return;
+
+        setIsDeleting(true);
 
         try {
             toast.info('Eliminando documento...');
 
-            const response = await fetch(`/api/upload/documents/${documentId}`, {
+            const response = await fetch(`/api/upload/documents/${documentToDelete.id}`, {
                 method: 'DELETE',
                 credentials: 'include',
             });
@@ -76,7 +165,10 @@ export default function DocumentsTab({ clientId }: DocumentsTabProps) {
 
         } catch (error) {
             console.error('Error deleting document:', error);
-            toast.error(error instanceof Error ? error.message : 'Error al eliminar documento');
+            toast.error(error instanceof Error ? error.message : 'Error al eliminar documento. Por favor intenta de nuevo.');
+        } finally {
+            setIsDeleting(false);
+            setDocumentToDelete(null);
         }
     };
 
@@ -91,13 +183,23 @@ export default function DocumentsTab({ clientId }: DocumentsTabProps) {
                     </CardTitle>
                 </CardHeader>
                 <CardContent>
+                    <Alert className="mb-4">
+                        <AlertCircle className="h-4 w-4" />
+                        <AlertDescription>
+                            <strong>Archivos permitidos:</strong> PDF, Imágenes (JPG, PNG, GIF, WebP), Word, Excel
+                            <br />
+                            <strong>Tamaño máximo:</strong> {MAX_FILE_SIZE_MB}MB por archivo
+                        </AlertDescription>
+                    </Alert>
+
                     <div className="border-2 border-dashed border-border rounded-lg p-8 text-center">
                         <input
                             type="file"
                             multiple
-                            accept=".pdf,.jpg,.jpeg,.png,.gif,.webp,.doc,.docx,.xls,.xlsx"
+                            accept={ALLOWED_EXTENSIONS.join(',')}
                             className="hidden"
                             id="document-upload"
+                            disabled={isUploading}
                             onChange={(e) => {
                                 if (e.target.files && e.target.files.length > 0) {
                                     handleFileUpload(e.target.files);
@@ -107,12 +209,14 @@ export default function DocumentsTab({ clientId }: DocumentsTabProps) {
                         />
                         <label
                             htmlFor="document-upload"
-                            className="cursor-pointer inline-flex flex-col items-center gap-2"
+                            className={`cursor-pointer inline-flex flex-col items-center gap-2 ${isUploading ? 'opacity-50 cursor-not-allowed' : ''}`}
                         >
-                            <Upload className="h-12 w-12 text-muted-foreground" />
-                            <p className="text-sm font-medium">Click para seleccionar archivos</p>
+                            <Upload className={`h-12 w-12 text-muted-foreground ${isUploading ? 'animate-pulse' : ''}`} />
+                            <p className="text-sm font-medium">
+                                {isUploading ? 'Subiendo archivos...' : 'Click para seleccionar archivos'}
+                            </p>
                             <p className="text-xs text-muted-foreground">
-                                PDF, Imágenes, Word, Excel (máx. 50MB)
+                                PDF, Imágenes, Word, Excel (máx. {MAX_FILE_SIZE_MB}MB)
                             </p>
                         </label>
                     </div>
@@ -128,7 +232,11 @@ export default function DocumentsTab({ clientId }: DocumentsTabProps) {
                     </CardTitle>
                 </CardHeader>
                 <CardContent>
-                    {documents && documents.length > 0 ? (
+                    {loadingDocuments ? (
+                        <p className="text-center text-muted-foreground py-8">
+                            Cargando documentos...
+                        </p>
+                    ) : documents && documents.length > 0 ? (
                         <div className="space-y-3">
                             {documents.map((doc) => (
                                 <div
@@ -162,7 +270,8 @@ export default function DocumentsTab({ clientId }: DocumentsTabProps) {
                                         <Button
                                             variant="destructive"
                                             size="sm"
-                                            onClick={() => handleDeleteDocument(doc.id)}
+                                            onClick={() => setDocumentToDelete({ id: doc.id, name: doc.fileName })}
+                                            disabled={isDeleting}
                                         >
                                             <Trash2 className="h-4 w-4 mr-2" />
                                             Eliminar
@@ -178,6 +287,28 @@ export default function DocumentsTab({ clientId }: DocumentsTabProps) {
                     )}
                 </CardContent>
             </Card>
+
+            {/* Diálogo de confirmación para eliminar */}
+            <AlertDialog open={!!documentToDelete} onOpenChange={(open) => !open && setDocumentToDelete(null)}>
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>¿Estás seguro?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                            Esta acción no se puede deshacer. El documento "{documentToDelete?.name}" será eliminado permanentemente del sistema.
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel disabled={isDeleting}>Cancelar</AlertDialogCancel>
+                        <AlertDialogAction
+                            onClick={handleDeleteDocument}
+                            disabled={isDeleting}
+                            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                        >
+                            {isDeleting ? 'Eliminando...' : 'Eliminar'}
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
         </div>
     );
 }
