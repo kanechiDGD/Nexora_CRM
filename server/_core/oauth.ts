@@ -185,6 +185,14 @@ export function registerOAuthRoutes(app: Express) {
         lastSignedIn: new Date(),
       });
 
+      const user = await db.getUserByOpenId(openId);
+      if (user && email) {
+        const member = await db.getOrganizationMemberByUsername(email);
+        if (member && member.userId !== user.id) {
+          await db.updateOrganizationMember(member.id, { userId: user.id });
+        }
+      }
+
       const sessionToken = await sdk.createSessionToken(openId, {
         name: name || "Google User",
         expiresInMs: ONE_YEAR_MS,
