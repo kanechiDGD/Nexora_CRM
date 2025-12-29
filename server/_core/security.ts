@@ -14,11 +14,11 @@ export function setupSecurityMiddlewares(app: Express) {
             contentSecurityPolicy: isProduction ? {
                 directives: {
                     defaultSrc: ["'self'"],
-                    scriptSrc: ["'self'", "'unsafe-inline'"], // unsafe-inline necesario para Vite
+                    scriptSrc: ["'self'", "'unsafe-inline'", "https://maps.googleapis.com", "https://maps.gstatic.com"], // unsafe-inline necesario para Vite
                     styleSrc: ["'self'", "'unsafe-inline'"],
-                    imgSrc: ["'self'", "data:", "https:", "blob:"], // Permitir imágenes externas
+                    imgSrc: ["'self'", "data:", "https:", "blob:", "https://maps.googleapis.com", "https://maps.gstatic.com"], // Permitir im?genes externas
                     fontSrc: ["'self'", "data:"],
-                    connectSrc: ["'self'"],
+                    connectSrc: ["'self'", "https://maps.googleapis.com", "https://maps.gstatic.com"],
                     frameSrc: ["'none'"],
                     objectSrc: ["'none'"],
                     baseUri: ["'self'"],
