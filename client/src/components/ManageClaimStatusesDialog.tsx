@@ -13,6 +13,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
+import { useTranslation } from "react-i18next";
 import { Plus, Trash2, Settings } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 
@@ -21,6 +22,7 @@ interface ManageClaimStatusesDialogProps {
 }
 
 export function ManageClaimStatusesDialog({ trigger }: ManageClaimStatusesDialogProps) {
+  const { t } = useTranslation();
   const [open, setOpen] = useState(false);
   const [newStatusName, setNewStatusName] = useState("");
   const [newStatusDisplayName, setNewStatusDisplayName] = useState("");
@@ -36,30 +38,30 @@ export function ManageClaimStatusesDialog({ trigger }: ManageClaimStatusesDialog
   // Mutation para crear nuevo estado
   const createMutation = trpc.customClaimStatuses.create.useMutation({
     onSuccess: () => {
-      toast.success("Estado creado exitosamente");
+      toast.success(t('claimStatusManager.createSuccess'));
       setNewStatusName("");
       setNewStatusDisplayName("");
       utils.customClaimStatuses.list.invalidate();
     },
     onError: (error) => {
-      toast.error(error.message || "Error al crear estado");
+      toast.error(error.message || t('claimStatusManager.createError'));
     },
   });
 
   // Mutation para eliminar estado
   const deleteMutation = trpc.customClaimStatuses.delete.useMutation({
     onSuccess: () => {
-      toast.success("Estado eliminado exitosamente");
+      toast.success(t('claimStatusManager.deleteSuccess'));
       utils.customClaimStatuses.list.invalidate();
     },
     onError: (error) => {
-      toast.error(error.message || "Error al eliminar estado");
+      toast.error(error.message || t('claimStatusManager.deleteError'));
     },
   });
 
   const handleCreate = () => {
     if (!newStatusName.trim() || !newStatusDisplayName.trim()) {
-      toast.error("Por favor completa todos los campos");
+      toast.error(t('claimStatusManager.missingFields'));
       return;
     }
 
@@ -70,7 +72,7 @@ export function ManageClaimStatusesDialog({ trigger }: ManageClaimStatusesDialog
   };
 
   const handleDelete = (id: number) => {
-    if (confirm("¿Estás seguro de eliminar este estado? Esta acción no se puede deshacer.")) {
+    if (confirm(t('claimStatusManager.deleteConfirm'))) {
       deleteMutation.mutate({ id });
     }
   };
@@ -81,16 +83,15 @@ export function ManageClaimStatusesDialog({ trigger }: ManageClaimStatusesDialog
         {trigger || (
           <Button type="button" variant="outline" size="sm">
             <Settings className="h-4 w-4 mr-2" />
-            Gestionar Estados
+            {t('claimStatusManager.triggerLabel')}
           </Button>
         )}
       </DialogTrigger>
       <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Gestionar Estados de Reclamo</DialogTitle>
+          <DialogTitle>{t('claimStatusManager.title')}</DialogTitle>
           <DialogDescription>
-            Agrega o elimina estados personalizados para el dropdown de Estado del Reclamo.
-            Solo ADMIN y CO_ADMIN pueden gestionar estos estados.
+            {t('claimStatusManager.description')}
           </DialogDescription>
         </DialogHeader>
 
@@ -101,27 +102,27 @@ export function ManageClaimStatusesDialog({ trigger }: ManageClaimStatusesDialog
               <div className="space-y-4">
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label htmlFor="statusName">Nombre Interno (sin espacios)</Label>
+                    <Label htmlFor="statusName">{t('claimStatusManager.fields.internalName.label')}</Label>
                     <Input
                       id="statusName"
-                      placeholder="ej: EN_REVISION"
+                      placeholder={t('claimStatusManager.fields.internalName.placeholder')}
                       value={newStatusName}
                       onChange={(e) => setNewStatusName(e.target.value.toUpperCase().replace(/\s+/g, "_"))}
                     />
                     <p className="text-xs text-muted-foreground">
-                      Se usará en la base de datos
+                      {t('claimStatusManager.fields.internalName.help')}
                     </p>
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="statusDisplayName">Nombre para Mostrar</Label>
+                    <Label htmlFor="statusDisplayName">{t('claimStatusManager.fields.displayName.label')}</Label>
                     <Input
                       id="statusDisplayName"
-                      placeholder="ej: En Revisión"
+                      placeholder={t('claimStatusManager.fields.displayName.placeholder')}
                       value={newStatusDisplayName}
                       onChange={(e) => setNewStatusDisplayName(e.target.value)}
                     />
                     <p className="text-xs text-muted-foreground">
-                      Se mostrará en el dropdown
+                      {t('claimStatusManager.fields.displayName.help')}
                     </p>
                   </div>
                 </div>
@@ -132,7 +133,7 @@ export function ManageClaimStatusesDialog({ trigger }: ManageClaimStatusesDialog
                   className="w-full"
                 >
                   <Plus className="h-4 w-4 mr-2" />
-                  Agregar Estado
+                  {t('claimStatusManager.addButton')}
                 </Button>
               </div>
             </CardContent>
@@ -140,12 +141,12 @@ export function ManageClaimStatusesDialog({ trigger }: ManageClaimStatusesDialog
 
           {/* Lista de estados personalizados existentes */}
           <div className="space-y-2">
-            <Label>Estados Personalizados Existentes</Label>
+            <Label>{t('claimStatusManager.customStatusesTitle')}</Label>
             {isLoading ? (
-              <p className="text-sm text-muted-foreground">Cargando...</p>
+              <p className="text-sm text-muted-foreground">{t('common.loading')}</p>
             ) : customStatuses.length === 0 ? (
               <p className="text-sm text-muted-foreground">
-                No hay estados personalizados. Agrega uno arriba.
+                {t('claimStatusManager.emptyCustomStatuses')}
               </p>
             ) : (
               <div className="space-y-2">
@@ -174,14 +175,14 @@ export function ManageClaimStatusesDialog({ trigger }: ManageClaimStatusesDialog
 
           {/* Estados predeterminados (solo informativo) */}
           <div className="space-y-2">
-            <Label>Estados Predeterminados (No se pueden eliminar)</Label>
+            <Label>{t('claimStatusManager.defaultStatusesTitle')}</Label>
             <div className="space-y-2">
               {[
-                { name: "NO_SOMETIDA", displayName: "No Sometida" },
-                { name: "EN_PROCESO", displayName: "En Proceso" },
-                { name: "APROVADA", displayName: "Aprobada" },
-                { name: "RECHAZADA", displayName: "Rechazada" },
-                { name: "CERRADA", displayName: "Cerrada" },
+                { name: "NO_SOMETIDA", displayName: t('dashboard.claimStatus.status.NO_SOMETIDA') },
+                { name: "EN_PROCESO", displayName: t('dashboard.claimStatus.status.EN_PROCESO') },
+                { name: "APROVADA", displayName: t('dashboard.claimStatus.status.APROVADA') },
+                { name: "RECHAZADA", displayName: t('dashboard.claimStatus.status.RECHAZADA') },
+                { name: "CERRADA", displayName: t('dashboard.claimStatus.status.CERRADA') },
               ].map((status) => (
                 <Card key={status.name} className="bg-muted/50">
                   <CardContent className="flex items-center justify-between p-4">
@@ -189,7 +190,7 @@ export function ManageClaimStatusesDialog({ trigger }: ManageClaimStatusesDialog
                       <p className="font-medium">{status.displayName}</p>
                       <p className="text-sm text-muted-foreground">{status.name}</p>
                     </div>
-                    <span className="text-xs text-muted-foreground">Predeterminado</span>
+                    <span className="text-xs text-muted-foreground">{t('claimStatusManager.defaultLabel')}</span>
                   </CardContent>
                 </Card>
               ))}
@@ -199,7 +200,7 @@ export function ManageClaimStatusesDialog({ trigger }: ManageClaimStatusesDialog
 
         <DialogFooter>
           <Button type="button" variant="outline" onClick={() => setOpen(false)}>
-            Cerrar
+            {t('common.close')}
           </Button>
         </DialogFooter>
       </DialogContent>

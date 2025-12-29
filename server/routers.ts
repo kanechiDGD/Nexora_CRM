@@ -6,8 +6,11 @@ import { z } from "zod";
 import * as db from "./db";
 import { generateClientId } from "./utils/generateClientId";
 import { generatePassword } from "./utils/generatePassword";
+import { generateToken, hashToken } from "./utils/tokens";
 import { TRPCError } from "@trpc/server";
 import bcrypt from "bcryptjs";
+import { ENV } from "./_core/env";
+import { buildInviteEmail, buildPasswordResetEmail, sendEmail } from "./_core/email";
 
 // Helper para verificar roles
 const adminProcedure = protectedProcedure.use(({ ctx, next }) => {
@@ -187,9 +190,82 @@ export const appRouter = router({
 
         return { success: true };
       }),
+
+    requestPasswordReset: publicProcedure
+      .input(z.object({
+        email: z.string().email(),
+      }))
+      .mutation(async ({ input }) => {
+        try {
+          const user = await db.getUserByEmail(input.email);
+          if (!user) {
+            return { success: true };
+          }
+
+          const member = await db.getOrganizationMemberByUserId(user.id);
+          if (!member) {
+            return { success: true };
+          }
+
+          const token = generateToken(32);
+          const tokenHash = hashToken(token);
+          const expiresAt = new Date(Date.now() + ENV.passwordResetTokenHours * 60 * 60 * 1000);
+
+          await db.createPasswordResetToken({
+            userId: user.id,
+            tokenHash,
+            expiresAt,
+          });
+
+          const resetUrl = `${ENV.appBaseUrl}/reset-password?token=${token}`;
+          const email = buildPasswordResetEmail({ resetUrl });
+
+          await sendEmail({
+            to: input.email,
+            subject: email.subject,
+            html: email.html,
+          });
+        } catch (error) {
+          console.error("[Auth] Password reset request failed", error);
+        }
+
+        return { success: true };
+      }),
+
+    resetPassword: publicProcedure
+      .input(z.object({
+        token: z.string().min(10),
+        password: z.string().min(8),
+      }))
+      .mutation(async ({ input }) => {
+        const tokenHash = hashToken(input.token);
+        const resetToken = await db.getPasswordResetTokenByHash(tokenHash);
+        if (!resetToken) {
+          throw new TRPCError({ code: "BAD_REQUEST", message: "Invalid or expired token" });
+        }
+
+        if (resetToken.usedAt) {
+          throw new TRPCError({ code: "BAD_REQUEST", message: "Token already used" });
+        }
+
+        if (resetToken.expiresAt && new Date(resetToken.expiresAt).getTime() < Date.now()) {
+          throw new TRPCError({ code: "BAD_REQUEST", message: "Token expired" });
+        }
+
+        const member = await db.getOrganizationMemberByUserId(resetToken.userId);
+        if (!member) {
+          throw new TRPCError({ code: "BAD_REQUEST", message: "User not found" });
+        }
+
+        const passwordHash = await bcrypt.hash(input.password, 10);
+        await db.updateOrganizationMember(member.id, { password: passwordHash });
+        await db.updatePasswordResetToken(resetToken.id, { usedAt: new Date() });
+
+        return { success: true };
+      }),
   }),
 
-  // ============ CLIENTS ROUTER ============
+  // ============ CLIENTS ROUTER ============"
   clients: router({
     // Listar todos los clientes
     list: orgProcedure.query(async ({ ctx }) => {
@@ -788,46 +864,75 @@ export const appRouter = router({
         logo: z.string().optional().nullable(),
         memberCount: z.number().min(1).max(20),
       }))
-      .mutation(async ({ input }) => {
-        // Crear usuario temporal para el admin si no existe
-        const tempOpenId = `onboarding-${Date.now()}-${Math.random().toString(36).substring(7)}`;
-        await db.upsertUser({
-          openId: tempOpenId,
-          name: 'Admin Temporal',
-          email: null,
-          loginMethod: 'onboarding',
-          role: 'user',
-        });
-
-        const tempUser = await db.getUserByOpenId(tempOpenId);
-        if (!tempUser) {
+      .mutation(async ({ input, ctx }) => {
+        if (ctx.organizationMember) {
           throw new TRPCError({
-            code: 'INTERNAL_SERVER_ERROR',
-            message: 'Error al crear usuario temporal'
+            code: 'BAD_REQUEST',
+            message: 'Ya tienes una organizacion asociada',
           });
         }
 
-        // Crear organización
-        const slug = input.name.toLowerCase().replace(/[^a-z0-9]+/g, '-');
+        let ownerUser = ctx.user ?? null;
+        if (!ownerUser) {
+          // Crear usuario temporal para el admin si no existe
+          const tempOpenId = `onboarding-${Date.now()}-${Math.random().toString(36).substring(7)}`;
+          await db.upsertUser({
+            openId: tempOpenId,
+            name: 'Admin Temporal',
+            email: null,
+            loginMethod: 'onboarding',
+            role: 'user',
+          });
+
+          const tempUser = await db.getUserByOpenId(tempOpenId);
+          if (!tempUser) {
+            throw new TRPCError({
+              code: 'INTERNAL_SERVER_ERROR',
+              message: 'Error al crear usuario temporal'
+            });
+          }
+
+          ownerUser = tempUser;
+        }
+
+        // Crear organizaciA3n
+        const baseSlug = input.name
+          .toLowerCase()
+          .replace(/[^a-z0-9]+/g, '-')
+          .replace(/(^-+|-+$)/g, '');
+        const slugBaseForSuffix = baseSlug || `org-${Date.now()}`;
+        let slug = slugBaseForSuffix;
+        let slugSuffix = 1;
+        while (await db.getOrganizationBySlug(slug)) {
+          slugSuffix += 1;
+          slug = `${slugBaseForSuffix}-${slugSuffix}`;
+        }
         const orgId = await db.createOrganization({
           name: input.name,
           slug,
           businessType: input.businessType,
           logo: input.logo,
-          ownerId: tempUser.id,
+          ownerId: ownerUser.id,
         });
 
         // Crear miembro admin con username y password
-        const adminUsername = `admin@${slug}.internal`;
+        const adminUsernameBase = `admin@${slug}.internal`;
+        let adminUsername = adminUsernameBase;
+        let adminSuffix = 1;
+        while (await db.getOrganizationMemberByUsername(adminUsername)) {
+          adminSuffix += 1;
+          adminUsername = `admin${adminSuffix}@${slug}.internal`;
+        }
         const adminPassword = generatePassword(10);
         const adminPasswordHash = await bcrypt.hash(adminPassword, 10);
         await db.createOrganizationMember({
           organizationId: orgId,
-          userId: tempUser.id,
+          userId: ownerUser.id,
           role: 'ADMIN',
           username: adminUsername,
           password: adminPasswordHash,
         });
+
 
         // Generar usuarios automáticos
         const generatedUsers: Array<{ username: string; password: string; role: string }> = [];
@@ -872,6 +977,144 @@ export const appRouter = router({
           organizationId: orgId,
           generatedUsers,
         };
+      }),
+
+    inviteMember: adminOrgProcedure
+      .input(z.object({
+        email: z.string().email(),
+        role: z.enum(["ADMIN", "CO_ADMIN", "VENDEDOR"]).default("VENDEDOR"),
+      }))
+      .mutation(async ({ input, ctx }) => {
+        const organization = await db.getOrganizationById(ctx.organizationId);
+        if (!organization) {
+          throw new TRPCError({ code: "NOT_FOUND", message: "Organization not found" });
+        }
+
+        const memberCount = await db.getOrganizationMemberCount(ctx.organizationId);
+        if (organization.maxMembers && memberCount >= organization.maxMembers) {
+          throw new TRPCError({ code: "BAD_REQUEST", message: "Organization member limit reached" });
+        }
+
+        const existingUser = await db.getUserByEmail(input.email);
+        if (existingUser) {
+          const existingMember = await db.getOrganizationMemberByUserId(existingUser.id);
+          if (existingMember) {
+            throw new TRPCError({ code: "BAD_REQUEST", message: "User already belongs to an organization" });
+          }
+        }
+
+        const existingInvite = await db.getOrganizationInviteByEmail(ctx.organizationId, input.email);
+        if (existingInvite && !existingInvite.acceptedAt && !existingInvite.revokedAt) {
+          throw new TRPCError({ code: "BAD_REQUEST", message: "Invite already sent" });
+        }
+
+        const token = generateToken(32);
+        const tokenHash = hashToken(token);
+        const expiresAt = new Date(Date.now() + ENV.inviteTokenHours * 60 * 60 * 1000);
+
+        await db.createOrganizationInvite({
+          organizationId: ctx.organizationId,
+          email: input.email,
+          role: input.role,
+          tokenHash,
+          invitedBy: ctx.user.id,
+          expiresAt,
+        });
+
+        const inviteUrl = `${ENV.appBaseUrl}/invite?token=${token}`;
+        const email = buildInviteEmail({
+          organizationName: organization.name,
+          invitedBy: ctx.user.name || ctx.user.email || "Your admin",
+          inviteUrl,
+        });
+
+        await sendEmail({
+          to: input.email,
+          subject: email.subject,
+          html: email.html,
+        });
+
+        return { success: true };
+      }),
+
+    listInvites: adminOrgProcedure
+      .query(async ({ ctx }) => {
+        return await db.listOrganizationInvites(ctx.organizationId);
+      }),
+
+    revokeInvite: adminOrgProcedure
+      .input(z.object({ id: z.number() }))
+      .mutation(async ({ input, ctx }) => {
+        const invite = await db.getOrganizationInviteById(input.id);
+        if (!invite || invite.organizationId != ctx.organizationId) {
+          throw new TRPCError({ code: "NOT_FOUND", message: "Invite not found" });
+        }
+        await db.updateOrganizationInvite(invite.id, { revokedAt: new Date() });
+        return { success: true };
+      }),
+
+    acceptInvite: publicProcedure
+      .input(z.object({
+        token: z.string().min(10),
+        name: z.string().min(2),
+        password: z.string().min(8),
+      }))
+      .mutation(async ({ input }) => {
+        const tokenHash = hashToken(input.token);
+        const invite = await db.getOrganizationInviteByTokenHash(tokenHash);
+        if (!invite) {
+          throw new TRPCError({ code: "BAD_REQUEST", message: "Invalid or expired invite" });
+        }
+
+        if (invite.revokedAt || invite.acceptedAt) {
+          throw new TRPCError({ code: "BAD_REQUEST", message: "Invite already used" });
+        }
+
+        if (invite.expiresAt && new Date(invite.expiresAt).getTime() < Date.now()) {
+          throw new TRPCError({ code: "BAD_REQUEST", message: "Invite expired" });
+        }
+
+        let user = await db.getUserByEmail(invite.email);
+        if (user) {
+          const existingMember = await db.getOrganizationMemberByUserId(user.id);
+          if (existingMember) {
+            throw new TRPCError({ code: "BAD_REQUEST", message: "User already belongs to an organization" });
+          }
+        } else {
+          const openId = `invite-${Date.now()}-${generateToken(8)}`;
+          await db.upsertUser({
+            openId,
+            name: input.name,
+            email: invite.email,
+            loginMethod: "invite",
+            role: "user",
+          });
+          user = await db.getUserByOpenId(openId);
+        }
+
+        if (!user) {
+          throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Failed to create user" });
+        }
+
+        let username = invite.email;
+        let suffix = 1;
+        while (await db.getOrganizationMemberByUsername(username)) {
+          suffix += 1;
+          const parts = invite.email.split("@");
+          username = `${parts[0]}+${suffix}@${parts[1]}`;
+        }
+
+        const passwordHash = await bcrypt.hash(input.password, 10);
+        await db.createOrganizationMember({
+          organizationId: invite.organizationId,
+          userId: user.id,
+          role: invite.role,
+          username,
+          password: passwordHash,
+        });
+
+        await db.updateOrganizationInvite(invite.id, { acceptedAt: new Date() });
+        return { success: true };
       }),
 
     // Obtener mi organización

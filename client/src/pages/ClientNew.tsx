@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useLocation } from "wouter";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -15,8 +15,32 @@ import { usePermissions } from "@/hooks/usePermissions";
 import { ManageClaimStatusesDialog } from "@/components/ManageClaimStatusesDialog";
 import { AlertCircle } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { useTranslation } from "react-i18next";
+
+let googleMapsScriptPromise: Promise<void> | null = null;
+
+const loadGoogleMapsScript = (apiKey: string) => {
+  const w = window as any;
+  if (w.google?.maps?.places) {
+    return Promise.resolve();
+  }
+  if (googleMapsScriptPromise) {
+    return googleMapsScriptPromise;
+  }
+  googleMapsScriptPromise = new Promise<void>((resolve, reject) => {
+    const script = document.createElement("script");
+    script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&libraries=places`;
+    script.async = true;
+    script.defer = true;
+    script.onload = () => resolve();
+    script.onerror = () => reject(new Error("google-maps-load-failed"));
+    document.head.appendChild(script);
+  });
+  return googleMapsScriptPromise;
+};
 
 export default function ClientNew() {
+  const { t } = useTranslation();
   const [, setLocation] = useLocation();
   const utils = trpc.useUtils();
   const { user } = useAuth();
@@ -28,6 +52,27 @@ export default function ClientNew() {
   
   // Obtener lista de usuarios de la organización
   const { data: organizationMembers = [] } = trpc.organizations.getMembers.useQuery();
+
+  const addressInputRef = useRef<HTMLInputElement | null>(null);
+
+  const propertyTypeOptions = [
+    { value: "Residential", labelKey: "clientNew.propertyTypes.residential" },
+    { value: "Commercial", labelKey: "clientNew.propertyTypes.commercial" },
+    { value: "Condo", labelKey: "clientNew.propertyTypes.condo" },
+    { value: "Townhouse", labelKey: "clientNew.propertyTypes.townhouse" },
+    { value: "Apartment", labelKey: "clientNew.propertyTypes.apartment" },
+  ];
+
+  const damageTypeOptions = [
+    { value: "Fire", labelKey: "clientNew.damageTypes.fire" },
+    { value: "Water", labelKey: "clientNew.damageTypes.water" },
+    { value: "Wind", labelKey: "clientNew.damageTypes.wind" },
+    { value: "Hail", labelKey: "clientNew.damageTypes.hail" },
+    { value: "Storm", labelKey: "clientNew.damageTypes.storm" },
+    { value: "Theft", labelKey: "clientNew.damageTypes.theft" },
+    { value: "Vandalism", labelKey: "clientNew.damageTypes.vandalism" },
+    { value: "Other", labelKey: "clientNew.damageTypes.other" },
+  ];
 
   // Estados para el formulario
   const [formData, setFormData] = useState({
@@ -80,14 +125,80 @@ export default function ClientNew() {
     internalNotes: "",
   });
 
+  useEffect(() => {
+    const apiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY as string | undefined;
+    if (!apiKey) {
+      return;
+    }
+
+    let autocomplete: any = null;
+    let listener: any = null;
+
+    loadGoogleMapsScript(apiKey)
+      .then(() => {
+        const input = addressInputRef.current;
+        const w = window as any;
+        if (!input || !w.google?.maps?.places) return;
+
+        autocomplete = new w.google.maps.places.Autocomplete(input, {
+          types: ["address"],
+          fields: ["address_components", "formatted_address"],
+        });
+
+        const getComponent = (type: string, useShort = false) => {
+          const place = autocomplete?.getPlace();
+          const components = place?.address_components || [];
+          const component = components.find((item: any) => item.types?.includes(type));
+          if (!component) return "";
+          return useShort ? component.short_name : component.long_name;
+        };
+
+        listener = autocomplete.addListener("place_changed", () => {
+          const place = autocomplete?.getPlace();
+          if (!place) return;
+
+          const streetNumber = getComponent("street_number");
+          const route = getComponent("route");
+          const streetLine = [streetNumber, route].filter(Boolean).join(" ").trim();
+          const city =
+            getComponent("locality") ||
+            getComponent("postal_town") ||
+            getComponent("sublocality") ||
+            getComponent("sublocality_level_1");
+          const state = getComponent("administrative_area_level_1", true) || getComponent("administrative_area_level_1");
+          const zipCode = getComponent("postal_code");
+          const formatted = place.formatted_address || streetLine;
+
+          setFormData((prev) => ({
+            ...prev,
+            propertyAddress: streetLine || formatted || prev.propertyAddress,
+            city: city || prev.city,
+            state: state || prev.state,
+            zipCode: zipCode || prev.zipCode,
+          }));
+        });
+      })
+      .catch(() => {});
+
+    return () => {
+      if (listener) {
+        listener.remove();
+      }
+      if (autocomplete) {
+        const w = window as any;
+        w.google?.maps?.event?.clearInstanceListeners(autocomplete);
+      }
+    };
+  }, []);
+
   const createClientMutation = trpc.clients.create.useMutation({
     onSuccess: () => {
-      toast.success("Cliente creado exitosamente");
+      toast.success(t('clientNew.createSuccess'));
       utils.clients.list.invalidate();
       setLocation("/clients");
     },
     onError: (error) => {
-      toast.error(`Error al crear cliente: ${error.message}`);
+      toast.error(t("clientNew.createError", { message: error.message }));
     },
   });
 
@@ -112,54 +223,50 @@ export default function ClientNew() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    
-    // Validaciones básicas
+
+    // Validaciones basicas
     if (!formData.firstName || !formData.lastName) {
-      toast.error("Nombre y apellido son obligatorios");
+      toast.error(t("clientNew.validation.nameRequired"));
       return;
     }
 
-    // Validar email
     if (formData.email && !validateEmail(formData.email)) {
-      toast.error("El formato del email no es válido");
+      toast.error(t("clientNew.validation.invalidEmail"));
       return;
     }
 
-    // Validar teléfonos
     if (formData.phone && !validatePhone(formData.phone)) {
-      toast.error("El número de teléfono principal no es válido (mínimo 10 dígitos)");
+      toast.error(t("clientNew.validation.invalidPhone"));
       return;
     }
 
     if (formData.alternatePhone && !validatePhone(formData.alternatePhone)) {
-      toast.error("El número de teléfono alternativo no es válido (mínimo 10 dígitos)");
+      toast.error(t("clientNew.validation.invalidAlternatePhone"));
       return;
     }
 
-    // Validar código postal
     if (formData.zipCode && !validateZipCode(formData.zipCode)) {
-      toast.error("El código postal debe tener exactamente 5 dígitos");
+      toast.error(t("clientNew.validation.invalidZipCode"));
       return;
     }
 
-    // Validar números
     if (formData.deductible && isNaN(parseInt(formData.deductible))) {
-      toast.error("El deducible debe ser un número válido");
+      toast.error(t("clientNew.validation.invalidDeductible"));
       return;
     }
 
     if (formData.coverageAmount && isNaN(parseInt(formData.coverageAmount))) {
-      toast.error("El monto de cobertura debe ser un número válido");
+      toast.error(t("clientNew.validation.invalidCoverageAmount"));
       return;
     }
 
     if (formData.estimatedLoss && isNaN(parseInt(formData.estimatedLoss))) {
-      toast.error("La pérdida estimada debe ser un número válido");
+      toast.error(t("clientNew.validation.invalidEstimatedLoss"));
       return;
     }
 
     if (formData.actualPayout && isNaN(parseInt(formData.actualPayout))) {
-      toast.error("El pago real debe ser un número válido");
+      toast.error(t("clientNew.validation.invalidActualPayout"));
       return;
     }
 
@@ -219,9 +326,9 @@ export default function ClientNew() {
             <ArrowLeft className="h-4 w-4" />
           </Button>
           <div>
-            <h1 className="text-3xl font-bold text-foreground">Nuevo Cliente</h1>
+            <h1 className="text-3xl font-bold text-foreground">{t("clientNew.title")}</h1>
             <p className="text-muted-foreground mt-1">
-              Complete la información del cliente para agregarlo al sistema
+              {t("clientNew.subtitle")}
             </p>
           </div>
         </div>
@@ -230,12 +337,12 @@ export default function ClientNew() {
           {/* Información de Contacto */}
           <Card className="border-border">
             <CardHeader>
-              <CardTitle>Información de Contacto</CardTitle>
-              <CardDescription>Datos básicos del cliente</CardDescription>
+              <CardTitle>{t("clientNew.sections.contact.title")}</CardTitle>
+              <CardDescription>{t("clientNew.sections.contact.description")}</CardDescription>
             </CardHeader>
             <CardContent className="grid gap-4 md:grid-cols-2">
               <div className="space-y-2">
-                <Label htmlFor="firstName">Nombre *</Label>
+                <Label htmlFor="firstName">{t("clientNew.fields.firstName")}</Label>
                 <Input
                   id="firstName"
                   value={formData.firstName}
@@ -244,7 +351,7 @@ export default function ClientNew() {
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="lastName">Apellido *</Label>
+                <Label htmlFor="lastName">{t("clientNew.fields.lastName")}</Label>
                 <Input
                   id="lastName"
                   value={formData.lastName}
@@ -253,7 +360,7 @@ export default function ClientNew() {
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="email">Email</Label>
+                <Label htmlFor="email">{t("clientNew.fields.email")}</Label>
                 <Input
                   id="email"
                   type="email"
@@ -262,7 +369,7 @@ export default function ClientNew() {
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="phone">Teléfono Principal</Label>
+                <Label htmlFor="phone">{t("clientNew.fields.phone")}</Label>
                 <Input
                   id="phone"
                   type="tel"
@@ -271,7 +378,7 @@ export default function ClientNew() {
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="alternatePhone">Teléfono Alternativo</Label>
+                <Label htmlFor="alternatePhone">{t("clientNew.fields.alternatePhone")}</Label>
                 <Input
                   id="alternatePhone"
                   type="tel"
@@ -282,23 +389,24 @@ export default function ClientNew() {
             </CardContent>
           </Card>
 
-          {/* Información de la Propiedad */}
+          {/* Informacion de la Propiedad */}
           <Card className="border-border">
             <CardHeader>
-              <CardTitle>Información de la Propiedad</CardTitle>
-              <CardDescription>Ubicación y tipo de propiedad afectada</CardDescription>
+              <CardTitle>{t("clientNew.sections.property.title")}</CardTitle>
+              <CardDescription>{t("clientNew.sections.property.description")}</CardDescription>
             </CardHeader>
             <CardContent className="grid gap-4 md:grid-cols-2">
               <div className="space-y-2 md:col-span-2">
-                <Label htmlFor="propertyAddress">Dirección de la Propiedad</Label>
+                <Label htmlFor="propertyAddress">{t("clientNew.fields.propertyAddress")}</Label>
                 <Input
                   id="propertyAddress"
+                  ref={addressInputRef}
                   value={formData.propertyAddress}
                   onChange={(e) => handleChange('propertyAddress', e.target.value)}
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="city">Ciudad</Label>
+                <Label htmlFor="city">{t("clientNew.fields.city")}</Label>
                 <Input
                   id="city"
                   value={formData.city}
@@ -306,7 +414,7 @@ export default function ClientNew() {
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="state">Estado</Label>
+                <Label htmlFor="state">{t("clientNew.fields.state")}</Label>
                 <Input
                   id="state"
                   value={formData.state}
@@ -314,7 +422,7 @@ export default function ClientNew() {
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="zipCode">Código Postal</Label>
+                <Label htmlFor="zipCode">{t("clientNew.fields.zipCode")}</Label>
                 <Input
                   id="zipCode"
                   value={formData.zipCode}
@@ -322,32 +430,32 @@ export default function ClientNew() {
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="propertyType">Tipo de Propiedad</Label>
+                <Label htmlFor="propertyType">{t("clientNew.fields.propertyType")}</Label>
                 <Select value={formData.propertyType} onValueChange={(value) => handleChange('propertyType', value)}>
                   <SelectTrigger>
-                    <SelectValue placeholder="Seleccionar tipo" />
+                    <SelectValue placeholder={t("clientNew.placeholders.propertyType")} />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="Residential">Residencial</SelectItem>
-                    <SelectItem value="Commercial">Comercial</SelectItem>
-                    <SelectItem value="Condo">Condominio</SelectItem>
-                    <SelectItem value="Townhouse">Casa Adosada</SelectItem>
-                    <SelectItem value="Apartment">Apartamento</SelectItem>
+                    {propertyTypeOptions.map((option) => (
+                      <SelectItem key={option.value} value={option.value}>
+                        {t(option.labelKey)}
+                      </SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </div>
             </CardContent>
           </Card>
 
-          {/* Información de Aseguradora y Reclamo */}
+          {/* Informacion de Aseguradora y Reclamo */}
           <Card className="border-border">
             <CardHeader>
-              <CardTitle>Información de Aseguradora y Reclamo</CardTitle>
-              <CardDescription>Detalles de la póliza y el reclamo</CardDescription>
+              <CardTitle>{t("clientNew.sections.insurance.title")}</CardTitle>
+              <CardDescription>{t("clientNew.sections.insurance.description")}</CardDescription>
             </CardHeader>
             <CardContent className="grid gap-4 md:grid-cols-2">
               <div className="space-y-2">
-                <Label htmlFor="insuranceCompany">Compañía de Seguros</Label>
+                <Label htmlFor="insuranceCompany">{t("clientNew.fields.insuranceCompany")}</Label>
                 <Input
                   id="insuranceCompany"
                   value={formData.insuranceCompany}
@@ -355,7 +463,7 @@ export default function ClientNew() {
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="policyNumber">Número de Póliza</Label>
+                <Label htmlFor="policyNumber">{t("clientNew.fields.policyNumber")}</Label>
                 <Input
                   id="policyNumber"
                   value={formData.policyNumber}
@@ -363,7 +471,7 @@ export default function ClientNew() {
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="claimNumber">Número de Reclamo</Label>
+                <Label htmlFor="claimNumber">{t("clientNew.fields.claimNumber")}</Label>
                 <Input
                   id="claimNumber"
                   value={formData.claimNumber}
@@ -372,7 +480,7 @@ export default function ClientNew() {
               </div>
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
-                  <Label htmlFor="claimStatus">Estado del Reclamo</Label>
+                  <Label htmlFor="claimStatus">{t("clientNew.fields.claimStatus")}</Label>
                   {canEditClaimStatus && (
                     <ManageClaimStatusesDialog />
                   )}
@@ -381,7 +489,7 @@ export default function ClientNew() {
                   <Alert className="mb-2">
                     <AlertCircle className="h-4 w-4" />
                     <AlertDescription>
-                      Solo administradores pueden cambiar el estado del reclamo
+                      {t("clientNew.claimStatusReadOnly")}
                     </AlertDescription>
                   </Alert>
                 )}
@@ -395,11 +503,11 @@ export default function ClientNew() {
                   </SelectTrigger>
                   <SelectContent>
                     {/* Estados predeterminados */}
-                    <SelectItem value="NO_SOMETIDA">No Sometida</SelectItem>
-                    <SelectItem value="EN_PROCESO">En Proceso</SelectItem>
-                    <SelectItem value="APROBADA">Aprobada</SelectItem>
-                    <SelectItem value="RECHAZADA">Rechazada</SelectItem>
-                    <SelectItem value="CERRADA">Cerrada</SelectItem>
+                    <SelectItem value="NO_SOMETIDA">{t("dashboard.claimStatus.status.NO_SOMETIDA")}</SelectItem>
+                    <SelectItem value="EN_PROCESO">{t("dashboard.claimStatus.status.EN_PROCESO")}</SelectItem>
+                    <SelectItem value="APROBADA">{t("dashboard.claimStatus.status.APROBADA")}</SelectItem>
+                    <SelectItem value="RECHAZADA">{t("dashboard.claimStatus.status.RECHAZADA")}</SelectItem>
+                    <SelectItem value="CERRADA">{t("dashboard.claimStatus.status.CERRADA")}</SelectItem>
                     
                     {/* Estados personalizados */}
                     {customClaimStatuses.map((status: any) => (
@@ -411,7 +519,7 @@ export default function ClientNew() {
                 </Select>
               </div>
               <div className="space-y-2">
-                <Label htmlFor="deductible">Deducible ($)</Label>
+                <Label htmlFor="deductible">{t("clientNew.fields.deductible")}</Label>
                 <Input
                   id="deductible"
                   type="number"
@@ -420,7 +528,7 @@ export default function ClientNew() {
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="coverageAmount">Monto de Cobertura ($)</Label>
+                <Label htmlFor="coverageAmount">{t("clientNew.fields.coverageAmount")}</Label>
                 <Input
                   id="coverageAmount"
                   type="number"
@@ -429,59 +537,56 @@ export default function ClientNew() {
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="suplementado">Suplementado</Label>
+                <Label htmlFor="suplementado">{t('clientNew.supplementedLabel')}</Label>
                 <Select value={formData.suplementado} onValueChange={(value: any) => handleChange('suplementado', value)}>
                   <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="no">No</SelectItem>
-                    <SelectItem value="si">Sí</SelectItem>
+                    <SelectItem value="no">{t('clientNew.supplemented.no')}</SelectItem>
+                    <SelectItem value="si">{t('clientNew.supplemented.yes')}</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
               <div className="space-y-2">
-                <Label htmlFor="primerCheque">Primer Cheque</Label>
+                <Label htmlFor="primerCheque">{t('clientNew.firstCheck.label')}</Label>
                 <Select value={formData.primerCheque} onValueChange={(value: any) => handleChange('primerCheque', value)}>
                   <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="PENDIENTE">Pendiente</SelectItem>
-                    <SelectItem value="OBTENIDO">Obtenido</SelectItem>
+                    <SelectItem value="PENDIENTE">{t('clientNew.firstCheck.pending')}</SelectItem>
+                    <SelectItem value="OBTENIDO">{t('clientNew.firstCheck.received')}</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
             </CardContent>
           </Card>
 
-          {/* Información del Daño */}
+          {/* Informacion del Dano */}
           <Card className="border-border">
             <CardHeader>
-              <CardTitle>Información del Daño</CardTitle>
-              <CardDescription>Tipo y descripción del daño a la propiedad</CardDescription>
+              <CardTitle>{t("clientNew.sections.damage.title")}</CardTitle>
+              <CardDescription>{t("clientNew.sections.damage.description")}</CardDescription>
             </CardHeader>
             <CardContent className="grid gap-4 md:grid-cols-2">
               <div className="space-y-2">
-                <Label htmlFor="damageType">Tipo de Daño</Label>
+                <Label htmlFor="damageType">{t("clientNew.fields.damageType")}</Label>
                 <Select value={formData.damageType} onValueChange={(value) => handleChange('damageType', value)}>
                   <SelectTrigger>
-                    <SelectValue placeholder="Seleccionar tipo" />
+                    <SelectValue placeholder={t("clientNew.placeholders.damageType")} />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="Fire">Incendio</SelectItem>
-                    <SelectItem value="Water">Agua</SelectItem>
-                    <SelectItem value="Wind">Viento</SelectItem>
-                    <SelectItem value="Hail">Granizo</SelectItem>
-                    <SelectItem value="Storm">Tormenta</SelectItem>
-                    <SelectItem value="Theft">Robo</SelectItem>
-                    <SelectItem value="Vandalism">Vandalismo</SelectItem>
-                    <SelectItem value="Other">Otro</SelectItem>
+                    {damageTypeOptions.map((option) => (
+                      <SelectItem key={option.value} value={option.value}>
+                        {t(option.labelKey)}
+                      </SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </div>
               <div className="space-y-2">
-                <Label htmlFor="estimatedLoss">Pérdida Estimada ($)</Label>
+                <Label htmlFor="estimatedLoss">{t("clientNew.fields.estimatedLoss")}</Label>
                 <Input
                   id="estimatedLoss"
                   type="number"
@@ -490,7 +595,7 @@ export default function ClientNew() {
                 />
               </div>
               <div className="space-y-2 md:col-span-2">
-                <Label htmlFor="damageDescription">Descripción del Daño</Label>
+                <Label htmlFor="damageDescription">{t("clientNew.fields.damageDescription")}</Label>
                 <Textarea
                   id="damageDescription"
                   value={formData.damageDescription}
@@ -504,12 +609,12 @@ export default function ClientNew() {
           {/* Fechas Importantes */}
           <Card className="border-border">
             <CardHeader>
-              <CardTitle>Fechas Importantes</CardTitle>
-              <CardDescription>Fechas clave del proceso del reclamo</CardDescription>
+              <CardTitle>{t("clientNew.sections.dates.title")}</CardTitle>
+              <CardDescription>{t("clientNew.sections.dates.description")}</CardDescription>
             </CardHeader>
             <CardContent className="grid gap-4 md:grid-cols-2">
               <div className="space-y-2">
-                <Label htmlFor="dateOfLoss">Fecha de Pérdida</Label>
+                <Label htmlFor="dateOfLoss">{t("clientNew.fields.dateOfLoss")}</Label>
                 <Input
                   id="dateOfLoss"
                   type="date"
@@ -518,7 +623,7 @@ export default function ClientNew() {
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="claimSubmittedDate">Fecha de Sometimiento</Label>
+                <Label htmlFor="claimSubmittedDate">{t("clientNew.fields.claimSubmittedDate")}</Label>
                 <Input
                   id="claimSubmittedDate"
                   type="date"
@@ -527,7 +632,7 @@ export default function ClientNew() {
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="scheduledVisit">Visita Programada</Label>
+                <Label htmlFor="scheduledVisit">{t("clientNew.fields.scheduledVisit")}</Label>
                 <Input
                   id="scheduledVisit"
                   type="date"
@@ -536,7 +641,7 @@ export default function ClientNew() {
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="adjustmentDate">Fecha de Ajuste</Label>
+                <Label htmlFor="adjustmentDate">{t("clientNew.fields.adjustmentDate")}</Label>
                 <Input
                   id="adjustmentDate"
                   type="date"
@@ -545,7 +650,7 @@ export default function ClientNew() {
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="lastContactDate">Último Contacto</Label>
+                <Label htmlFor="lastContactDate">{t("clientNew.fields.lastContactDate")}</Label>
                 <Input
                   id="lastContactDate"
                   type="date"
@@ -554,7 +659,7 @@ export default function ClientNew() {
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="nextContactDate">Próximo Contacto</Label>
+                <Label htmlFor="nextContactDate">{t("clientNew.fields.nextContactDate")}</Label>
                 <Input
                   id="nextContactDate"
                   type="date"
@@ -568,21 +673,21 @@ export default function ClientNew() {
           {/* Equipo Asignado */}
           <Card className="border-border">
             <CardHeader>
-              <CardTitle>Equipo Asignado</CardTitle>
-              <CardDescription>Personal responsable del caso</CardDescription>
+              <CardTitle>{t("clientNew.sections.team.title")}</CardTitle>
+              <CardDescription>{t("clientNew.sections.team.description")}</CardDescription>
             </CardHeader>
             <CardContent className="grid gap-4 md:grid-cols-2">
               <div className="space-y-2">
-                <Label htmlFor="salesPerson">Vendedor</Label>
+                <Label htmlFor="salesPerson">{t("clientNew.fields.salesPerson")}</Label>
                 <Select 
                   value={formData.salesPerson} 
                   onValueChange={(value) => handleChange('salesPerson', value)}
                 >
                   <SelectTrigger>
-                    <SelectValue placeholder="Seleccionar vendedor..." />
+                    <SelectValue placeholder={t("clientNew.placeholders.salesPerson")} />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="_unassigned">Sin asignar</SelectItem>
+                    <SelectItem value="_unassigned">{t("clientNew.unassigned")}</SelectItem>
                     {organizationMembers.map((member: any) => (
                       <SelectItem key={member.id} value={member.username}>
                         {member.username} ({member.role})
@@ -592,16 +697,16 @@ export default function ClientNew() {
                 </Select>
               </div>
               <div className="space-y-2">
-                <Label htmlFor="assignedAdjuster">Ajustador Asignado</Label>
+                <Label htmlFor="assignedAdjuster">{t("clientNew.fields.assignedAdjuster")}</Label>
                 <Select 
                   value={formData.assignedAdjuster} 
                   onValueChange={(value) => handleChange('assignedAdjuster', value)}
                 >
                   <SelectTrigger>
-                    <SelectValue placeholder="Seleccionar ajustador..." />
+                    <SelectValue placeholder={t('clientNew.adjusterPlaceholder')} />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="_unassigned">Sin asignar</SelectItem>
+                    <SelectItem value="_unassigned">{t("clientNew.unassigned")}</SelectItem>
                     {organizationMembers.map((member: any) => (
                       <SelectItem key={member.id} value={member.username}>
                         {member.username} ({member.role})
@@ -616,48 +721,48 @@ export default function ClientNew() {
           {/* Notas */}
           <Card className="border-border">
             <CardHeader>
-              <CardTitle>Notas</CardTitle>
-              <CardDescription>Información adicional sobre el cliente</CardDescription>
+              <CardTitle>{t("clientNew.sections.notes.title")}</CardTitle>
+              <CardDescription>{t("clientNew.sections.notes.description")}</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="notes">Notas Públicas</Label>
+                <Label htmlFor="notes">{t("clientNew.fields.notes")}</Label>
                 <Textarea
                   id="notes"
                   value={formData.notes}
                   onChange={(e) => handleChange('notes', e.target.value)}
                   rows={3}
-                  placeholder="Notas visibles para el cliente"
+                  placeholder={t('clientNew.notesPlaceholder')}
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="internalNotes">Notas Internas</Label>
+                <Label htmlFor="internalNotes">{t("clientNew.fields.internalNotes")}</Label>
                 <Textarea
                   id="internalNotes"
                   value={formData.internalNotes}
                   onChange={(e) => handleChange('internalNotes', e.target.value)}
                   rows={3}
-                  placeholder="Notas solo para uso interno"
+                  placeholder={t("clientNew.placeholders.internalNotes")}
                 />
               </div>
             </CardContent>
           </Card>
 
-          {/* Botones de Acción */}
+          {/* Botones de Accion */}
           <div className="flex gap-4 justify-end">
             <Button
               type="button"
               variant="outline"
               onClick={() => setLocation('/clients')}
             >
-              Cancelar
+              {t("clientNew.actions.cancel")}
             </Button>
             <Button
               type="submit"
               disabled={createClientMutation.isPending}
             >
               <Save className="mr-2 h-4 w-4" />
-              {createClientMutation.isPending ? "Guardando..." : "Guardar Cliente"}
+              {createClientMutation.isPending ? t('clientNew.saving') : t('clientNew.save')}
             </Button>
           </div>
         </form>

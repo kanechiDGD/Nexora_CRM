@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { useLocation } from "wouter";
 import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
@@ -10,13 +11,13 @@ import { toast } from "sonner";
 import { Loader2, Building2, Users, CheckCircle2, Copy, Download } from "lucide-react";
 
 const BUSINESS_TYPES = [
-  "Public Adjusters",
-  "Insurance",
-  "Real Estate",
-  "Construction",
-  "Legal",
-  "Healthcare",
-  "Other"
+  { value: "Public Adjusters", labelKey: "onboarding.businessTypes.publicAdjusters" },
+  { value: "Insurance", labelKey: "onboarding.businessTypes.insurance" },
+  { value: "Real Estate", labelKey: "onboarding.businessTypes.realEstate" },
+  { value: "Construction", labelKey: "onboarding.businessTypes.construction" },
+  { value: "Legal", labelKey: "onboarding.businessTypes.legal" },
+  { value: "Healthcare", labelKey: "onboarding.businessTypes.healthcare" },
+  { value: "Other", labelKey: "onboarding.businessTypes.other" },
 ];
 
 interface GeneratedUser {
@@ -26,6 +27,7 @@ interface GeneratedUser {
 }
 
 export default function OnboardingWizard() {
+  const { t } = useTranslation();
   const [, setLocation] = useLocation();
   const [step, setStep] = useState(2); // Empezar en paso 2 (usuario ya está logueado)
 
@@ -44,7 +46,7 @@ export default function OnboardingWizard() {
       setOrganizationId(data.organizationId);
       setGeneratedUsers(data.generatedUsers);
       setStep(3);
-      toast.success("¡Organización creada exitosamente!");
+      toast.success(t("onboarding.createSuccess"));
     },
     onError: (error) => {
       toast.error(`Error: ${error.message}`);
@@ -53,11 +55,11 @@ export default function OnboardingWizard() {
 
   const handleCreateOrganization = () => {
     if (!orgName.trim()) {
-      toast.error("Por favor ingresa el nombre de la organización");
+      toast.error(t("onboarding.validation.orgNameRequired"));
       return;
     }
     if (!businessType) {
-      toast.error("Por favor selecciona el tipo de negocio");
+      toast.error(t("onboarding.validation.businessTypeRequired"));
       return;
     }
 
@@ -74,7 +76,7 @@ export default function OnboardingWizard() {
       .map((u) => `${u.username} | ${u.password} | ${u.role}`)
       .join("\n");
     navigator.clipboard.writeText(text);
-    toast.success("Credenciales copiadas al portapapeles");
+    toast.success(t("onboarding.toasts.credentialsCopied"));
   };
 
   const handleDownloadCSV = () => {
@@ -90,7 +92,7 @@ export default function OnboardingWizard() {
     a.download = `${orgName.toLowerCase().replace(/\s+/g, "-")}-usuarios.csv`;
     a.click();
     URL.revokeObjectURL(url);
-    toast.success("CSV descargado");
+    toast.success(t("onboarding.toasts.csvDownloaded"));
   };
 
   const handleFinish = () => {
@@ -102,9 +104,9 @@ export default function OnboardingWizard() {
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:to-gray-800 p-4">
       <Card className="w-full max-w-2xl">
         <CardHeader>
-          <CardTitle className="text-2xl">Configuración Inicial</CardTitle>
+          <CardTitle className="text-2xl">{t("onboarding.title")}</CardTitle>
           <CardDescription>
-            Paso {step} de 3 - Configura tu organización
+            {t("onboarding.stepDescription", { step })}
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -118,35 +120,35 @@ export default function OnboardingWizard() {
                   <Building2 className="w-6 h-6 text-blue-600 dark:text-blue-400" />
                 </div>
                 <div>
-                  <h3 className="font-semibold text-lg">Información de la Organización</h3>
+                  <h3 className="font-semibold text-lg">{t("onboarding.orgInfo.title")}</h3>
                   <p className="text-sm text-muted-foreground">
-                    Cuéntanos sobre tu empresa
+                    {t("onboarding.orgInfo.subtitle")}
                   </p>
                 </div>
               </div>
 
               <div className="space-y-4">
                 <div>
-                  <Label htmlFor="orgName">Nombre de la Organización *</Label>
+                  <Label htmlFor="orgName">{t("onboarding.orgInfo.orgNameLabel")}</Label>
                   <Input
                     id="orgName"
                     value={orgName}
                     onChange={(e) => setOrgName(e.target.value)}
-                    placeholder="Ej: Acme Public Adjusters"
+                    placeholder={t("onboarding.orgInfo.orgNamePlaceholder")}
                     className="mt-1"
                   />
                 </div>
 
                 <div>
-                  <Label htmlFor="businessType">Tipo de Negocio *</Label>
+                  <Label htmlFor="businessType">{t("onboarding.orgInfo.businessTypeLabel")}</Label>
                   <Select value={businessType} onValueChange={setBusinessType}>
                     <SelectTrigger className="mt-1">
-                      <SelectValue placeholder="Selecciona el tipo de negocio" />
+                      <SelectValue placeholder={t("onboarding.orgInfo.businessTypePlaceholder")} />
                     </SelectTrigger>
                     <SelectContent>
                       {BUSINESS_TYPES.map((type) => (
-                        <SelectItem key={type} value={type}>
-                          {type}
+                        <SelectItem key={type.value} value={type.value}>
+                          {t(type.labelKey)}
                         </SelectItem>
                       ))}
                     </SelectContent>
@@ -154,21 +156,21 @@ export default function OnboardingWizard() {
                 </div>
 
                 <div>
-                  <Label htmlFor="logo">Logo URL (Opcional)</Label>
+                  <Label htmlFor="logo">{t("onboarding.orgInfo.logoLabel")}</Label>
                   <Input
                     id="logo"
                     value={logo}
                     onChange={(e) => setLogo(e.target.value)}
-                    placeholder="https://ejemplo.com/logo.png"
+                    placeholder={t("onboarding.orgInfo.logoPlaceholder")}
                     className="mt-1"
                   />
                   <p className="text-xs text-muted-foreground mt-1">
-                    Puedes agregar o cambiar el logo más tarde desde la configuración
+                    {t("onboarding.orgInfo.logoHint")}
                   </p>
                 </div>
 
                 <div>
-                  <Label htmlFor="memberCount">Cantidad de Miembros del Equipo (1-20)</Label>
+                  <Label htmlFor="memberCount">{t("onboarding.orgInfo.memberCountLabel")}</Label>
                   <Input
                     id="memberCount"
                     type="number"
@@ -179,14 +181,14 @@ export default function OnboardingWizard() {
                     className="mt-1"
                   />
                   <p className="text-xs text-muted-foreground mt-1">
-                    Incluye a todos los miembros que necesitarán acceso al CRM
+                    {t("onboarding.orgInfo.memberCountHint")}
                   </p>
                 </div>
               </div>
 
               <div className="flex justify-between pt-4">
                 <Button variant="outline" disabled>
-                  Anterior
+                  {t("onboarding.actions.previous")}
                 </Button>
                 <Button
                   onClick={handleCreateOrganization}
@@ -195,10 +197,10 @@ export default function OnboardingWizard() {
                   {createOrgMutation.isPending ? (
                     <>
                       <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                      Creando...
+                      {t('onboarding.creating')}
                     </>
                   ) : (
-                    "Crear Organización"
+                    t('onboarding.createOrganization')
                   )}
                 </Button>
               </div>
@@ -213,17 +215,16 @@ export default function OnboardingWizard() {
                   <CheckCircle2 className="w-6 h-6 text-green-600 dark:text-green-400" />
                 </div>
                 <div>
-                  <h3 className="font-semibold text-lg">¡Organización Creada!</h3>
+                  <h3 className="font-semibold text-lg">{t("onboarding.users.title")}</h3>
                   <p className="text-sm text-muted-foreground">
-                    Aquí están las credenciales de tus usuarios
+                    {t("onboarding.users.subtitle")}
                   </p>
                 </div>
               </div>
 
               <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg p-4">
                 <p className="text-sm text-yellow-800 dark:text-yellow-200">
-                  <strong>Importante:</strong> Guarda estas credenciales en un lugar seguro.
-                  No podrás verlas nuevamente después de cerrar esta ventana.
+                  <strong>{t("onboarding.users.importantLabel")}</strong> {t("onboarding.users.importantText")}
                 </p>
               </div>
 
@@ -231,9 +232,9 @@ export default function OnboardingWizard() {
                 <table className="w-full">
                   <thead className="bg-muted">
                     <tr>
-                      <th className="text-left p-3 font-medium">Usuario</th>
-                      <th className="text-left p-3 font-medium">Contraseña</th>
-                      <th className="text-left p-3 font-medium">Rol</th>
+                      <th className="text-left p-3 font-medium">{t("onboarding.users.table.user")}</th>
+                      <th className="text-left p-3 font-medium">{t("onboarding.users.table.password")}</th>
+                      <th className="text-left p-3 font-medium">{t("onboarding.users.table.role")}</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -246,7 +247,7 @@ export default function OnboardingWizard() {
                             ? 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200'
                             : 'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-200'
                             }`}>
-                            {user.role === 'CO_ADMIN' ? 'Co-Admin' : 'Vendedor'}
+                            {user.role === 'CO_ADMIN' ? t("onboarding.users.roles.coAdmin") : t("onboarding.users.roles.seller")}
                           </span>
                         </td>
                       </tr>
@@ -262,7 +263,7 @@ export default function OnboardingWizard() {
                   className="flex-1"
                 >
                   <Copy className="w-4 h-4 mr-2" />
-                  Copiar Todo
+                  {t("onboarding.users.copyAll")}
                 </Button>
                 <Button
                   variant="outline"
@@ -270,13 +271,13 @@ export default function OnboardingWizard() {
                   className="flex-1"
                 >
                   <Download className="w-4 h-4 mr-2" />
-                  Descargar CSV
+                  {t("onboarding.users.downloadCsv")}
                 </Button>
               </div>
 
               <div className="flex justify-end pt-4">
                 <Button onClick={handleFinish} size="lg">
-                  Ir al Login
+                  {t("onboarding.users.goToLogin")}
                 </Button>
               </div>
             </div>

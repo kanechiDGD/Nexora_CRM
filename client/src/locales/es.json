@@ -3,7 +3,7 @@
     "language": "Idioma",
     "english": "Inglés",
     "spanish": "Español",
-    "yes": "Sí",
+    "yes": "S?",
     "no": "No",
     "loading": "Cargando...",
     "edit": "Editar",
@@ -95,7 +95,18 @@
           "INSPECTION": "Inspección",
           "APPOINTMENT": "Cita",
           "DEADLINE": "Fecha Límite",
-          "OTHER": "Otro"
+          "OTHER": "Otro",
+          "INTERNAL": "Interno"
+        },
+        "success": "Evento creado exitosamente y sincronizado con el calendario",
+        "error": "Error al crear evento: {{message}}",
+        "missingRequired": "Por favor completa los campos requeridos (T?tulo y Fecha)",
+        "noClients": "No se encontraron clientes.",
+        "placeholders": {
+          "adjusterNumber": "Ej: ADJ-12345",
+          "adjusterName": "Nombre completo",
+          "adjusterEmail": "email@ejemplo.com",
+          "insuranceCompany": "Nombre de la aseguradora"
         }
       },
       "policy": {
@@ -108,7 +119,12 @@
         "mandatoryDesc": "Documenta cada llamada, email o reunión en el sistema",
         "priority": "Priorización automática:",
         "priorityDesc": "Los clientes con contacto atrasado aparecen primero con prioridad urgente"
-      }
+      },
+      "eventDetails": "Detalles del evento",
+      "location": "Ubicacion",
+      "description": "Descripcion",
+      "notes": "Notas",
+      "clientInfo": "Informacion del cliente"
     },
     "alerts": {
       "title": "Alertas de Contacto",
@@ -139,7 +155,8 @@
         "EN_PROCESO": "En Proceso",
         "APROVADA": "Aprobada",
         "RECHAZADA": "Rechazada",
-        "CERRADA": "Cerrada"
+        "CERRADA": "Cerrada",
+        "APROBADA": "Aprobada"
       }
     },
     "kpis": {
@@ -372,27 +389,1017 @@
     }
   },
   "login": {
-    "appTitle": "CRM Public Adjusters",
-    "appSubtitle": "Sistema de Gestión de Clientes",
+    "appTitle": "Nexora CRM",
+    "appSubtitle": "Operaciones de reclamos y clientes para ajustadores publicos",
     "welcome": "Bienvenido",
     "selectOption": "Selecciona una opción para continuar",
-    "loginExisting": "Iniciar Sesión con Organización Existente",
-    "loginExistingDesc": "Ya tengo credenciales de acceso (usuario y contraseña)",
-    "createNew": "Crear Nueva Organización",
-    "createNewDesc": "Soy nuevo y quiero crear una organización desde cero",
-    "needHelp": "¿Necesitas ayuda? Contacta al administrador de tu organización",
-    "loginTitle": "Iniciar Sesión",
-    "loginDescription": "Ingresa tus credenciales para acceder al sistema",
+    "loginExisting": "Iniciar con usuario",
+    "loginExistingDesc": "Usa tus credenciales de organizacion",
+    "createNew": "Nuevo en Nexora CRM?",
+    "createNewDesc": "Crea tu organizacion e invita a tu equipo.",
+    "needHelp": "Necesitas ayuda? Contacta al administrador.",
+    "loginTitle": "Iniciar con credenciales",
+    "loginDescription": "Ingresa el usuario y contrasena que te dio tu admin.",
     "username": "Usuario",
-    "usernamePlaceholder": "usuario@organizacion.internal",
+    "usernamePlaceholder": "usuario@empresa.internal",
     "password": "Contraseña",
     "passwordPlaceholder": "••••••••",
-    "rememberMe": "Recuérdame",
-    "googleSignIn": "Continuar con Google",
-    "googleSignInDesc": "Usa tu cuenta de Google para acceder al instante",
-    "loginButton": "Iniciar Sesión",
-    "loggingIn": "Iniciando sesión...",
-    "backToOptions": "← Volver a opciones",
-    "language": "Idioma"
+    "rememberMe": "Mantener sesion",
+    "googleSignIn": "Iniciar con Google",
+    "googleSignInDesc": "Acceso rapido con tu cuenta de Google",
+    "loginButton": "Iniciar sesion",
+    "loggingIn": "Iniciando sesion...",
+    "backToOptions": "Volver a opciones de inicio",
+    "language": "Idioma",
+    "heroEyebrow": "Ajustadores publicos",
+    "heroDescription": "Gestiona reclamos, contactos y seguimientos desde un solo espacio para equipos de campo y oficina.",
+    "featureOneTitle": "Claridad del pipeline",
+    "featureOneDesc": "Controla estatus, fechas limite y proximos pasos.",
+    "featureTwoTitle": "Seguimiento al cliente",
+    "featureTwoDesc": "Alertas de contacto para no perder el ritmo.",
+    "featureThreeTitle": "Visibilidad del equipo",
+    "featureThreeDesc": "Tareas, notas y calendario compartidos.",
+    "trustLine": "Disenado para equipos modernos de ajustadores",
+    "accessEyebrow": "Acceso",
+    "accessTitle": "Inicia sesion en tu espacio",
+    "accessSubtitle": "Elige Google o tus credenciales de organizacion.",
+    "or": "o",
+    "createNewAction": "Crear organizacion",
+    "loginEyebrow": "Credenciales",
+    "languageEnglish": "English",
+    "languageSpanish": "Espanol",
+    "forgotPassword": "Olvidaste tu contrasena?"
+  },
+  "clientContactDialog": {
+    "saveSuccess": "Contacto registrado y cliente actualizado",
+    "createActivityError": "Error al registrar actividad: {{message}}",
+    "updateClientError": "Error al actualizar cliente: {{message}}",
+    "missingFields": "Por favor completa el asunto y la descripci?n",
+    "loadingTitle": "Cargando informaci?n del cliente",
+    "loadingText": "Cargando informaci?n...",
+    "dialogDescription": "Informaci?n de contacto y ?ltima actividad registrada",
+    "daysSinceLastContact": "D?as desde ?ltimo contacto",
+    "contactInfoTitle": "Informaci?n de Contacto",
+    "phoneLabels": {
+      "primary": "Principal",
+      "alternate": "Alternativo"
+    },
+    "lastActivityTitle": "?ltima Actividad Registrada",
+    "activityLabels": {
+      "subject": "Asunto:",
+      "description": "Descripci?n:",
+      "outcome": "Resultado:",
+      "contactedBy": "Contactado por:",
+      "userLabel": "Usuario #{{id}}"
+    },
+    "noActivities": "No hay actividades registradas para este cliente",
+    "claimInfoTitle": "Informaci?n del Reclamo",
+    "claimLabels": {
+      "insurance": "Aseguradora",
+      "claimNumber": "N?mero de Reclamo",
+      "status": "Estado",
+      "assignedAdjuster": "Ajustador Asignado"
+    },
+    "registerContactTitle": "Registrar Nuevo Contacto",
+    "contactMethodLabel": "M?todo de Contacto",
+    "contactMethods": {
+      "call": "Llamada",
+      "email": "Email",
+      "visit": "Visita",
+      "note": "Nota",
+      "document": "Documento",
+      "statusChange": "Cambio de Estado"
+    },
+    "subjectLabel": "Asunto",
+    "subjectPlaceholder": "Resumen breve del contacto...",
+    "notesLabel": "Descripci?n / Notas",
+    "notesPlaceholder": "Detalles de la conversaci?n, acuerdos, pr?ximos pasos...",
+    "savingButton": "Guardando...",
+    "saveButton": "Guardar y Marcar Contactado",
+    "cancelButton": "Cancelar",
+    "priority": {
+      "high": "Alta Prioridad",
+      "medium": "Media Prioridad",
+      "low": "Baja Prioridad"
+    }
+  },
+  "eventDialogs": {
+    "delete": {
+      "title": "?Eliminar Evento?",
+      "description": "Esta acci?n no se puede deshacer. El evento \"{{title}}\" ser? eliminado permanentemente del calendario.",
+      "cancel": "Cancelar",
+      "confirm": "Eliminar",
+      "deleting": "Eliminando...",
+      "success": "Evento eliminado exitosamente",
+      "error": "Error al eliminar evento: {{message}}"
+    },
+    "edit": {
+      "success": "Evento actualizado exitosamente",
+      "error": "Error al actualizar evento: {{message}}",
+      "missingRequired": "T?tulo y fecha son requeridos",
+      "title": "Editar Evento",
+      "description": "Actualiza los detalles del evento.",
+      "eventTypeLabel": "Tipo de Evento",
+      "titleLabel": "T?tulo *",
+      "dateLabel": "Fecha *",
+      "timeLabel": "Hora",
+      "addressLabel": "Direcci?n",
+      "descriptionLabel": "Descripci?n",
+      "cancel": "Cancelar",
+      "saving": "Guardando...",
+      "save": "Guardar Cambios"
+    }
+  },
+  "taskDialogs": {
+    "delete": {
+      "title": "?Eliminar Tarea?",
+      "description": "Esta acci?n no se puede deshacer. La tarea \"{{title}}\" ser? eliminada permanentemente.",
+      "cancel": "Cancelar",
+      "confirm": "Eliminar",
+      "deleting": "Eliminando...",
+      "success": "Tarea eliminada exitosamente",
+      "error": "Error al eliminar tarea: {{message}}"
+    },
+    "edit": {
+      "success": "Tarea actualizada exitosamente",
+      "error": "Error al actualizar tarea: {{message}}",
+      "missingTitle": "El t?tulo es requerido",
+      "title": "Editar Tarea",
+      "description": "Actualiza los detalles de la tarea.",
+      "titleLabel": "T?tulo *",
+      "descriptionLabel": "Descripci?n",
+      "categoryLabel": "Categor?a",
+      "priorityLabel": "Prioridad",
+      "statusLabel": "Estado",
+      "dueDateLabel": "Fecha L?mite",
+      "cancel": "Cancelar",
+      "saving": "Guardando...",
+      "save": "Guardar Cambios",
+      "categories": {
+        "documentation": "Documentaci?n",
+        "followUp": "Seguimiento",
+        "estimate": "Estimado",
+        "meeting": "Reuni?n",
+        "review": "Revisi?n",
+        "other": "Otro"
+      },
+      "priorities": {
+        "high": "Alta",
+        "medium": "Media",
+        "low": "Baja"
+      },
+      "status": {
+        "pending": "Pendiente",
+        "inProgress": "En Progreso",
+        "completed": "Completada",
+        "canceled": "Cancelada"
+      }
+    },
+    "new": {
+      "success": "Tarea creada exitosamente",
+      "error": "Error al crear tarea: {{message}}",
+      "missingTitle": "Por favor ingresa un t?tulo para la tarea",
+      "trigger": "Nueva Tarea",
+      "title": "Crear Nueva Tarea",
+      "description": "Asigna una tarea a un miembro del equipo con fecha l?mite y prioridad.",
+      "titleLabel": "T?tulo de la Tarea *",
+      "titlePlaceholder": "Ej: Revisar documentaci?n del cliente",
+      "descriptionLabel": "Descripci?n",
+      "descriptionPlaceholder": "Detalles de la tarea...",
+      "categoryLabel": "Categor?a",
+      "priorityLabel": "Prioridad",
+      "dueDateLabel": "Fecha L?mite",
+      "assignedToLabel": "Asignado a",
+      "assignedToPlaceholder": "Seleccionar usuario...",
+      "assignedToNone": "Sin asignar",
+      "assignedToYou": "T?",
+      "clientLabel": "Cliente Relacionado (opcional)",
+      "clientPlaceholder": "Seleccionar cliente...",
+      "clientSearchPlaceholder": "Buscar cliente...",
+      "noClients": "No se encontraron clientes.",
+      "cancel": "Cancelar",
+      "creating": "Creando...",
+      "create": "Crear Tarea",
+      "validation": {
+        "titleRequired": "Por favor ingresa un t?tulo para la tarea"
+      }
+    }
+  },
+  "activityDialog": {
+    "new": {
+      "success": "Actividad registrada exitosamente",
+      "error": "Error al registrar actividad: {{message}}",
+      "missingFields": "Por favor completa todos los campos requeridos",
+      "trigger": "Nueva Actividad",
+      "title": "Registrar Nueva Actividad",
+      "description": "Registra una llamada, reuni?n, email o nota. El sistema guardar? autom?ticamente qui?n realiz? la actividad.",
+      "performedByLabel": "Realizado por",
+      "unknownUser": "Usuario",
+      "performedByHelp": "Se detecta autom?ticamente el usuario actual",
+      "typeLabel": "Tipo de Actividad *",
+      "typePlaceholder": "Selecciona el tipo",
+      "types": {
+        "call": "Llamada",
+        "email": "Email",
+        "visit": "Visita/Reuni?n",
+        "note": "Nota",
+        "document": "Documento",
+        "statusChange": "Cambio de Estado"
+      },
+      "clientLabel": "Cliente (opcional)",
+      "clientPlaceholder": "Buscar cliente...",
+      "clientSearchPlaceholder": "Escribe el nombre del cliente...",
+      "noClients": "No se encontraron clientes.",
+      "clientHelp": "Busca y selecciona un cliente o d?jalo vac?o para una actividad general",
+      "subjectLabel": "Asunto *",
+      "subjectPlaceholder": "Ej: Seguimiento de reclamo",
+      "descriptionLabel": "Descripci?n *",
+      "descriptionPlaceholder": "Describe qu? se habl?, acord? o realiz?...",
+      "cancel": "Cancelar",
+      "saving": "Guardando...",
+      "save": "Guardar Actividad"
+    }
+  },
+  "documents": {
+    "title": "Documentos",
+    "uploadButton": "Subir Documentos",
+    "noDocuments": "No hay documentos subidos para este cliente",
+    "unknownSize": "Tama?o desconocido",
+    "uploading": "Subiendo {{count}} archivo(s)...",
+    "uploadSuccess": "{{count}} archivo(s) subido(s) correctamente",
+    "deleteConfirm": "?Est?s seguro de que deseas eliminar \"{{name}}\"? Esta acci?n no se puede deshacer.",
+    "deleting": "Eliminando documento...",
+    "deleteSuccess": "Documento eliminado correctamente",
+    "errors": {
+      "fileTooLarge": "El archivo \"{{fileName}}\" excede el l?mite de {{maxMb}}MB (tama?o: {{sizeMb}}MB)",
+      "invalidType": "El tipo de archivo \"{{fileType}}\" no est? permitido para \"{{fileName}}\"",
+      "invalidExtension": "La extensi?n \"{{extension}}\" no est? permitida para \"{{fileName}}\"",
+      "uploadFailed": "Error al subir archivos",
+      "uploadError": "Error al subir archivos. Por favor intenta de nuevo.",
+      "deleteFailed": "Error al eliminar documento",
+      "deleteError": "Error al eliminar documento"
+    },
+    "types": {
+      "policy": "P?liza",
+      "contract": "Contrato",
+      "photo": "Foto",
+      "estimate": "Estimado",
+      "invoice": "Factura",
+      "permit": "Permiso",
+      "other": "Otro"
+    }
+  },
+  "calendarPage": {
+    "eventTypes": {
+      "estimate": "Estimado",
+      "meeting": "Reuni?n",
+      "adjustment": "Ajustaci?n",
+      "internal": "Evento Interno"
+    },
+    "daysUntil": {
+      "today": "Hoy",
+      "tomorrow": "Ma?ana",
+      "daysAgo": "Hace {{days}} d?a(s)",
+      "daysIn": "En {{count}} d?a(s)",
+      "inDays": "En {{days}} d?a(s)"
+    },
+    "priority": {
+      "overdue": "Atrasado",
+      "today": "Hoy",
+      "tomorrow": "Ma?ana",
+      "soon": "Pr?ximamente"
+    },
+    "alerts": {
+      "titleSingular": "?Alerta! 1 cliente necesita contacto",
+      "titlePlural": "?Alerta! {{count}} clientes necesitan contacto",
+      "subtitle": "Los siguientes clientes necesitan ser contactados pronto",
+      "noContact": "Sin contacto",
+      "daysLate": "{{count}} d?a(s) de retraso",
+      "contactToday": "Contactar hoy",
+      "contactInDays": "Contactar en {{count}} d?a(s)",
+      "viewDetails": "Ver Detalles"
+    },
+    "stats": {
+      "upcomingEvents": "Eventos Pr?ximos",
+      "pendingClients": "Clientes Pendientes",
+      "eventsThisWeek": "Eventos Esta Semana"
+    },
+    "upcomingEvents": {
+      "title": "Pr?ximos Eventos",
+      "subtitle": "Estimados, reuniones, ajustaciones y eventos internos programados",
+      "clientLabel": "Cliente:",
+      "editHint": "Usa el calendario del dashboard para editar/eliminar eventos"
+    }
+  },
+  "claimStatusManager": {
+    "createSuccess": "Estado creado exitosamente",
+    "createError": "Error al crear estado",
+    "deleteSuccess": "Estado eliminado exitosamente",
+    "deleteError": "Error al eliminar estado",
+    "deleteConfirm": "?Est?s seguro de eliminar este estado? Esta acci?n no se puede deshacer.",
+    "missingFields": "Por favor completa todos los campos",
+    "triggerLabel": "Gestionar Estados",
+    "title": "Gestionar Estados de Reclamo",
+    "description": "Agrega o elimina estados personalizados para el dropdown de Estado del Reclamo. Solo ADMIN y CO_ADMIN pueden gestionar estos estados.",
+    "fields": {
+      "internalName": {
+        "label": "Nombre Interno (sin espacios)",
+        "placeholder": "ej: EN_REVISION",
+        "help": "Se usar? en la base de datos"
+      },
+      "displayName": {
+        "label": "Nombre para Mostrar",
+        "placeholder": "ej: En Revisi?n",
+        "help": "Se mostrar? en el dropdown"
+      }
+    },
+    "addButton": "Agregar Estado",
+    "customStatusesTitle": "Estados Personalizados Existentes",
+    "emptyCustomStatuses": "No hay estados personalizados. Agrega uno arriba.",
+    "defaultStatusesTitle": "Estados Predeterminados (No se pueden eliminar)",
+    "defaultLabel": "Predeterminado"
+  },
+  "clientEdit": {
+    "updateSuccess": "Cliente actualizado correctamente",
+    "updateError": "Error al actualizar el cliente",
+    "adjusterPlaceholder": "Seleccionar ajustador...",
+    "notesPlaceholder": "Notas adicionales sobre el cliente o el caso...",
+    "saving": "Guardando...",
+    "saveChanges": "Guardar Cambios",
+    "title": "Editar Cliente",
+    "loading": "Cargando cliente...",
+    "notFound": "Cliente no encontrado",
+    "backToClients": "Volver a Clientes",
+    "sections": {
+      "personal": {
+        "title": "Informaci?n Personal"
+      },
+      "property": {
+        "title": "Direcci?n de la Propiedad"
+      },
+      "claim": {
+        "title": "Informaci?n del Reclamo"
+      },
+      "dates": {
+        "title": "Fechas Importantes"
+      },
+      "team": {
+        "title": "Equipo Asignado"
+      },
+      "notes": {
+        "title": "Notas Adicionales"
+      }
+    },
+    "fields": {
+      "dateOfLoss": "Fecha del Siniestro",
+      "claimSubmittedDate": "Fecha de Reporte",
+      "firstCheckAmount": "Primer Cheque ($)"
+    },
+    "validation": {
+      "nameRequired": "Nombre y apellido son obligatorios",
+      "invalidEmail": "El formato del email no es v?lido",
+      "invalidPhone": "El n?mero de tel?fono principal no es v?lido (m?nimo 10 d?gitos)",
+      "invalidAlternatePhone": "El n?mero de tel?fono alternativo no es v?lido (m?nimo 10 d?gitos)",
+      "invalidZipCode": "El c?digo postal debe tener exactamente 5 d?gitos"
+    },
+    "actions": {
+      "cancel": "Cancelar"
+    }
+  },
+  "clientNew": {
+    "createSuccess": "Cliente creado exitosamente",
+    "supplementedLabel": "Suplementado",
+    "supplemented": {
+      "no": "No",
+      "yes": "S?"
+    },
+    "firstCheck": {
+      "label": "Primer Cheque",
+      "pending": "Pendiente",
+      "received": "Obtenido"
+    },
+    "adjusterPlaceholder": "Seleccionar ajustador...",
+    "notesPlaceholder": "Notas visibles para el cliente",
+    "saving": "Guardando...",
+    "save": "Guardar Cliente",
+    "title": "Nuevo Cliente",
+    "subtitle": "Complete la informaci?n del cliente para agregarlo al sistema",
+    "createError": "Error al crear cliente: {{message}}",
+    "claimStatusReadOnly": "Solo administradores pueden cambiar el estado del reclamo",
+    "unassigned": "Sin asignar",
+    "actions": {
+      "cancel": "Cancelar"
+    },
+    "sections": {
+      "contact": {
+        "title": "Informaci?n de Contacto",
+        "description": "Datos b?sicos del cliente"
+      },
+      "property": {
+        "title": "Informaci?n de la Propiedad",
+        "description": "Ubicaci?n y tipo de propiedad afectada"
+      },
+      "insurance": {
+        "title": "Informaci?n de Aseguradora y Reclamo",
+        "description": "Detalles de la p?liza y el reclamo"
+      },
+      "damage": {
+        "title": "Informaci?n del Da?o",
+        "description": "Tipo y descripci?n del da?o a la propiedad"
+      },
+      "dates": {
+        "title": "Fechas Importantes",
+        "description": "Fechas clave del proceso del reclamo"
+      },
+      "team": {
+        "title": "Equipo Asignado",
+        "description": "Personal responsable del caso"
+      },
+      "notes": {
+        "title": "Notas",
+        "description": "Informaci?n adicional sobre el cliente"
+      }
+    },
+    "fields": {
+      "firstName": "Nombre *",
+      "lastName": "Apellido *",
+      "email": "Email",
+      "phone": "Tel?fono Principal",
+      "alternatePhone": "Tel?fono Alternativo",
+      "propertyAddress": "Direcci?n de la Propiedad",
+      "city": "Ciudad",
+      "state": "Estado",
+      "zipCode": "C?digo Postal",
+      "propertyType": "Tipo de Propiedad",
+      "insuranceCompany": "Compa??a de Seguros",
+      "policyNumber": "N?mero de P?liza",
+      "claimNumber": "N?mero de Reclamo",
+      "claimStatus": "Estado del Reclamo",
+      "deductible": "Deducible ($)",
+      "coverageAmount": "Monto de Cobertura ($)",
+      "damageType": "Tipo de Da?o",
+      "estimatedLoss": "P?rdida Estimada ($)",
+      "damageDescription": "Descripci?n del Da?o",
+      "dateOfLoss": "Fecha de P?rdida",
+      "claimSubmittedDate": "Fecha de Sometimiento",
+      "scheduledVisit": "Visita Programada",
+      "adjustmentDate": "Fecha de Ajuste",
+      "lastContactDate": "?ltimo Contacto",
+      "nextContactDate": "Pr?ximo Contacto",
+      "salesPerson": "Vendedor",
+      "assignedAdjuster": "Ajustador Asignado",
+      "notes": "Notas P?blicas",
+      "internalNotes": "Notas Internas"
+    },
+    "propertyTypes": {
+      "residential": "Residencial",
+      "commercial": "Comercial",
+      "condo": "Condominio",
+      "townhouse": "Casa Adosada",
+      "apartment": "Apartamento"
+    },
+    "damageTypes": {
+      "fire": "Incendio",
+      "water": "Agua",
+      "wind": "Viento",
+      "hail": "Granizo",
+      "storm": "Tormenta",
+      "theft": "Robo",
+      "vandalism": "Vandalismo",
+      "other": "Otro"
+    },
+    "placeholders": {
+      "propertyType": "Seleccionar tipo",
+      "damageType": "Seleccionar tipo",
+      "salesPerson": "Seleccionar vendedor...",
+      "internalNotes": "Notas solo para uso interno"
+    },
+    "validation": {
+      "nameRequired": "Nombre y apellido son obligatorios",
+      "invalidEmail": "El formato del email no es v?lido",
+      "invalidPhone": "El n?mero de tel?fono principal no es v?lido (m?nimo 10 d?gitos)",
+      "invalidAlternatePhone": "El n?mero de tel?fono alternativo no es v?lido (m?nimo 10 d?gitos)",
+      "invalidZipCode": "El c?digo postal debe tener exactamente 5 d?gitos",
+      "invalidDeductible": "El deducible debe ser un n?mero v?lido",
+      "invalidCoverageAmount": "El monto de cobertura debe ser un n?mero v?lido",
+      "invalidEstimatedLoss": "La p?rdida estimada debe ser un n?mero v?lido",
+      "invalidActualPayout": "El pago real debe ser un n?mero v?lido"
+    }
+  },
+  "clientProfile": {
+    "firstCheck": {
+      "pending": "Pendiente",
+      "received": "Obtenido"
+    },
+    "notFound": "Cliente no encontrado",
+    "labels": {
+      "clientId": "Cliente ID",
+      "fullName": "Nombre Completo",
+      "email": "Email",
+      "phone": "Tel?fono Principal",
+      "alternatePhone": "Tel?fono Alternativo",
+      "salesPerson": "Vendedor",
+      "assignedAdjuster": "Ajustador Asignado",
+      "insurance": "Aseguradora",
+      "policyNumber": "N?mero de P?liza",
+      "claimNumber": "N?mero de Reclamo",
+      "claimStatus": "Estado del Reclamo",
+      "supplemented": "Suplementado",
+      "estimatedLoss": "P?rdida Estimada",
+      "firstCheck": "Primer Cheque",
+      "damageType": "Tipo de Da?o",
+      "damageDescription": "Descripci?n del Da?o",
+      "propertyAddress": "Direcci?n",
+      "state": "Estado",
+      "zipCode": "C?digo Postal",
+      "constructionStatus": "Estado",
+      "dateOfLoss": "Fecha de P?rdida",
+      "claimSubmittedDate": "Fecha de Sometimiento",
+      "adjustmentDate": "Fecha de Ajuste",
+      "lastContactDate": "?ltimo Contacto",
+      "nextContactDate": "Pr?ximo Contacto",
+      "propertyType": "Tipo de Propiedad"
+    },
+    "actions": {
+      "edit": "Editar Cliente"
+    },
+    "quick": {
+      "status": "Estado",
+      "insurance": "Aseguradora",
+      "deductible": "Deducible",
+      "salesPerson": "Vendedor",
+      "insuranceEstimate": "Estimado de Aseguranza",
+      "firstCheck": "Primer Cheque"
+    },
+    "tabs": {
+      "general": "General",
+      "claim": "Reclamo",
+      "property": "Propiedad",
+      "dates": "Fechas",
+      "documents": "Documentos",
+      "activity": "Actividad"
+    },
+    "sections": {
+      "contact": {
+        "title": "Informaci?n de Contacto"
+      },
+      "claim": {
+        "title": "Informaci?n del Reclamo"
+      },
+      "damage": {
+        "title": "Tipo y Descripci?n del Da?o"
+      },
+      "property": {
+        "title": "Informaci?n de la Propiedad"
+      },
+      "construction": {
+        "title": "Estado de Construcci?n"
+      },
+      "dates": {
+        "title": "Fechas Importantes"
+      }
+    }
+  },
+  "logsPage": {
+    "dateLabels": {
+      "today": "Hoy",
+      "yesterday": "Ayer",
+      "thisWeek": "Esta Semana",
+      "lastWeek": "Semana Pasada",
+      "thisMonth": "Este Mes",
+      "older": "M?s Antiguo"
+    },
+    "filters": {
+      "datePlaceholder": "Filtrar por fecha",
+      "today": "Hoy",
+      "activityTypePlaceholder": "Filtrar por tipo",
+      "title": "Filtros",
+      "searchPlaceholder": "Buscar por contenido o miembro del equipo...",
+      "allDates": "Todas las fechas",
+      "thisWeek": "Esta Semana",
+      "lastWeek": "Semana Pasada",
+      "thisMonth": "Este Mes",
+      "lastMonth": "Mes Pasado",
+      "allTypes": "Todos los tipos"
+    },
+    "title": "Logs de Actividad",
+    "subtitle": "Historial completo de interacciones con clientes",
+    "stats": {
+      "totalActivities": "Total Actividades"
+    },
+    "activityTypes": {
+      "call": "Llamada",
+      "email": "Email",
+      "meeting": "Reuni?n",
+      "note": "Nota",
+      "update": "Actualizaci?n",
+      "callPlural": "Llamadas",
+      "emailPlural": "Emails",
+      "meetingPlural": "Reuniones",
+      "notePlural": "Notas",
+      "updatePlural": "Actualizaciones"
+    },
+    "loading": "Cargando actividades...",
+    "emptyState": "No hay actividades registradas",
+    "performedBy": "Realizado por",
+    "clientId": "Cliente ID"
+  },
+  "onboarding": {
+    "createOrganization": "Crear Organizaci?n",
+    "createSuccess": "?Organizaci?n creada exitosamente!",
+    "creating": "Creando...",
+    "title": "Configuraci?n Inicial",
+    "stepDescription": "Paso {{step}} de 3 - Configura tu organizaci?n",
+    "orgInfo": {
+      "title": "Informaci?n de la Organizaci?n",
+      "subtitle": "Cu?ntanos sobre tu empresa",
+      "orgNameLabel": "Nombre de la Organizaci?n *",
+      "orgNamePlaceholder": "Ej: Acme Public Adjusters",
+      "businessTypeLabel": "Tipo de Negocio *",
+      "businessTypePlaceholder": "Selecciona el tipo de negocio",
+      "logoLabel": "Logo URL (Opcional)",
+      "logoPlaceholder": "https://ejemplo.com/logo.png",
+      "logoHint": "Puedes agregar o cambiar el logo m?s tarde desde la configuraci?n",
+      "memberCountLabel": "Cantidad de Miembros del Equipo (1-20)",
+      "memberCountHint": "Incluye a todos los miembros que necesitar?n acceso al CRM"
+    },
+    "actions": {
+      "previous": "Anterior"
+    },
+    "validation": {
+      "orgNameRequired": "Por favor ingresa el nombre de la organizaci?n",
+      "businessTypeRequired": "Por favor selecciona el tipo de negocio"
+    },
+    "toasts": {
+      "credentialsCopied": "Credenciales copiadas al portapapeles",
+      "csvDownloaded": "CSV descargado"
+    },
+    "users": {
+      "title": "?Organizaci?n Creada!",
+      "subtitle": "Aqu? est?n las credenciales de tus usuarios",
+      "importantLabel": "Importante:",
+      "importantText": "Guarda estas credenciales en un lugar seguro. No podr?s verlas nuevamente despu?s de cerrar esta ventana.",
+      "table": {
+        "user": "Usuario",
+        "password": "Contrase?a",
+        "role": "Rol"
+      },
+      "roles": {
+        "coAdmin": "Co-Admin",
+        "seller": "Vendedor"
+      },
+      "copyAll": "Copiar Todo",
+      "downloadCsv": "Descargar CSV",
+      "goToLogin": "Ir al Login"
+    },
+    "businessTypes": {
+      "publicAdjusters": "Public Adjusters",
+      "insurance": "Seguros",
+      "realEstate": "Bienes Ra?ces",
+      "construction": "Construcci?n",
+      "legal": "Legal",
+      "healthcare": "Salud",
+      "other": "Otro"
+    }
+  },
+  "tasksPage": {
+    "statusUpdated": "Estado actualizado",
+    "status": {
+      "pending": "Pendiente",
+      "inProgress": "En Progreso",
+      "completed": "Completada",
+      "canceled": "Cancelada"
+    },
+    "priority": {
+      "high": "Alta",
+      "medium": "Media",
+      "low": "Baja"
+    },
+    "noDate": "Sin fecha",
+    "due": {
+      "overdue": "Vencida",
+      "today": "Hoy",
+      "tomorrow": "Ma?ana",
+      "inDays": "En {{days}} d?as"
+    },
+    "filters": {
+      "statusPlaceholder": "Filtrar por estado",
+      "title": "Buscar y Filtrar Tareas",
+      "searchPlaceholder": "Buscar por t?tulo, descripci?n...",
+      "userPlaceholder": "Filtrar por usuario",
+      "allUsers": "Todos los usuarios",
+      "unassigned": "Sin asignar",
+      "allStatuses": "Todos los estados"
+    },
+    "empty": {
+      "search": "No se encontraron tareas",
+      "default": "No hay tareas creadas. Crea una nueva tarea para comenzar."
+    },
+    "title": "Gesti?n de Tareas",
+    "subtitle": "Asigna y monitorea tareas del equipo con fechas l?mite y prioridades",
+    "stats": {
+      "total": "Total de Tareas",
+      "pending": "Pendientes",
+      "inProgress": "En Progreso",
+      "completed": "Completadas"
+    },
+    "categories": {
+      "documentation": "Documentaci?n",
+      "meeting": "Reuni?n",
+      "review": "Revisi?n"
+    },
+    "actions": {
+      "completed": "Completada",
+      "markComplete": "Marcar Completa"
+    },
+    "assignedTo": "Asignado a",
+    "createdAt": "Creada",
+    "loading": "Cargando tareas..."
+  },
+  "usersPage": {
+    "delete": "Eliminar",
+    "title": "Gesti?n de Usuarios",
+    "subtitle": "Administra los miembros de tu organizaci?n",
+    "actions": {
+      "addUser": "Agregar Usuario",
+      "cancel": "Cancelar",
+      "adding": "Agregando...",
+      "delete": "Eliminar",
+      "deleting": "Eliminando...",
+      "close": "Cerrar",
+      "generating": "Generando...",
+      "generatePassword": "Generar Nueva Contrase?a",
+      "inviteUser": "Invitar por correo",
+      "sendInvite": "Enviar invitacion",
+      "sending": "Enviando..."
+    },
+    "toasts": {
+      "roleUpdated": "Rol actualizado correctamente",
+      "memberDeleted": "Miembro eliminado correctamente",
+      "memberAdded": "Miembro agregado correctamente",
+      "passwordReset": "Contrase?a reseteada correctamente",
+      "inviteSent": "Invitacion enviada",
+      "inviteRevoked": "Invitacion revocada"
+    },
+    "validation": {
+      "completeAllFields": "Por favor completa todos los campos"
+    },
+    "roles": {
+      "admin": "Administrador",
+      "coAdmin": "Co-Administrador",
+      "seller": "Vendedor"
+    },
+    "membersTitle": "Miembros de la Organizaci?n",
+    "membersDescription": "Lista de todos los usuarios con acceso al sistema",
+    "table": {
+      "user": "Usuario",
+      "role": "Rol",
+      "createdAt": "Fecha de Creaci?n",
+      "actions": "Acciones"
+    },
+    "dialogs": {
+      "add": {
+        "title": "Agregar Nuevo Usuario",
+        "description": "Crea un nuevo miembro para tu organizaci?n"
+      },
+      "delete": {
+        "title": "Eliminar Usuario",
+        "description": "?Est?s seguro de que deseas eliminar a {{name}}? Esta acci?n no se puede deshacer."
+      },
+      "reset": {
+        "title": "Resetear Contrase?a",
+        "description": "Genera una nueva contrase?a temporal para {{name}}",
+        "generatedLabel": "Nueva contrase?a generada:",
+        "generatedHint": "Copia esta contrase?a y entr?gala al usuario. No podr?s verla nuevamente.",
+        "pendingText": "Se generar? una nueva contrase?a temporal para este usuario."
+      },
+      "invite": {
+        "title": "Invitar a un miembro",
+        "description": "Envia un enlace seguro para crear su contrasena.",
+        "notice": "Las invitaciones expiran en 72 horas. Puedes revocar y reenviar."
+      }
+    },
+    "fields": {
+      "username": "Nombre de Usuario",
+      "password": "Contrase?a",
+      "role": "Rol",
+      "email": "Correo"
+    },
+    "placeholders": {
+      "username": "usuario@organizacion.internal",
+      "password": "M?nimo 8 caracteres",
+      "email": "nombre@empresa.com"
+    },
+    "invites": {
+      "title": "Invitaciones pendientes",
+      "description": "Gestiona las invitaciones enviadas y su estado.",
+      "empty": "Aun no hay invitaciones.",
+      "table": {
+        "email": "Correo",
+        "role": "Rol",
+        "status": "Estado",
+        "expires": "Vence",
+        "actions": "Acciones"
+      },
+      "status": {
+        "pending": "Pendiente",
+        "accepted": "Aceptada",
+        "expired": "Expirada",
+        "revoked": "Revocada"
+      }
+    }
+  },
+  "constructionPage": {
+    "status": {
+      "none": "Sin Estado",
+      "pending": "Pendiente",
+      "inProgress": "En Progreso",
+      "completed": "Completado",
+      "onHold": "En Espera"
+    },
+    "searchPlaceholder": "Buscar por contratista o ID de cliente...",
+    "title": "Proyectos de Construcci?n",
+    "subtitle": "Clientes aprobados para construcci?n",
+    "actions": {
+      "newProject": "Nuevo Proyecto",
+      "createFirst": "Crear Primer Proyecto",
+      "viewClient": "Ver Cliente",
+      "editProject": "Editar Proyecto"
+    },
+    "stats": {
+      "totalProjects": "Total Proyectos",
+      "inProgress": "En Progreso",
+      "completed": "Completados",
+      "totalValue": "Valor Total"
+    },
+    "searchTitle": "Buscar Proyectos",
+    "loading": "Cargando proyectos...",
+    "empty": "No hay proyectos de construcci?n",
+    "projectTitle": "Proyecto #{{id}}",
+    "clientId": "Cliente ID",
+    "labels": {
+      "contractor": "Contratista",
+      "estimatedCost": "Costo Estimado",
+      "startDate": "Inicio",
+      "completionDate": "Finalizaci?n"
+    },
+    "approval": {
+      "title": "Criterios de Aprobaci?n para Construcci?n",
+      "items": {
+        "claimApproved": "El reclamo debe estar aprobado por la aseguradora",
+        "fundsAvailable": "Los fondos deben estar disponibles o el pago programado",
+        "contractSigned": "El cliente debe haber firmado el contrato de construcci?n",
+        "contractorSelected": "Se debe haber seleccionado un contratista certificado"
+      }
+    }
+  },
+  "contractsPage": {
+    "status": {
+      "signed": "Firmado",
+      "pending": "Pendiente",
+      "canceled": "Cancelado"
+    },
+    "types": {
+      "services": "Contrato de Servicios",
+      "adjustment": "Contrato de Ajuste"
+    },
+    "title": "Contratos",
+    "subtitle": "Gestiona los contratos de tus clientes",
+    "actions": {
+      "newContract": "Nuevo Contrato",
+      "createFirst": "Crear Primer Contrato"
+    },
+    "stats": {
+      "total": "Total Contratos",
+      "signed": "Firmados",
+      "pending": "Pendientes"
+    },
+    "listTitle": "Lista de Contratos",
+    "labels": {
+      "client": "Cliente",
+      "date": "Fecha"
+    },
+    "empty": "No hay contratos registrados",
+    "info": {
+      "title": "Informaci?n sobre Contratos",
+      "items": {
+        "autoGenerated": "Los contratos se generan autom?ticamente cuando un cliente acepta los servicios",
+        "downloadPdf": "Puedes descargar contratos en formato PDF para impresi?n o env?o por email",
+        "legalValidity": "Los contratos firmados digitalmente tienen validez legal en Illinois",
+        "auditLog": "Todos los cambios en contratos quedan registrados en el log de auditor?a"
+      }
+    }
+  },
+  "profile": {
+    "title": "Mi Perfil",
+    "subtitle": "Informaci?n de tu cuenta y configuraci?n",
+    "loading": "Cargando perfil...",
+    "actions": {
+      "edit": "Editar Perfil",
+      "cancel": "Cancelar",
+      "save": "Guardar Cambios"
+    },
+    "toasts": {
+      "passwordUpdated": "Contrase?a actualizada exitosamente",
+      "editComingSoon": "Funcionalidad de edici?n pr?ximamente disponible",
+      "photoComingSoon": "Funcionalidad de cambio de foto pr?ximamente disponible"
+    },
+    "validation": {
+      "completePasswordFields": "Por favor completa todos los campos de contrase?a",
+      "passwordsMismatch": "Las contrase?as no coinciden",
+      "passwordTooShort": "La contrase?a debe tener al menos 8 caracteres",
+      "nameRequired": "El nombre no puede estar vac?o"
+    },
+    "photo": {
+      "title": "Foto de Perfil",
+      "description": "Actualiza tu imagen de perfil",
+      "hint": "JPG, PNG o GIF. Tama?o m?ximo 2MB.",
+      "change": "Cambiar Foto"
+    },
+    "personal": {
+      "title": "Informaci?n Personal",
+      "description": "Datos de tu cuenta en el sistema",
+      "fullName": "Nombre Completo",
+      "email": "Email",
+      "role": "Rol en el Sistema",
+      "loginMethod": "M?todo de Inicio de Sesi?n",
+      "createdAt": "Cuenta Creada",
+      "lastSignIn": "?ltimo Acceso"
+    },
+    "roles": {
+      "admin": "Administrador",
+      "coAdmin": "Co-Administrador",
+      "seller": "Vendedor"
+    },
+    "password": {
+      "title": "Cambiar Contrase?a",
+      "description": "Actualiza tu contrase?a de acceso",
+      "current": "Contrase?a Actual",
+      "currentPlaceholder": "Ingresa tu contrase?a actual",
+      "new": "Nueva Contrase?a",
+      "newPlaceholder": "M?nimo 8 caracteres",
+      "confirm": "Confirmar Contrase?a",
+      "confirmPlaceholder": "Repite la nueva contrase?a",
+      "updating": "Actualizando...",
+      "update": "Cambiar Contrase?a"
+    },
+    "settings": {
+      "title": "Configuraci?n de Cuenta",
+      "description": "Gestiona tu cuenta y preferencias del sistema",
+      "emailNotifications": "Notificaciones por Email",
+      "emailNotificationsHint": "Recibe actualizaciones sobre tus clientes y reclamos",
+      "comingSoon": "Pr?ximamente",
+      "languagePreferences": "Preferencias de Idioma",
+      "languageHint": "Selecciona el idioma de la interfaz",
+      "languageLabel": "Espa?ol (ES)"
+    },
+    "system": {
+      "title": "Informaci?n del Sistema",
+      "userId": "ID de Usuario",
+      "openId": "OpenID"
+    }
+  },
+  "forgotPassword": {
+    "eyebrow": "Restablecer acceso",
+    "title": "Olvidaste tu contrasena?",
+    "subtitle": "Ingresa tu correo y te enviaremos un enlace para restablecer.",
+    "emailLabel": "Correo de trabajo",
+    "emailPlaceholder": "tu@empresa.com",
+    "sendButton": "Enviar enlace",
+    "confirmation": "Solicitud recibida. Cuando el envio de correo este activo, recibiras un enlace.",
+    "backToLogin": "Volver a iniciar sesion",
+    "sending": "Enviando..."
+  },
+  "resetPassword": {
+    "eyebrow": "Restablecer acceso",
+    "title": "Define una nueva contrasena",
+    "subtitle": "Elige una contrasena segura para tu cuenta.",
+    "newPassword": "Nueva contrasena",
+    "newPasswordPlaceholder": "Crea una contrasena segura",
+    "confirmPassword": "Confirmar contrasena",
+    "confirmPasswordPlaceholder": "Vuelve a escribir la contrasena",
+    "saveButton": "Actualizar contrasena",
+    "saving": "Actualizando...",
+    "success": "Contrasena actualizada. Ya puedes iniciar sesion.",
+    "backToLogin": "Volver a iniciar sesion",
+    "missingToken": "Enlace invalido. Solicita uno nuevo.",
+    "passwordMismatch": "Las contrasenas no coinciden."
+  },
+  "invite": {
+    "eyebrow": "Invitacion",
+    "title": "Activa tu cuenta de Nexora CRM",
+    "subtitle": "Confirma tu nombre y crea una contrasena para unirte.",
+    "nameLabel": "Nombre completo",
+    "namePlaceholder": "Tu nombre",
+    "passwordLabel": "Crea una contrasena",
+    "passwordPlaceholder": "Minimo 8 caracteres",
+    "confirmPasswordLabel": "Confirmar contrasena",
+    "confirmPasswordPlaceholder": "Vuelve a escribir la contrasena",
+    "acceptButton": "Aceptar invitacion",
+    "submitting": "Activando...",
+    "success": "Cuenta activada. Ya puedes iniciar sesion.",
+    "backToLogin": "Volver a iniciar sesion",
+    "missingToken": "Enlace invalido. Solicita una nueva invitacion.",
+    "passwordMismatch": "Las contrasenas no coinciden."
   }
 }

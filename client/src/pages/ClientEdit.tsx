@@ -7,6 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea";
 import { ArrowLeft, Save, AlertCircle } from "lucide-react";
 import { useState, useEffect } from "react";
+import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import { trpc } from "@/lib/trpc";
 import DashboardLayout from "@/components/DashboardLayout";
@@ -16,6 +17,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { ManageClaimStatusesDialog } from "@/components/ManageClaimStatusesDialog";
 
 export default function ClientEdit() {
+  const { t } = useTranslation();
   const { id } = useParams();
   const [, setLocation] = useLocation();
   const clientId = id || "";
@@ -116,27 +118,27 @@ export default function ClientEdit() {
 
     // Validaciones
     if (!formData.firstName || !formData.lastName) {
-      toast.error("Nombre y apellido son obligatorios");
+      toast.error(t("clientEdit.validation.nameRequired"));
       return;
     }
 
     if (formData.email && !validateEmail(formData.email)) {
-      toast.error("El formato del email no es válido");
+      toast.error(t("clientEdit.validation.invalidEmail"));
       return;
     }
 
     if (formData.phone && !validatePhone(formData.phone)) {
-      toast.error("El número de teléfono principal no es válido (mínimo 10 dígitos)");
+      toast.error(t("clientEdit.validation.invalidPhone"));
       return;
     }
 
     if (formData.alternatePhone && !validatePhone(formData.alternatePhone)) {
-      toast.error("El número de teléfono alternativo no es válido (mínimo 10 dígitos)");
+      toast.error(t("clientEdit.validation.invalidAlternatePhone"));
       return;
     }
 
     if (formData.zipCode && !validateZipCode(formData.zipCode)) {
-      toast.error("El código postal debe tener exactamente 5 dígitos");
+      toast.error(t("clientEdit.validation.invalidZipCode"));
       return;
     }
 
@@ -175,10 +177,10 @@ export default function ClientEdit() {
       utils.clients.getById.invalidate({ id: clientId });
       utils.dashboard.lateContact.invalidate();
       utils.dashboard.upcomingContacts.invalidate();
-      toast.success("Cliente actualizado correctamente");
+      toast.success(t('clientEdit.updateSuccess'));
       setLocation(`/clients/${clientId}`);
     } catch (error) {
-      toast.error("Error al actualizar el cliente");
+      toast.error(t('clientEdit.updateError'));
       console.error(error);
     }
   };
@@ -187,7 +189,7 @@ export default function ClientEdit() {
     return (
       <DashboardLayout>
         <div className="flex items-center justify-center min-h-[400px]">
-          <p className="text-muted-foreground">Cargando cliente...</p>
+          <p className="text-muted-foreground">{t("clientEdit.loading")}</p>
         </div>
       </DashboardLayout>
     );
@@ -197,9 +199,9 @@ export default function ClientEdit() {
     return (
       <DashboardLayout>
         <div className="flex flex-col items-center justify-center min-h-[400px] gap-4">
-          <p className="text-muted-foreground">Cliente no encontrado</p>
+          <p className="text-muted-foreground">{t("clientEdit.notFound")}</p>
           <Button onClick={() => setLocation('/clients')}>
-            Volver a Clientes
+            {t("clientEdit.backToClients")}
           </Button>
         </div>
       </DashboardLayout>
@@ -221,7 +223,7 @@ export default function ClientEdit() {
             </Button>
             <div>
               <h1 className="text-3xl font-bold text-foreground">
-                Editar Cliente
+                {t("clientEdit.title")}
               </h1>
               <p className="text-muted-foreground mt-1">
                 {client.firstName} {client.lastName}
@@ -232,14 +234,14 @@ export default function ClientEdit() {
 
         {/* Form */}
         <form onSubmit={handleSubmit} className="space-y-6">
-          {/* Información Personal */}
+          {/* Informacion Personal */}
           <Card className="border-border">
             <CardHeader>
-              <CardTitle>Información Personal</CardTitle>
+              <CardTitle>{t("clientEdit.sections.personal.title")}</CardTitle>
             </CardHeader>
             <CardContent className="grid gap-4 md:grid-cols-2">
               <div className="space-y-2">
-                <Label htmlFor="firstName">Nombre *</Label>
+                <Label htmlFor="firstName">{t("clientNew.fields.firstName")}</Label>
                 <Input
                   id="firstName"
                   value={formData.firstName}
@@ -248,7 +250,7 @@ export default function ClientEdit() {
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="lastName">Apellido *</Label>
+                <Label htmlFor="lastName">{t("clientNew.fields.lastName")}</Label>
                 <Input
                   id="lastName"
                   value={formData.lastName}
@@ -257,7 +259,7 @@ export default function ClientEdit() {
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="email">Email</Label>
+                <Label htmlFor="email">{t("clientNew.fields.email")}</Label>
                 <Input
                   id="email"
                   type="email"
@@ -266,7 +268,7 @@ export default function ClientEdit() {
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="phone">Teléfono Principal</Label>
+                <Label htmlFor="phone">{t("clientNew.fields.phone")}</Label>
                 <Input
                   id="phone"
                   type="tel"
@@ -275,7 +277,7 @@ export default function ClientEdit() {
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="alternatePhone">Teléfono Alternativo</Label>
+                <Label htmlFor="alternatePhone">{t("clientNew.fields.alternatePhone")}</Label>
                 <Input
                   id="alternatePhone"
                   type="tel"
@@ -286,14 +288,14 @@ export default function ClientEdit() {
             </CardContent>
           </Card>
 
-          {/* Dirección */}
+          {/* Direccion */}
           <Card className="border-border">
             <CardHeader>
-              <CardTitle>Dirección de la Propiedad</CardTitle>
+              <CardTitle>{t("clientEdit.sections.property.title")}</CardTitle>
             </CardHeader>
             <CardContent className="grid gap-4 md:grid-cols-2">
               <div className="space-y-2 md:col-span-2">
-                <Label htmlFor="propertyAddress">Dirección</Label>
+                <Label htmlFor="propertyAddress">{t("clientNew.fields.propertyAddress")}</Label>
                 <Input
                   id="propertyAddress"
                   value={formData.propertyAddress}
@@ -301,7 +303,7 @@ export default function ClientEdit() {
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="city">Ciudad</Label>
+                <Label htmlFor="city">{t("clientNew.fields.city")}</Label>
                 <Input
                   id="city"
                   value={formData.city}
@@ -309,7 +311,7 @@ export default function ClientEdit() {
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="state">Estado</Label>
+                <Label htmlFor="state">{t("clientNew.fields.state")}</Label>
                 <Input
                   id="state"
                   value={formData.state}
@@ -317,7 +319,7 @@ export default function ClientEdit() {
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="zipCode">Código Postal</Label>
+                <Label htmlFor="zipCode">{t("clientNew.fields.zipCode")}</Label>
                 <Input
                   id="zipCode"
                   value={formData.zipCode}
@@ -327,14 +329,14 @@ export default function ClientEdit() {
             </CardContent>
           </Card>
 
-          {/* Información del Reclamo */}
+          {/* Informacion del Reclamo */}
           <Card className="border-border">
             <CardHeader>
-              <CardTitle>Información del Reclamo</CardTitle>
+              <CardTitle>{t("clientEdit.sections.claim.title")}</CardTitle>
             </CardHeader>
             <CardContent className="grid gap-4 md:grid-cols-2">
               <div className="space-y-2">
-                <Label htmlFor="insuranceCompany">Aseguradora</Label>
+                <Label htmlFor="insuranceCompany">{t("clientNew.fields.insuranceCompany")}</Label>
                 <Input
                   id="insuranceCompany"
                   value={formData.insuranceCompany}
@@ -342,7 +344,7 @@ export default function ClientEdit() {
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="policyNumber">Número de Póliza</Label>
+                <Label htmlFor="policyNumber">{t("clientNew.fields.policyNumber")}</Label>
                 <Input
                   id="policyNumber"
                   value={formData.policyNumber}
@@ -350,7 +352,7 @@ export default function ClientEdit() {
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="claimNumber">Número de Reclamo</Label>
+                <Label htmlFor="claimNumber">{t("clientNew.fields.claimNumber")}</Label>
                 <Input
                   id="claimNumber"
                   value={formData.claimNumber}
@@ -359,7 +361,7 @@ export default function ClientEdit() {
               </div>
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
-                  <Label htmlFor="claimStatus">Estado del Reclamo</Label>
+                  <Label htmlFor="claimStatus">{t("clientNew.fields.claimStatus")}</Label>
                   {canEditClaimStatus && (
                     <ManageClaimStatusesDialog />
                   )}
@@ -368,7 +370,7 @@ export default function ClientEdit() {
                   <Alert className="mb-2">
                     <AlertCircle className="h-4 w-4" />
                     <AlertDescription>
-                      Solo administradores pueden cambiar el estado del reclamo
+                      {t("clientNew.claimStatusReadOnly")}
                     </AlertDescription>
                   </Alert>
                 )}
@@ -382,11 +384,11 @@ export default function ClientEdit() {
                   </SelectTrigger>
                   <SelectContent>
                     {/* Estados predeterminados */}
-                    <SelectItem value="NO_SOMETIDA">No Sometida</SelectItem>
-                    <SelectItem value="EN_PROCESO">En Proceso</SelectItem>
-                    <SelectItem value="APROVADA">Aprobada</SelectItem>
-                    <SelectItem value="RECHAZADA">Rechazada</SelectItem>
-                    <SelectItem value="CERRADA">Cerrada</SelectItem>
+                    <SelectItem value="NO_SOMETIDA">{t("dashboard.claimStatus.status.NO_SOMETIDA")}</SelectItem>
+                    <SelectItem value="EN_PROCESO">{t("dashboard.claimStatus.status.EN_PROCESO")}</SelectItem>
+                    <SelectItem value="APROVADA">{t("dashboard.claimStatus.status.APROBADA")}</SelectItem>
+                    <SelectItem value="RECHAZADA">{t("dashboard.claimStatus.status.RECHAZADA")}</SelectItem>
+                    <SelectItem value="CERRADA">{t("dashboard.claimStatus.status.CERRADA")}</SelectItem>
                     
                     {/* Estados personalizados */}
                     {customClaimStatuses.map((status: any) => (
@@ -398,7 +400,7 @@ export default function ClientEdit() {
                 </Select>
               </div>
               <div className="space-y-2">
-                <Label htmlFor="deductible">Deducible ($)</Label>
+                <Label htmlFor="deductible">{t("clientNew.fields.deductible")}</Label>
                 <Input
                   id="deductible"
                   type="number"
@@ -408,7 +410,7 @@ export default function ClientEdit() {
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="damageType">Tipo de Daño</Label>
+                <Label htmlFor="damageType">{t("clientNew.fields.damageType")}</Label>
                 <Input
                   id="damageType"
                   value={formData.damageType}
@@ -426,7 +428,7 @@ export default function ClientEdit() {
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="firstCheckAmount">Primer Cheque ($)</Label>
+                <Label htmlFor="firstCheckAmount">{t("clientEdit.fields.firstCheckAmount")}</Label>
                 <Input
                   id="firstCheckAmount"
                   type="number"
@@ -441,11 +443,11 @@ export default function ClientEdit() {
           {/* Fechas */}
           <Card className="border-border">
             <CardHeader>
-              <CardTitle>Fechas Importantes</CardTitle>
+              <CardTitle>{t("clientEdit.sections.dates.title")}</CardTitle>
             </CardHeader>
             <CardContent className="grid gap-4 md:grid-cols-2">
               <div className="space-y-2">
-                <Label htmlFor="dateOfLoss">Fecha del Siniestro</Label>
+                <Label htmlFor="dateOfLoss">{t("clientEdit.fields.dateOfLoss")}</Label>
                 <Input
                   id="dateOfLoss"
                   type="date"
@@ -454,7 +456,7 @@ export default function ClientEdit() {
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="claimSubmittedDate">Fecha de Reporte</Label>
+                <Label htmlFor="claimSubmittedDate">{t("clientEdit.fields.claimSubmittedDate")}</Label>
                 <Input
                   id="claimSubmittedDate"
                   type="date"
@@ -463,7 +465,7 @@ export default function ClientEdit() {
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="scheduledVisit">Visita Programada</Label>
+                <Label htmlFor="scheduledVisit">{t("clientNew.fields.scheduledVisit")}</Label>
                 <Input
                   id="scheduledVisit"
                   type="date"
@@ -472,7 +474,7 @@ export default function ClientEdit() {
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="adjustmentDate">Fecha de Ajustación</Label>
+                <Label htmlFor="adjustmentDate">{t("clientNew.fields.adjustmentDate")}</Label>
                 <Input
                   id="adjustmentDate"
                   type="date"
@@ -486,20 +488,20 @@ export default function ClientEdit() {
           {/* Equipo Asignado */}
           <Card className="border-border">
             <CardHeader>
-              <CardTitle>Equipo Asignado</CardTitle>
+              <CardTitle>{t("clientEdit.sections.team.title")}</CardTitle>
             </CardHeader>
             <CardContent className="grid gap-4 md:grid-cols-2">
               <div className="space-y-2">
-                <Label htmlFor="salesPerson">Vendedor</Label>
+                <Label htmlFor="salesPerson">{t("clientNew.fields.salesPerson")}</Label>
                 <Select
                   value={formData.salesPerson}
                   onValueChange={(value) => setFormData({ ...formData, salesPerson: value })}
                 >
                   <SelectTrigger>
-                    <SelectValue placeholder="Seleccionar vendedor..." />
+                    <SelectValue placeholder={t("clientNew.placeholders.salesPerson")} />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="sin_asignar">Sin asignar</SelectItem>
+                    <SelectItem value="sin_asignar">{t("clientNew.unassigned")}</SelectItem>
                     {organizationMembers?.map((member: any) => (
                       <SelectItem key={member.id} value={member.username}>
                         {member.username} ({member.role})
@@ -509,16 +511,16 @@ export default function ClientEdit() {
                 </Select>
               </div>
               <div className="space-y-2">
-                <Label htmlFor="assignedAdjuster">Ajustador Asignado</Label>
+                <Label htmlFor="assignedAdjuster">{t("clientNew.fields.assignedAdjuster")}</Label>
                 <Select
                   value={formData.assignedAdjuster}
                   onValueChange={(value) => setFormData({ ...formData, assignedAdjuster: value })}
                 >
                   <SelectTrigger>
-                    <SelectValue placeholder="Seleccionar ajustador..." />
+                    <SelectValue placeholder={t('clientEdit.adjusterPlaceholder')} />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="sin_asignar">Sin asignar</SelectItem>
+                    <SelectItem value="sin_asignar">{t("clientNew.unassigned")}</SelectItem>
                     {organizationMembers?.map((member: any) => (
                       <SelectItem key={member.id} value={member.username}>
                         {member.username} ({member.role})
@@ -533,7 +535,7 @@ export default function ClientEdit() {
           {/* Notas */}
           <Card className="border-border">
             <CardHeader>
-              <CardTitle>Notas Adicionales</CardTitle>
+              <CardTitle>{t("clientEdit.sections.notes.title")}</CardTitle>
             </CardHeader>
             <CardContent>
               <Textarea
@@ -541,7 +543,7 @@ export default function ClientEdit() {
                 value={formData.notes}
                 onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
                 rows={4}
-                placeholder="Notas adicionales sobre el cliente o el caso..."
+                placeholder={t("clientEdit.notesPlaceholder")}
               />
             </CardContent>
           </Card>
@@ -553,11 +555,11 @@ export default function ClientEdit() {
               variant="outline"
               onClick={() => setLocation(`/clients/${clientId}`)}
             >
-              Cancelar
+              {t("clientEdit.actions.cancel")}
             </Button>
             <Button type="submit" disabled={updateMutation.isPending}>
               <Save className="mr-2 h-4 w-4" />
-              {updateMutation.isPending ? "Guardando..." : "Guardar Cambios"}
+              {updateMutation.isPending ? t('clientEdit.saving') : t('clientEdit.saveChanges')}
             </Button>
           </div>
         </form>

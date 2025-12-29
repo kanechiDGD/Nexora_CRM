@@ -12,23 +12,25 @@ import {
 import { Trash2 } from "lucide-react";
 import { trpc } from "@/lib/trpc";
 import { toast } from "sonner";
+import { useTranslation } from "react-i18next";
 
 interface DeleteEventDialogProps {
   event: any;
 }
 
 export function DeleteEventDialog({ event }: DeleteEventDialogProps) {
+  const { t } = useTranslation();
   const [open, setOpen] = useState(false);
   const utils = trpc.useUtils();
   
   const deleteEvent = trpc.events.delete.useMutation({
     onSuccess: () => {
-      toast.success("Evento eliminado exitosamente");
+      toast.success(t('eventDialogs.delete.success'));
       utils.events.list.invalidate();
       setOpen(false);
     },
     onError: (error) => {
-      toast.error(`Error al eliminar evento: ${error.message}`);
+      toast.error(t('eventDialogs.delete.error', { message: error.message }));
     },
   });
 
@@ -45,21 +47,21 @@ export function DeleteEventDialog({ event }: DeleteEventDialogProps) {
       </DialogTrigger>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>¿Eliminar Evento?</DialogTitle>
+          <DialogTitle>{t('eventDialogs.delete.title')}</DialogTitle>
           <DialogDescription>
-            Esta acción no se puede deshacer. El evento "{event.title}" será eliminado permanentemente del calendario.
+            {t('eventDialogs.delete.description', { title: event.title })}
           </DialogDescription>
         </DialogHeader>
         <DialogFooter>
           <Button variant="outline" onClick={() => setOpen(false)}>
-            Cancelar
+            {t('eventDialogs.delete.cancel')}
           </Button>
           <Button 
             variant="destructive" 
             onClick={handleDelete}
             disabled={deleteEvent.isPending}
           >
-            {deleteEvent.isPending ? "Eliminando..." : "Eliminar"}
+            {deleteEvent.isPending ? t('eventDialogs.delete.deleting') : t('eventDialogs.delete.confirm')}
           </Button>
         </DialogFooter>
       </DialogContent>

@@ -1,12 +1,20 @@
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Loader2, Building2, LogIn, Languages, Chrome } from "lucide-react";
+import {
+  Loader2,
+  Building2,
+  LogIn,
+  Languages,
+  Chrome,
+  Sparkles,
+  ShieldCheck,
+  LineChart,
+} from "lucide-react";
 import { trpc } from "@/lib/trpc";
 import { useLocation } from "wouter";
 import { APP_LOGO, getGoogleLoginUrl } from "@/const";
@@ -28,7 +36,7 @@ export default function Login() {
 
   const loginMutation = trpc.auth.loginWithCredentials.useMutation({
     onSuccess: () => {
-      // Redirigir al dashboard después del login exitoso
+      // Redirigir al dashboard despuAcs del login exitoso
       window.location.href = "/dashboard";
     },
     onError: (err) => {
@@ -43,7 +51,7 @@ export default function Login() {
   };
 
   const handleCreateOrganization = () => {
-    // Redirigir directamente a la página de onboarding
+    // Redirigir directamente a la pA?gina de onboarding
     setLocation("/onboarding");
   };
 
@@ -55,240 +63,332 @@ export default function Login() {
     window.location.href = getGoogleLoginUrl("/dashboard");
   };
 
+  const handleForgotPassword = () => {
+    setLocation("/forgot-password");
+  };
+
   const changeLanguage = (lng: string) => {
     i18n.changeLanguage(lng);
   };
 
+  const features = [
+    {
+      icon: Sparkles,
+      title: t("login.featureOneTitle"),
+      description: t("login.featureOneDesc"),
+    },
+    {
+      icon: ShieldCheck,
+      title: t("login.featureTwoTitle"),
+      description: t("login.featureTwoDesc"),
+    },
+    {
+      icon: LineChart,
+      title: t("login.featureThreeTitle"),
+      description: t("login.featureThreeDesc"),
+    },
+  ];
+
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 p-3 sm:p-4 md:p-6 lg:p-8">
-      <div className="w-full max-w-[95%] sm:max-w-md md:max-w-lg space-y-4 sm:space-y-6">
-        {/* Selector de idioma */}
-        <div className="flex justify-end">
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button
-                variant="outline"
-                size="sm"
-                className="border-slate-600 bg-slate-800/50 text-slate-300 hover:bg-slate-700 hover:text-white"
-              >
-                <Languages className="h-4 w-4 mr-2" />
-                {i18n.language === 'es' ? 'Español' : 'English'}
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="bg-slate-800 border-slate-700">
-              <DropdownMenuItem
-                onClick={() => changeLanguage('es')}
-                className="text-slate-300 hover:bg-slate-700 hover:text-white cursor-pointer"
-              >
-                🇪🇸 Español
-              </DropdownMenuItem>
-              <DropdownMenuItem
-                onClick={() => changeLanguage('en')}
-                className="text-slate-300 hover:bg-slate-700 hover:text-white cursor-pointer"
-              >
-                🇺🇸 English
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-        </div>
+    <div
+      className="relative min-h-screen overflow-hidden bg-[#0b1522] text-white"
+      style={{
+        fontFamily:
+          "'Space Grotesk', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif",
+      }}
+    >
+      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top,_rgba(45,212,191,0.18),_rgba(15,23,42,0))]" />
+      <div className="pointer-events-none absolute -top-24 right-10 h-64 w-64 rounded-full bg-teal-400/25 blur-3xl animate-[pulse_10s_ease-in-out_infinite]" />
+      <div className="pointer-events-none absolute -bottom-32 left-10 h-72 w-72 rounded-full bg-sky-300/20 blur-3xl animate-[pulse_12s_ease-in-out_infinite]" />
+      <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(rgba(148,163,184,0.08)_1px,transparent_1px),linear-gradient(90deg,rgba(148,163,184,0.08)_1px,transparent_1px)] bg-[size:48px_48px] opacity-20" />
 
-        {/* Logo y título */}
-        <div className="text-center space-y-2 px-2">
-          {APP_LOGO && (
-            <img
-              src={APP_LOGO}
-              alt={t('login.appTitle')}
-              className="h-12 sm:h-14 md:h-16 lg:h-20 mx-auto mb-3 sm:mb-4"
-            />
-          )}
-          <h1 className="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-bold text-white break-words">
-            {t('login.appTitle')}
-          </h1>
-          <p className="text-xs sm:text-sm md:text-base text-slate-400">
-            {t('login.appSubtitle')}
-          </p>
-        </div>
+      <div className="absolute right-4 top-4 z-20">
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button
+              variant="outline"
+              size="sm"
+              className="border-slate-700 bg-slate-900/70 text-slate-200 hover:bg-slate-800"
+            >
+              <Languages className="h-4 w-4 mr-2" />
+              {i18n.language === "es"
+                ? t("login.languageSpanish")
+                : t("login.languageEnglish")}
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="bg-slate-900 border-slate-700">
+            <DropdownMenuItem
+              onClick={() => changeLanguage("es")}
+              className="text-slate-200 hover:bg-slate-800 cursor-pointer"
+            >
+              ES - {t("login.languageSpanish")}
+            </DropdownMenuItem>
+            <DropdownMenuItem
+              onClick={() => changeLanguage("en")}
+              className="text-slate-200 hover:bg-slate-800 cursor-pointer"
+            >
+              EN - {t("login.languageEnglish")}
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </div>
 
-        {!showLoginForm ? (
-          /* Pantalla de selección de opción */
-          <div className="space-y-3 sm:space-y-4">
-            <Card className="border-slate-700 bg-slate-800/50 backdrop-blur">
-              <CardHeader className="p-3 sm:p-4 md:p-6">
-                <CardTitle className="text-lg sm:text-xl md:text-2xl text-white text-center">
-                  {t('login.welcome')}
-                </CardTitle>
-                <CardDescription className="text-xs sm:text-sm md:text-base text-slate-400 text-center">
-                  {t('login.selectOption')}
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-3 sm:space-y-4 p-3 sm:p-4 md:p-6">
-                {/* Botón para iniciar sesión con organización existente */}
-                <Button
-                  type="button"
-                  className="w-full h-auto py-3 sm:py-4 md:py-5 lg:py-6 px-2 sm:px-3 md:px-4 flex items-start gap-2 bg-blue-600 hover:bg-blue-700 text-left overflow-hidden"
-                  onClick={handleShowLoginForm}
+      <div className="relative mx-auto flex min-h-screen w-full max-w-6xl flex-col gap-8 px-4 py-12 lg:grid lg:grid-cols-[1.15fr_0.85fr] lg:items-center">
+        <div className="order-2 lg:order-1 space-y-8">
+          <div className="space-y-4">
+            <div className="flex items-center gap-4">
+              {APP_LOGO ? (
+                <img
+                  src={APP_LOGO}
+                  alt={t("login.appTitle")}
+                  className="h-12 w-12 rounded-xl bg-[#0f2233]/70 p-2"
+                />
+              ) : (
+                <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-[#0f2233]/70 text-lg font-semibold">
+                  N
+                </div>
+              )}
+              <div>
+                <p className="text-[10px] uppercase tracking-[0.35em] text-slate-400">
+                  {t("login.heroEyebrow")}
+                </p>
+                <h1
+                  className="text-3xl sm:text-4xl md:text-5xl font-semibold"
+                  style={{ fontFamily: "'Fraunces', 'Times New Roman', serif" }}
                 >
-                  <LogIn className="h-4 w-4 sm:h-5 sm:w-5 flex-shrink-0 mt-0.5" />
-                  <div className="flex-1 min-w-0 overflow-hidden">
-                    <div className="text-xs sm:text-sm md:text-base lg:text-lg font-semibold leading-tight break-words">
-                      {t('login.loginExisting')}
-                    </div>
-                    <div className="text-[10px] sm:text-xs md:text-sm text-blue-100 font-normal break-words mt-0.5 sm:mt-1">
-                      {t('login.loginExistingDesc')}
-                    </div>
-                  </div>
-                </Button>
-
-                {/* Botón para iniciar sesión con Google */}
-                <Button
-                  type="button"
-                  variant="secondary"
-                  className="w-full h-auto py-3 sm:py-4 md:py-5 lg:py-6 px-2 sm:px-3 md:px-4 flex items-start gap-2 bg-white text-slate-900 hover:bg-slate-100 text-left overflow-hidden"
-                  onClick={handleGoogleLogin}
-                >
-                  <Chrome className="h-4 w-4 sm:h-5 sm:w-5 flex-shrink-0 mt-0.5" />
-                  <div className="flex-1 min-w-0 overflow-hidden">
-                    <div className="text-xs sm:text-sm md:text-base lg:text-lg font-semibold leading-tight break-words">
-                      {t('login.googleSignIn')}
-                    </div>
-                    <div className="text-[10px] sm:text-xs md:text-sm text-slate-600 font-normal break-words mt-0.5 sm:mt-1">
-                      {t('login.googleSignInDesc')}
-                    </div>
-                  </div>
-                </Button>
-
-                {/* Botón para crear nueva organización */}
-                <Button
-                  type="button"
-                  variant="outline"
-                  className="w-full h-auto py-3 sm:py-4 md:py-5 lg:py-6 px-2 sm:px-3 md:px-4 flex items-start gap-2 border-slate-600 bg-slate-900/50 text-white hover:bg-slate-700 text-left overflow-hidden"
-                  onClick={handleCreateOrganization}
-                >
-                  <Building2 className="h-4 w-4 sm:h-5 sm:w-5 flex-shrink-0 mt-0.5" />
-                  <div className="flex-1 min-w-0 overflow-hidden">
-                    <div className="text-xs sm:text-sm md:text-base lg:text-lg font-semibold leading-tight break-words">
-                      {t('login.createNew')}
-                    </div>
-                    <div className="text-[10px] sm:text-xs md:text-sm text-slate-400 font-normal break-words mt-0.5 sm:mt-1">
-                      {t('login.createNewDesc')}
-                    </div>
-                  </div>
-                </Button>
-              </CardContent>
-            </Card>
-
-            <p className="text-center text-xs sm:text-sm text-slate-500 px-4 break-words">
-              {t('login.needHelp')}
+                  {t("login.appTitle")}
+                </h1>
+                <p className="text-sm sm:text-base text-slate-300">
+                  {t("login.appSubtitle")}
+                </p>
+              </div>
+            </div>
+            <p className="max-w-xl text-sm sm:text-base text-slate-300">
+              {t("login.heroDescription")}
             </p>
           </div>
-        ) : (
-          /* Formulario de login */
-          <Card className="border-slate-700 bg-slate-800/50 backdrop-blur">
-            <CardHeader className="p-3 sm:p-4 md:p-6">
-              <CardTitle className="text-lg sm:text-xl md:text-2xl text-white">
-                {t('login.loginTitle')}
-              </CardTitle>
-              <CardDescription className="text-xs sm:text-sm md:text-base text-slate-400">
-                {t('login.loginDescription')}
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4 p-3 sm:p-4 md:p-6">
-              <form onSubmit={handleSubmit} className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="username" className="text-xs sm:text-sm md:text-base text-slate-200">
-                    {t('login.username')}
-                  </Label>
-                  <Input
-                    id="username"
-                    name="username"
-                    type="text"
-                    autoComplete="username"
-                    placeholder={t('login.usernamePlaceholder')}
-                    value={username}
-                    onChange={(e) => setUsername(e.target.value)}
-                    required
-                    className="bg-slate-900/50 border-slate-600 text-white placeholder:text-slate-500 h-9 sm:h-10 md:h-11 text-sm sm:text-base"
-                  />
-                </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="password" className="text-xs sm:text-sm md:text-base text-slate-200">
-                    {t('login.password')}
-                  </Label>
-                  <Input
-                    id="password"
-                    name="password"
-                    type="password"
-                    autoComplete="current-password"
-                    placeholder={t('login.passwordPlaceholder')}
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    required
-                    className="bg-slate-900/50 border-slate-600 text-white placeholder:text-slate-500 h-9 sm:h-10 md:h-11 text-sm sm:text-base"
-                  />
-                </div>
-
-                <div className="flex items-center space-x-2">
-                  <Checkbox
-                    id="remember-me"
-                    checked={rememberMe}
-                    onCheckedChange={(checked) => setRememberMe(Boolean(checked))}
-                    className="border-slate-600 data-[state=checked]:bg-blue-600 data-[state=checked]:text-white"
-                  />
-                  <Label
-                    htmlFor="remember-me"
-                    className="text-xs sm:text-sm text-slate-300 cursor-pointer"
-                  >
-                    {t('login.rememberMe')}
-                  </Label>
-                </div>
-
-                {error && (
-                  <Alert variant="destructive" className="bg-red-900/50 border-red-700">
-                    <AlertDescription className="text-xs sm:text-sm">{error}</AlertDescription>
-                  </Alert>
-                )}
-
-                <Button
-                  type="submit"
-                  className="w-full h-9 sm:h-10 md:h-11 text-sm sm:text-base"
-                  disabled={loginMutation.isPending}
+          <div className="grid gap-4 sm:grid-cols-2">
+            {features.map((feature) => {
+              const Icon = feature.icon;
+              return (
+                <div
+                  key={feature.title}
+                  className="rounded-2xl border border-slate-800/80 bg-[#0f2233]/70 p-4 shadow-[0_10px_40px_-30px_rgba(45,212,191,0.6)]"
                 >
-                  {loginMutation.isPending ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      {t('login.loggingIn')}
-                    </>
-                  ) : (
-                    <>
-                      <LogIn className="mr-2 h-4 w-4" />
-                      {t('login.loginButton')}
-                    </>
+                  <div className="flex items-start gap-3">
+                    <div className="rounded-xl bg-slate-800/80 p-2 text-slate-100">
+                      <Icon className="h-4 w-4" />
+                    </div>
+                    <div className="space-y-1">
+                      <p className="text-sm font-semibold text-white">{feature.title}</p>
+                      <p className="text-xs text-slate-400">{feature.description}</p>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          <div className="flex items-center gap-4 text-[11px] text-slate-500">
+            <span className="h-px flex-1 bg-slate-800" />
+            {t("login.trustLine")}
+            <span className="h-px flex-1 bg-slate-800" />
+          </div>
+        </div>
+
+        <div className="order-1 lg:order-2">
+          <div className="rounded-3xl border border-slate-800/80 bg-[#0f2233]/80 p-6 sm:p-8 shadow-[0_20px_80px_-40px_rgba(14,165,233,0.55)] backdrop-blur">
+            {!showLoginForm ? (
+              <div className="space-y-6">
+                <div className="space-y-2">
+                  <p className="text-[10px] uppercase tracking-[0.4em] text-slate-400">
+                    {t("login.accessEyebrow")}
+                  </p>
+                  <h2 className="text-2xl sm:text-3xl font-semibold">
+                    {t("login.accessTitle")}
+                  </h2>
+                  <p className="text-sm text-slate-400">
+                    {t("login.accessSubtitle")}
+                  </p>
+                </div>
+
+                <div className="space-y-4">
+                  <Button
+                    type="button"
+                    className="w-full h-auto py-4 px-4 flex items-start gap-3 bg-[#f8fafc] text-slate-900 hover:bg-white"
+                    onClick={handleGoogleLogin}
+                  >
+                    <Chrome className="h-5 w-5 flex-shrink-0 mt-0.5" />
+                    <div className="text-left">
+                      <div className="text-sm sm:text-base font-semibold">
+                        {t("login.googleSignIn")}
+                      </div>
+                      <div className="text-xs text-slate-500">
+                        {t("login.googleSignInDesc")}
+                      </div>
+                    </div>
+                  </Button>
+
+                  <div className="flex items-center gap-3 text-[11px] text-slate-500">
+                    <span className="h-px flex-1 bg-slate-800" />
+                    {t("login.or")}
+                    <span className="h-px flex-1 bg-slate-800" />
+                  </div>
+
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="w-full h-auto py-4 px-4 flex items-start gap-3 border-slate-700 bg-[#0b1d2e]/80 text-white hover:bg-[#12263a]"
+                    onClick={handleShowLoginForm}
+                  >
+                    <LogIn className="h-5 w-5 flex-shrink-0 mt-0.5" />
+                    <div className="text-left">
+                      <div className="text-sm sm:text-base font-semibold">
+                        {t("login.loginExisting")}
+                      </div>
+                      <div className="text-xs text-slate-400">
+                        {t("login.loginExistingDesc")}
+                      </div>
+                    </div>
+                  </Button>
+                </div>
+
+                <div className="rounded-2xl border border-slate-800/80 bg-[#0b1d2e]/80 p-4">
+                  <div className="flex items-start gap-3">
+                    <div className="rounded-xl bg-slate-800/80 p-2 text-slate-100">
+                      <Building2 className="h-4 w-4" />
+                    </div>
+                    <div className="flex-1 space-y-1">
+                      <p className="text-sm font-semibold text-white">
+                        {t("login.createNew")}
+                      </p>
+                      <p className="text-xs text-slate-400">
+                        {t("login.createNewDesc")}
+                      </p>
+                    </div>
+                  </div>
+                  <Button
+                    type="button"
+                    className="mt-4 w-full bg-teal-500 text-slate-900 hover:bg-teal-400"
+                    onClick={handleCreateOrganization}
+                  >
+                    {t("login.createNewAction")}
+                  </Button>
+                </div>
+              </div>
+            ) : (
+              <div className="space-y-6">
+                <div className="space-y-2">
+                  <p className="text-[10px] uppercase tracking-[0.4em] text-slate-400">
+                    {t("login.loginEyebrow")}
+                  </p>
+                  <h2 className="text-2xl sm:text-3xl font-semibold">
+                    {t("login.loginTitle")}
+                  </h2>
+                  <p className="text-sm text-slate-400">
+                    {t("login.loginDescription")}
+                  </p>
+                </div>
+
+                <form onSubmit={handleSubmit} className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="username" className="text-sm text-slate-200">
+                      {t("login.username")}
+                    </Label>
+                    <Input
+                      id="username"
+                      name="username"
+                      type="text"
+                      autoComplete="username"
+                      placeholder={t("login.usernamePlaceholder")}
+                      value={username}
+                      onChange={(e) => setUsername(e.target.value)}
+                      required
+                      className="bg-slate-900/60 border-slate-700 text-white placeholder:text-slate-500 h-10"
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="password" className="text-sm text-slate-200">
+                      {t("login.password")}
+                    </Label>
+                    <Input
+                      id="password"
+                      name="password"
+                      type="password"
+                      autoComplete="current-password"
+                      placeholder={t("login.passwordPlaceholder")}
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      required
+                      className="bg-slate-900/60 border-slate-700 text-white placeholder:text-slate-500 h-10"
+                    />
+                  </div>
+
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="flex items-center space-x-2">
+                      <Checkbox
+                        id="remember-me"
+                        checked={rememberMe}
+                        onCheckedChange={(checked) => setRememberMe(Boolean(checked))}
+                        className="border-slate-600 data-[state=checked]:bg-teal-500 data-[state=checked]:text-slate-900"
+                      />
+                      <Label htmlFor="remember-me" className="text-xs text-slate-300 cursor-pointer">
+                        {t("login.rememberMe")}
+                      </Label>
+                    </div>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      className="h-auto px-0 text-xs text-slate-400 hover:text-white"
+                      onClick={handleForgotPassword}
+                    >
+                      {t("login.forgotPassword")}
+                    </Button>
+                  </div>
+
+                  {error && (
+                    <Alert variant="destructive" className="bg-red-900/50 border-red-700">
+                      <AlertDescription className="text-xs sm:text-sm">{error}</AlertDescription>
+                    </Alert>
                   )}
-                </Button>
+
+                  <Button
+                    type="submit"
+                    className="w-full h-10"
+                    disabled={loginMutation.isPending}
+                  >
+                    {loginMutation.isPending ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        {t("login.loggingIn")}
+                      </>
+                    ) : (
+                      <>
+                        <LogIn className="mr-2 h-4 w-4" />
+                        {t("login.loginButton")}
+                      </>
+                    )}
+                  </Button>
+                </form>
 
                 <Button
                   type="button"
-                  variant="secondary"
-                  className="w-full h-9 sm:h-10 md:h-11 text-sm sm:text-base bg-white text-slate-900 hover:bg-slate-100"
-                  onClick={handleGoogleLogin}
+                  variant="ghost"
+                  className="w-full text-xs sm:text-sm text-slate-400 hover:text-white h-10"
+                  onClick={() => setShowLoginForm(false)}
                 >
-                  <Chrome className="mr-2 h-4 w-4" />
-                  {t('login.googleSignIn')}
+                  {t("login.backToOptions")}
                 </Button>
-              </form>
+              </div>
+            )}
+          </div>
 
-              <Button
-                type="button"
-                variant="ghost"
-                className="w-full text-xs sm:text-sm md:text-base text-slate-400 hover:text-white h-9 sm:h-10 md:h-11"
-                onClick={() => setShowLoginForm(false)}
-              >
-                {t('login.backToOptions')}
-              </Button>
-            </CardContent>
-          </Card>
-        )}
+          <p className="mt-4 text-center text-xs text-slate-500">
+            {t("login.needHelp")}
+          </p>
+        </div>
       </div>
     </div>
   );

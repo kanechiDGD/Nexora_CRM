@@ -25,12 +25,12 @@ export function DeleteTaskDialog({ task }: DeleteTaskDialogProps) {
   
   const deleteTask = trpc.tasks.delete.useMutation({
     onSuccess: () => {
-      toast.success("Tarea eliminada exitosamente");
+      toast.success(t('taskDialogs.delete.success'));
       utils.tasks.list.invalidate();
       setOpen(false);
     },
     onError: (error) => {
-      toast.error(`Error al eliminar tarea: ${error.message}`);
+      toast.error(t('taskDialogs.delete.error', { message: error.message }));
     },
   });
 
@@ -47,21 +47,21 @@ export function DeleteTaskDialog({ task }: DeleteTaskDialogProps) {
       </DialogTrigger>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>¿Eliminar Tarea?</DialogTitle>
+          <DialogTitle>{t('taskDialogs.delete.title')}</DialogTitle>
           <DialogDescription>
-            Esta acción no se puede deshacer. La tarea "{task.title}" será eliminada permanentemente.
+            {t('taskDialogs.delete.description', { title: task.title })}
           </DialogDescription>
         </DialogHeader>
         <DialogFooter>
           <Button variant="outline" onClick={() => setOpen(false)}>
-            Cancelar
+            {t('taskDialogs.delete.cancel')}
           </Button>
           <Button 
             variant="destructive" 
             onClick={handleDelete}
             disabled={deleteTask.isPending}
           >
-            {deleteTask.isPending ? "Eliminando..." : "Eliminar"}
+            {deleteTask.isPending ? t('taskDialogs.delete.deleting') : t('taskDialogs.delete.confirm')}
           </Button>
         </DialogFooter>
       </DialogContent>

@@ -40,7 +40,7 @@ import { useTranslation } from "react-i18next";
 import { cn } from "@/lib/utils";
 
 export function NewActivityDialog() {
-  const { t, i18n } = useTranslation();
+  const { t } = useTranslation();
   const { user } = useAuth();
   const [open, setOpen] = useState(false);
   const [clientSearchOpen, setClientSearchOpen] = useState(false);
@@ -56,7 +56,7 @@ export function NewActivityDialog() {
   const utils = trpc.useUtils();
   const createActivity = trpc.activityLogs.create.useMutation({
     onSuccess: () => {
-      toast.success("Actividad registrada exitosamente");
+      toast.success(t('activityDialog.new.success'));
       utils.activityLogs.getRecent.invalidate();
       setOpen(false);
       setFormData({
@@ -68,7 +68,7 @@ export function NewActivityDialog() {
       });
     },
     onError: (error) => {
-      toast.error(`Error al registrar actividad: ${error.message}`);
+      toast.error(t('activityDialog.new.error', { message: error.message }));
     },
   });
 
@@ -76,7 +76,7 @@ export function NewActivityDialog() {
     e.preventDefault();
     
     if (!formData.subject || !formData.description) {
-      toast.error("Por favor completa todos los campos requeridos");
+      toast.error(t('activityDialog.new.missingFields'));
       return;
     }
 
@@ -101,33 +101,33 @@ export function NewActivityDialog() {
       <DialogTrigger asChild>
         <Button>
           <Plus className="mr-2 h-4 w-4" />
-          Nueva Actividad
+          {t('activityDialog.new.trigger')}
         </Button>
       </DialogTrigger>
       <DialogContent className="sm:max-w-[525px]">
         <form onSubmit={handleSubmit}>
           <DialogHeader>
-            <DialogTitle>Registrar Nueva Actividad</DialogTitle>
+            <DialogTitle>{t('activityDialog.new.title')}</DialogTitle>
             <DialogDescription>
-              Registra una llamada, reunión, email o nota. El sistema guardará automáticamente quién realizó la actividad.
+              {t('activityDialog.new.description')}
             </DialogDescription>
           </DialogHeader>
           <div className="grid gap-4 py-4">
             <div className="grid gap-2">
-              <Label htmlFor="user">Realizado por</Label>
+              <Label htmlFor="user">{t('activityDialog.new.performedByLabel')}</Label>
               <Input
                 id="user"
-                value={user?.name || "Usuario"}
+                value={user?.name || t('activityDialog.new.unknownUser')}
                 disabled
                 className="bg-muted"
               />
               <p className="text-xs text-muted-foreground">
-                Se detecta automáticamente el usuario actual
+                {t('activityDialog.new.performedByHelp')}
               </p>
             </div>
 
             <div className="grid gap-2">
-              <Label htmlFor="activityType">Tipo de Actividad *</Label>
+              <Label htmlFor="activityType">{t('activityDialog.new.typeLabel')}</Label>
               <Select
                 value={formData.activityType}
                 onValueChange={(value) =>
@@ -135,21 +135,21 @@ export function NewActivityDialog() {
                 }
               >
                 <SelectTrigger id="activityType">
-                  <SelectValue placeholder="Selecciona el tipo" />
+                  <SelectValue placeholder={t('activityDialog.new.typePlaceholder')} />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="LLAMADA">Llamada</SelectItem>
-                  <SelectItem value="CORREO">Email</SelectItem>
-                  <SelectItem value="VISITA">Visita/Reunión</SelectItem>
-                  <SelectItem value="NOTA">Nota</SelectItem>
-                  <SelectItem value="DOCUMENTO">Documento</SelectItem>
-                  <SelectItem value="CAMBIO_ESTADO">Cambio de Estado</SelectItem>
+                  <SelectItem value="LLAMADA">{t('activityDialog.new.types.call')}</SelectItem>
+                  <SelectItem value="CORREO">{t('activityDialog.new.types.email')}</SelectItem>
+                  <SelectItem value="VISITA">{t('activityDialog.new.types.visit')}</SelectItem>
+                  <SelectItem value="NOTA">{t('activityDialog.new.types.note')}</SelectItem>
+                  <SelectItem value="DOCUMENTO">{t('activityDialog.new.types.document')}</SelectItem>
+                  <SelectItem value="CAMBIO_ESTADO">{t('activityDialog.new.types.statusChange')}</SelectItem>
                 </SelectContent>
               </Select>
             </div>
 
             <div className="grid gap-2">
-              <Label>Cliente (opcional)</Label>
+              <Label>{t('activityDialog.new.clientLabel')}</Label>
               <Popover open={clientSearchOpen} onOpenChange={setClientSearchOpen}>
                 <PopoverTrigger asChild>
                   <Button
@@ -158,15 +158,15 @@ export function NewActivityDialog() {
                     aria-expanded={clientSearchOpen}
                     className="justify-between"
                   >
-                    {formData.clientName || "Buscar cliente..."}
+                    {formData.clientName || t('activityDialog.new.clientPlaceholder')}
                     <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                   </Button>
                 </PopoverTrigger>
                 <PopoverContent className="w-[400px] p-0">
                   <Command>
-                    <CommandInput placeholder="Escribe el nombre del cliente..." />
+                    <CommandInput placeholder={t('activityDialog.new.clientSearchPlaceholder')} />
                     <CommandList>
-                      <CommandEmpty>No se encontraron clientes.</CommandEmpty>
+                      <CommandEmpty>{t('activityDialog.new.noClients')}</CommandEmpty>
                       <CommandGroup>
                         {clients?.map((client: any) => (
                           <CommandItem
@@ -203,15 +203,15 @@ export function NewActivityDialog() {
                 </PopoverContent>
               </Popover>
               <p className="text-xs text-muted-foreground">
-                Busca y selecciona un cliente o déjalo vacío para una actividad general
+                {t("activityDialog.new.clientHelp")}
               </p>
             </div>
 
             <div className="grid gap-2">
-              <Label htmlFor="subject">Asunto *</Label>
+              <Label htmlFor="subject">{t('activityDialog.new.subjectLabel')}</Label>
               <Input
                 id="subject"
-                placeholder="Ej: Seguimiento de reclamo"
+                placeholder={t('activityDialog.new.subjectPlaceholder')}
                 value={formData.subject}
                 onChange={(e) =>
                   setFormData({ ...formData, subject: e.target.value })
@@ -221,10 +221,10 @@ export function NewActivityDialog() {
             </div>
 
             <div className="grid gap-2">
-              <Label htmlFor="description">Descripción *</Label>
+              <Label htmlFor="description">{t('activityDialog.new.descriptionLabel')}</Label>
               <Textarea
                 id="description"
-                placeholder="Describe qué se habló, acordó o realizó..."
+                placeholder={t('activityDialog.new.descriptionPlaceholder')}
                 value={formData.description}
                 onChange={(e) =>
                   setFormData({ ...formData, description: e.target.value })
@@ -240,10 +240,10 @@ export function NewActivityDialog() {
               variant="outline"
               onClick={() => setOpen(false)}
             >
-              Cancelar
+              {t('activityDialog.new.cancel')}
             </Button>
             <Button type="submit" disabled={createActivity.isPending}>
-              {createActivity.isPending ? "Guardando..." : "Guardar Actividad"}
+              {createActivity.isPending ? t('activityDialog.new.saving') : t('activityDialog.new.save')}
             </Button>
           </DialogFooter>
         </form>

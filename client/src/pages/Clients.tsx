@@ -27,6 +27,7 @@ export default function Clients() {
 
   // Obtener todos los clientes
   const { data: allClients, isLoading } = trpc.clients.list.useQuery();
+  const { data: customStatuses = [] } = trpc.customClaimStatuses.list.useQuery();
 
   // Filtrar clientes según el parámetro de filtro
   const filteredClients = useMemo(() => {
@@ -84,6 +85,25 @@ export default function Clients() {
     return filtered;
   }, [allClients, filterParam, searchTerm]);
 
+  const getStatusDisplayName = (status: string) => {
+    const defaultStatuses = ["NO_SOMETIDA", "EN_PROCESO", "APROVADA", "RECHAZADA", "CERRADA"];
+    if (defaultStatuses.includes(status)) {
+      return t(`dashboard.claimStatus.status.${status}`);
+    }
+
+    const customStatus = customStatuses.find((cs: any) => cs.name === status);
+    if (customStatus?.displayName) {
+      return customStatus.displayName;
+    }
+
+    return status
+      .replace(/_/g, " ")
+      .toLowerCase()
+      .split(" ")
+      .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+      .join(" ");
+  };
+
   const getStatusBadge = (status: string) => {
     const variants: Record<string, { variant: "default" | "secondary" | "destructive" | "outline" }> = {
       'NO_SOMETIDA': { variant: 'outline' },
@@ -93,7 +113,7 @@ export default function Clients() {
       'CERRADA': { variant: 'outline' },
     };
     const config = variants[status] || { variant: 'outline' };
-    return <Badge variant={config.variant}>{t(`claimStatus.status.${status}`)}</Badge>;
+    return <Badge variant={config.variant}>{getStatusDisplayName(status)}</Badge>;
   };
 
   const getFilterTitle = () => {

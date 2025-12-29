@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -10,6 +11,7 @@ import DashboardLayout from "@/components/DashboardLayout";
 import { NewActivityDialog } from "@/components/NewActivityDialog";
 
 export default function Logs() {
+  const { t, i18n } = useTranslation();
   const [searchTerm, setSearchTerm] = useState("");
   const [timeFilter, setTimeFilter] = useState("all");
   const [typeFilter, setTypeFilter] = useState("all");
@@ -30,18 +32,18 @@ export default function Logs() {
 
   const getActivityBadge = (type: string) => {
     const variants: Record<string, { variant: "default" | "secondary" | "outline", label: string }> = {
-      'CALL': { variant: 'default', label: 'Llamada' },
-      'EMAIL': { variant: 'secondary', label: 'Email' },
-      'MEETING': { variant: 'default', label: 'Reunión' },
-      'NOTE': { variant: 'outline', label: 'Nota' },
-      'UPDATE': { variant: 'secondary', label: 'Actualización' },
+      'CALL': { variant: 'default', label: t('logsPage.activityTypes.call') },
+      'EMAIL': { variant: 'secondary', label: t('logsPage.activityTypes.email') },
+      'MEETING': { variant: 'default', label: t('logsPage.activityTypes.meeting') },
+      'NOTE': { variant: 'outline', label: t('logsPage.activityTypes.note') },
+      'UPDATE': { variant: 'secondary', label: t('logsPage.activityTypes.update') },
     };
     const config = variants[type] || { variant: 'outline', label: type };
     return <Badge variant={config.variant}>{config.label}</Badge>;
   };
 
   const formatDate = (date: Date | string) => {
-    return new Date(date).toLocaleDateString('es-ES', {
+    return new Date(date).toLocaleDateString(i18n.language.startsWith('es') ? 'es-ES' : 'en-US', {
       year: 'numeric',
       month: 'long',
       day: 'numeric',
@@ -100,17 +102,17 @@ export default function Logs() {
 
       let weekLabel = '';
       if (daysDiff === 0) {
-        weekLabel = 'Hoy';
+        weekLabel = t('logsPage.dateLabels.today');
       } else if (daysDiff === 1) {
-        weekLabel = 'Ayer';
+        weekLabel = t('logsPage.dateLabels.yesterday');
       } else if (daysDiff <= 7) {
-        weekLabel = 'Esta Semana';
+        weekLabel = t('logsPage.dateLabels.thisWeek');
       } else if (daysDiff <= 14) {
-        weekLabel = 'Semana Pasada';
+        weekLabel = t('logsPage.dateLabels.lastWeek');
       } else if (daysDiff <= 30) {
-        weekLabel = 'Este Mes';
+        weekLabel = t('logsPage.dateLabels.thisMonth');
       } else {
-        weekLabel = 'Más Antiguo';
+        weekLabel = t('logsPage.dateLabels.older');
       }
 
       if (!grouped[weekLabel]) {
@@ -130,9 +132,9 @@ export default function Logs() {
         {/* Header */}
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-3xl font-bold text-foreground">Logs de Actividad</h1>
+            <h1 className="text-3xl font-bold text-foreground">{t('logsPage.title')}</h1>
             <p className="text-muted-foreground mt-1">
-              Historial completo de interacciones con clientes
+              {t('logsPage.subtitle')}
             </p>
           </div>
           <NewActivityDialog />
@@ -147,7 +149,7 @@ export default function Logs() {
                   <FileText className="h-5 w-5 text-primary" />
                 </div>
                 <div>
-                  <p className="text-sm text-muted-foreground">Total Actividades</p>
+                  <p className="text-sm text-muted-foreground">{t('logsPage.stats.totalActivities')}</p>
                   <p className="text-2xl font-bold">{logs?.length || 0}</p>
                 </div>
               </div>
@@ -161,7 +163,7 @@ export default function Logs() {
                   <Phone className="h-5 w-5 text-blue-500" />
                 </div>
                 <div>
-                  <p className="text-sm text-muted-foreground">Llamadas</p>
+                  <p className="text-sm text-muted-foreground">{t('logsPage.activityTypes.callPlural')}</p>
                   <p className="text-2xl font-bold">
                     {logs?.filter((l: any) => l.activityType === 'CALL').length || 0}
                   </p>
@@ -177,7 +179,7 @@ export default function Logs() {
                   <Calendar className="h-5 w-5 text-green-500" />
                 </div>
                 <div>
-                  <p className="text-sm text-muted-foreground">Reuniones</p>
+                  <p className="text-sm text-muted-foreground">{t('logsPage.activityTypes.meetingPlural')}</p>
                   <p className="text-2xl font-bold">
                     {logs?.filter((l: any) => l.activityType === 'MEETING').length || 0}
                   </p>
@@ -193,7 +195,7 @@ export default function Logs() {
                   <Mail className="h-5 w-5 text-yellow-500" />
                 </div>
                 <div>
-                  <p className="text-sm text-muted-foreground">Emails</p>
+                  <p className="text-sm text-muted-foreground">{t('logsPage.activityTypes.emailPlural')}</p>
                   <p className="text-2xl font-bold">
                     {logs?.filter((l: any) => l.activityType === 'EMAIL').length || 0}
                   </p>
@@ -206,14 +208,14 @@ export default function Logs() {
         {/* Filters */}
         <Card className="border-border">
           <CardHeader>
-            <CardTitle>Filtros</CardTitle>
+            <CardTitle>{t('logsPage.filters.title')}</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="grid gap-4 md:grid-cols-3">
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input
-                  placeholder="Buscar por contenido o miembro del equipo..."
+                  placeholder={t('logsPage.filters.searchPlaceholder')}
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   className="pl-10"
@@ -222,31 +224,31 @@ export default function Logs() {
 
               <Select value={timeFilter} onValueChange={setTimeFilter}>
                 <SelectTrigger>
-                  <SelectValue placeholder="Filtrar por fecha" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Todas las fechas</SelectItem>
-                  <SelectItem value="today">Hoy</SelectItem>
-                  <SelectItem value="this-week">Esta Semana</SelectItem>
-                  <SelectItem value="last-week">Semana Pasada</SelectItem>
-                  <SelectItem value="this-month">Este Mes</SelectItem>
-                  <SelectItem value="last-month">Mes Pasado</SelectItem>
-                </SelectContent>
-              </Select>
+                <SelectValue placeholder={t('logsPage.filters.datePlaceholder')} />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">{t('logsPage.filters.allDates')}</SelectItem>
+                <SelectItem value="today">{t('logsPage.filters.today')}</SelectItem>
+                <SelectItem value="this-week">{t('logsPage.filters.thisWeek')}</SelectItem>
+                <SelectItem value="last-week">{t('logsPage.filters.lastWeek')}</SelectItem>
+                <SelectItem value="this-month">{t('logsPage.filters.thisMonth')}</SelectItem>
+                <SelectItem value="last-month">{t('logsPage.filters.lastMonth')}</SelectItem>
+              </SelectContent>
+            </Select>
 
               <Select value={typeFilter} onValueChange={setTypeFilter}>
                 <SelectTrigger>
-                  <SelectValue placeholder="Tipo de actividad" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Todos los tipos</SelectItem>
-                  <SelectItem value="CALL">Llamadas</SelectItem>
-                  <SelectItem value="EMAIL">Emails</SelectItem>
-                  <SelectItem value="MEETING">Reuniones</SelectItem>
-                  <SelectItem value="NOTE">Notas</SelectItem>
-                  <SelectItem value="UPDATE">Actualizaciones</SelectItem>
-                </SelectContent>
-              </Select>
+                <SelectValue placeholder={t('logsPage.filters.activityTypePlaceholder')} />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">{t('logsPage.filters.allTypes')}</SelectItem>
+                <SelectItem value="CALL">{t('logsPage.activityTypes.callPlural')}</SelectItem>
+                <SelectItem value="EMAIL">{t('logsPage.activityTypes.emailPlural')}</SelectItem>
+                <SelectItem value="MEETING">{t('logsPage.activityTypes.meetingPlural')}</SelectItem>
+                <SelectItem value="NOTE">{t('logsPage.activityTypes.notePlural')}</SelectItem>
+                <SelectItem value="UPDATE">{t('logsPage.activityTypes.updatePlural')}</SelectItem>
+              </SelectContent>
+            </Select>
             </div>
           </CardContent>
         </Card>
@@ -255,14 +257,14 @@ export default function Logs() {
         {isLoading ? (
           <Card className="border-border">
             <CardContent className="py-12 text-center">
-              <p className="text-muted-foreground">Cargando actividades...</p>
+              <p className="text-muted-foreground">{t('logsPage.loading')}</p>
             </CardContent>
           </Card>
         ) : Object.keys(groupedLogs).length === 0 ? (
           <Card className="border-border">
             <CardContent className="py-12 text-center">
               <FileText className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-              <p className="text-muted-foreground">No hay actividades registradas</p>
+              <p className="text-muted-foreground">{t('logsPage.emptyState')}</p>
             </CardContent>
           </Card>
         ) : (
@@ -306,14 +308,14 @@ export default function Logs() {
                             <div className="flex items-center gap-2">
                               <User className="h-4 w-4 text-muted-foreground" />
                               <span className="text-muted-foreground">
-                                Realizado por: <span className="font-medium text-foreground">{log.performedBy}</span>
+                                {t('logsPage.performedBy')}: <span className="font-medium text-foreground">{log.performedBy}</span>
                               </span>
                             </div>
                           )}
                           {log.clientId && (
                             <div className="flex items-center gap-2">
                               <span className="text-muted-foreground">
-                                Cliente ID: <span className="font-medium text-foreground">{log.clientId}</span>
+                                {t('logsPage.clientId')}: <span className="font-medium text-foreground">{log.clientId}</span>
                               </span>
                             </div>
                           )}

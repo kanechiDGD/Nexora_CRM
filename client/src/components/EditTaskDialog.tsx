@@ -29,7 +29,7 @@ interface EditTaskDialogProps {
 }
 
 export function EditTaskDialog({ task }: EditTaskDialogProps) {
-  const { t, i18n } = useTranslation();
+  const { t } = useTranslation();
   const [open, setOpen] = useState(false);
   const [formData, setFormData] = useState({
     title: task.title || "",
@@ -44,12 +44,12 @@ export function EditTaskDialog({ task }: EditTaskDialogProps) {
   
   const updateTask = trpc.tasks.update.useMutation({
     onSuccess: () => {
-      toast.success("Tarea actualizada exitosamente");
+      toast.success(t('taskDialogs.edit.success'));
       utils.tasks.list.invalidate();
       setOpen(false);
     },
     onError: (error) => {
-      toast.error(`Error al actualizar tarea: ${error.message}`);
+      toast.error(t('taskDialogs.edit.error', { message: error.message }));
     },
   });
 
@@ -70,7 +70,7 @@ export function EditTaskDialog({ task }: EditTaskDialogProps) {
     e.preventDefault();
     
     if (!formData.title) {
-      toast.error("El título es requerido");
+      toast.error(t('taskDialogs.edit.missingTitle'));
       return;
     }
 
@@ -96,14 +96,14 @@ export function EditTaskDialog({ task }: EditTaskDialogProps) {
       <DialogContent className="sm:max-w-[600px]">
         <form onSubmit={handleSubmit}>
           <DialogHeader>
-            <DialogTitle>Editar Tarea</DialogTitle>
+            <DialogTitle>{t('taskDialogs.edit.title')}</DialogTitle>
             <DialogDescription>
-              Actualiza los detalles de la tarea.
+              {t('taskDialogs.edit.description')}
             </DialogDescription>
           </DialogHeader>
           <div className="grid gap-4 py-4">
             <div className="grid gap-2">
-              <Label htmlFor="edit-title">Título *</Label>
+              <Label htmlFor="edit-title">{t('taskDialogs.edit.titleLabel')}</Label>
               <Input
                 id="edit-title"
                 value={formData.title}
@@ -113,7 +113,7 @@ export function EditTaskDialog({ task }: EditTaskDialogProps) {
             </div>
 
             <div className="grid gap-2">
-              <Label htmlFor="edit-description">Descripción</Label>
+              <Label htmlFor="edit-description">{t('taskDialogs.edit.descriptionLabel')}</Label>
               <Textarea
                 id="edit-description"
                 value={formData.description}
@@ -124,7 +124,7 @@ export function EditTaskDialog({ task }: EditTaskDialogProps) {
 
             <div className="grid grid-cols-2 gap-4">
               <div className="grid gap-2">
-                <Label htmlFor="edit-category">Categoría</Label>
+                <Label htmlFor="edit-category">{t('taskDialogs.edit.categoryLabel')}</Label>
                 <Select
                   value={formData.category}
                   onValueChange={(value) => setFormData({ ...formData, category: value })}
@@ -133,18 +133,18 @@ export function EditTaskDialog({ task }: EditTaskDialogProps) {
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="DOCUMENTACION">Documentación</SelectItem>
-                    <SelectItem value="SEGUIMIENTO">Seguimiento</SelectItem>
-                    <SelectItem value="ESTIMADO">Estimado</SelectItem>
-                    <SelectItem value="REUNION">Reunión</SelectItem>
-                    <SelectItem value="REVISION">Revisión</SelectItem>
-                    <SelectItem value="OTRO">Otro</SelectItem>
+                    <SelectItem value="DOCUMENTACION">{t('taskDialogs.edit.categories.documentation')}</SelectItem>
+                    <SelectItem value="SEGUIMIENTO">{t('taskDialogs.edit.categories.followUp')}</SelectItem>
+                    <SelectItem value="ESTIMADO">{t('taskDialogs.edit.categories.estimate')}</SelectItem>
+                    <SelectItem value="REUNION">{t('taskDialogs.edit.categories.meeting')}</SelectItem>
+                    <SelectItem value="REVISION">{t('taskDialogs.edit.categories.review')}</SelectItem>
+                    <SelectItem value="OTRO">{t('taskDialogs.edit.categories.other')}</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
 
               <div className="grid gap-2">
-                <Label htmlFor="edit-priority">Prioridad</Label>
+                <Label htmlFor="edit-priority">{t('taskDialogs.edit.priorityLabel')}</Label>
                 <Select
                   value={formData.priority}
                   onValueChange={(value) => setFormData({ ...formData, priority: value })}
@@ -153,9 +153,9 @@ export function EditTaskDialog({ task }: EditTaskDialogProps) {
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="ALTA">Alta</SelectItem>
-                    <SelectItem value="MEDIA">Media</SelectItem>
-                    <SelectItem value="BAJA">Baja</SelectItem>
+                    <SelectItem value="ALTA">{t('taskDialogs.edit.priorities.high')}</SelectItem>
+                    <SelectItem value="MEDIA">{t('taskDialogs.edit.priorities.medium')}</SelectItem>
+                    <SelectItem value="BAJA">{t('taskDialogs.edit.priorities.low')}</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -163,7 +163,7 @@ export function EditTaskDialog({ task }: EditTaskDialogProps) {
 
             <div className="grid grid-cols-2 gap-4">
               <div className="grid gap-2">
-                <Label htmlFor="edit-status">Estado</Label>
+                <Label htmlFor="edit-status">{t('taskDialogs.edit.statusLabel')}</Label>
                 <Select
                   value={formData.status}
                   onValueChange={(value) => setFormData({ ...formData, status: value })}
@@ -172,16 +172,16 @@ export function EditTaskDialog({ task }: EditTaskDialogProps) {
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="PENDIENTE">Pendiente</SelectItem>
-                    <SelectItem value="EN_PROGRESO">En Progreso</SelectItem>
-                    <SelectItem value="COMPLETADA">Completada</SelectItem>
-                    <SelectItem value="CANCELADA">Cancelada</SelectItem>
+                    <SelectItem value="PENDIENTE">{t('taskDialogs.edit.status.pending')}</SelectItem>
+                    <SelectItem value="EN_PROGRESO">{t('taskDialogs.edit.status.inProgress')}</SelectItem>
+                    <SelectItem value="COMPLETADA">{t('taskDialogs.edit.status.completed')}</SelectItem>
+                    <SelectItem value="CANCELADA">{t('taskDialogs.edit.status.canceled')}</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
 
               <div className="grid gap-2">
-                <Label htmlFor="edit-dueDate">Fecha Límite</Label>
+                <Label htmlFor="edit-dueDate">{t('taskDialogs.edit.dueDateLabel')}</Label>
                 <Input
                   id="edit-dueDate"
                   type="date"
@@ -193,10 +193,10 @@ export function EditTaskDialog({ task }: EditTaskDialogProps) {
           </div>
           <DialogFooter>
             <Button type="button" variant="outline" onClick={() => setOpen(false)}>
-              Cancelar
+              {t('taskDialogs.edit.cancel')}
             </Button>
             <Button type="submit" disabled={updateTask.isPending}>
-              {updateTask.isPending ? "Guardando..." : "Guardar Cambios"}
+              {updateTask.isPending ? t('taskDialogs.edit.saving') : t('taskDialogs.edit.save')}
             </Button>
           </DialogFooter>
         </form>

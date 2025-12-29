@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -19,6 +20,7 @@ import { trpc } from "@/lib/trpc";
 import { toast } from "sonner";
 
 export default function Tasks() {
+  const { t, i18n } = useTranslation();
   const [searchTerm, setSearchTerm] = useState("");
   const [filterUser, setFilterUser] = useState<string>("todos");
   const [filterStatus, setFilterStatus] = useState<string>("todos");
@@ -30,7 +32,7 @@ export default function Tasks() {
   // Mutación para cambiar estado de tarea
   const updateTaskStatus = trpc.tasks.update.useMutation({
     onSuccess: () => {
-      toast.success("Estado actualizado");
+      toast.success(t('tasksPage.statusUpdated'));
       utils.tasks.list.invalidate();
     },
     onError: (error) => {
@@ -49,10 +51,10 @@ export default function Tasks() {
 
   const getStatusBadge = (status: string) => {
     const variants: Record<string, { variant: "default" | "secondary" | "destructive" | "outline", label: string }> = {
-      'PENDIENTE': { variant: 'secondary', label: 'Pendiente' },
-      'EN_PROGRESO': { variant: 'default', label: 'En Progreso' },
-      'COMPLETADA': { variant: 'outline', label: 'Completada' },
-      'CANCELADA': { variant: 'destructive', label: 'Cancelada' },
+      'PENDIENTE': { variant: 'secondary', label: t('tasksPage.status.pending') },
+      'EN_PROGRESO': { variant: 'default', label: t('tasksPage.status.inProgress') },
+      'COMPLETADA': { variant: 'outline', label: t('tasksPage.status.completed') },
+      'CANCELADA': { variant: 'destructive', label: t('tasksPage.status.canceled') },
     };
     const config = variants[status] || { variant: 'outline', label: status };
     return <Badge variant={config.variant}>{config.label}</Badge>;
@@ -60,9 +62,9 @@ export default function Tasks() {
 
   const getPriorityBadge = (priority: string) => {
     const variants: Record<string, { variant: "default" | "secondary" | "destructive" | "outline", label: string }> = {
-      'ALTA': { variant: 'destructive', label: 'Alta' },
-      'MEDIA': { variant: 'default', label: 'Media' },
-      'BAJA': { variant: 'secondary', label: 'Baja' },
+      'ALTA': { variant: 'destructive', label: t('tasksPage.priority.high') },
+      'MEDIA': { variant: 'default', label: t('tasksPage.priority.medium') },
+      'BAJA': { variant: 'secondary', label: t('tasksPage.priority.low') },
     };
     const config = variants[priority] || { variant: 'outline', label: priority };
     return <Badge variant={config.variant}>{config.label}</Badge>;
@@ -70,20 +72,20 @@ export default function Tasks() {
 
   const getCategoryBadge = (category: string) => {
     const labels: Record<string, string> = {
-      'DOCUMENTACION': 'Documentación',
-      'SEGUIMIENTO': 'Seguimiento',
-      'ESTIMADO': 'Estimado',
-      'REUNION': 'Reunión',
-      'REVISION': 'Revisión',
-      'OTRO': 'Otro',
+      'DOCUMENTACION': t('tasksPage.categories.documentation'),
+      'SEGUIMIENTO': t('taskDialogs.edit.categories.followUp'),
+      'ESTIMADO': t('taskDialogs.edit.categories.estimate'),
+      'REUNION': t('tasksPage.categories.meeting'),
+      'REVISION': t('tasksPage.categories.review'),
+      'OTRO': t('taskDialogs.edit.categories.other'),
     };
     return <Badge variant="outline">{labels[category] || category}</Badge>;
   };
 
   const formatDate = (date: Date | string | null) => {
-    if (!date) return 'Sin fecha';
+    if (!date) return t('tasksPage.noDate');
     const d = new Date(date);
-    return d.toLocaleDateString('es-ES', {
+    return d.toLocaleDateString(i18n.language === 'es' ? 'es-ES' : 'en-US', {
       year: 'numeric',
       month: 'short',
       day: 'numeric'
@@ -95,10 +97,10 @@ export default function Tasks() {
     const now = new Date();
     const target = new Date(date);
     const days = Math.floor((target.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
-    if (days < 0) return 'Vencida';
-    if (days === 0) return 'Hoy';
-    if (days === 1) return 'Mañana';
-    return `En ${days} días`;
+    if (days < 0) return t('tasksPage.due.overdue');
+    if (days === 0) return t('tasksPage.due.today');
+    if (days === 1) return t('tasksPage.due.tomorrow');
+    return t('tasksPage.due.inDays', { days });
   };
 
   const filteredTasks = tasks?.filter((task: any) => {
@@ -140,10 +142,10 @@ export default function Tasks() {
           <div>
             <h1 className="text-3xl font-bold text-foreground flex items-center gap-2">
               <CheckSquare className="h-8 w-8" />
-              Gestión de Tareas
+              {t('tasksPage.title')}
             </h1>
             <p className="text-muted-foreground mt-2">
-              Asigna y monitorea tareas del equipo con fechas límite y prioridades
+              {t('tasksPage.subtitle')}
             </p>
           </div>
           <NewTaskDialog />
@@ -154,7 +156,7 @@ export default function Tasks() {
           <Card>
             <CardHeader className="pb-3">
               <CardTitle className="text-sm font-medium text-muted-foreground">
-                Total de Tareas
+                {t('tasksPage.stats.total')}
               </CardTitle>
             </CardHeader>
             <CardContent>
@@ -164,7 +166,7 @@ export default function Tasks() {
           <Card>
             <CardHeader className="pb-3">
               <CardTitle className="text-sm font-medium text-muted-foreground">
-                Pendientes
+                {t('tasksPage.stats.pending')}
               </CardTitle>
             </CardHeader>
             <CardContent>
@@ -174,7 +176,7 @@ export default function Tasks() {
           <Card>
             <CardHeader className="pb-3">
               <CardTitle className="text-sm font-medium text-muted-foreground">
-                En Progreso
+                {t('tasksPage.stats.inProgress')}
               </CardTitle>
             </CardHeader>
             <CardContent>
@@ -184,7 +186,7 @@ export default function Tasks() {
           <Card>
             <CardHeader className="pb-3">
               <CardTitle className="text-sm font-medium text-muted-foreground">
-                Completadas
+                {t('tasksPage.stats.completed')}
               </CardTitle>
             </CardHeader>
             <CardContent>
@@ -196,14 +198,14 @@ export default function Tasks() {
         {/* Búsqueda y Filtros */}
         <Card>
           <CardHeader>
-            <CardTitle>Buscar y Filtrar Tareas</CardTitle>
+            <CardTitle>{t('tasksPage.filters.title')}</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="grid gap-4 md:grid-cols-3">
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input
-                  placeholder="Buscar por título, descripción..."
+                  placeholder={t('tasksPage.filters.searchPlaceholder')}
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   className="pl-10"
@@ -213,11 +215,11 @@ export default function Tasks() {
               <div>
                 <Select value={filterUser} onValueChange={setFilterUser}>
                   <SelectTrigger>
-                    <SelectValue placeholder="Filtrar por usuario" />
+                    <SelectValue placeholder={t('tasksPage.filters.userPlaceholder')} />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="todos">Todos los usuarios</SelectItem>
-                    <SelectItem value="sin_asignar">Sin asignar</SelectItem>
+                    <SelectItem value="todos">{t('tasksPage.filters.allUsers')}</SelectItem>
+                    <SelectItem value="sin_asignar">{t('tasksPage.filters.unassigned')}</SelectItem>
                     {/* TODO: Listar usuarios del equipo */}
                   </SelectContent>
                 </Select>
@@ -226,14 +228,14 @@ export default function Tasks() {
               <div>
                 <Select value={filterStatus} onValueChange={setFilterStatus}>
                   <SelectTrigger>
-                    <SelectValue placeholder="Filtrar por estado" />
+                    <SelectValue placeholder={t('tasksPage.filters.statusPlaceholder')} />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="todos">Todos los estados</SelectItem>
-                    <SelectItem value="PENDIENTE">Pendiente</SelectItem>
-                    <SelectItem value="EN_PROGRESO">En Progreso</SelectItem>
-                    <SelectItem value="COMPLETADA">Completada</SelectItem>
-                    <SelectItem value="CANCELADA">Cancelada</SelectItem>
+                    <SelectItem value="todos">{t('tasksPage.filters.allStatuses')}</SelectItem>
+                    <SelectItem value="PENDIENTE">{t('tasksPage.status.pending')}</SelectItem>
+                    <SelectItem value="EN_PROGRESO">{t('tasksPage.status.inProgress')}</SelectItem>
+                    <SelectItem value="COMPLETADA">{t('tasksPage.status.completed')}</SelectItem>
+                    <SelectItem value="CANCELADA">{t('tasksPage.status.canceled')}</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -246,14 +248,14 @@ export default function Tasks() {
           {isLoading ? (
             <Card>
               <CardContent className="pt-6">
-                <p className="text-center text-muted-foreground">Cargando tareas...</p>
+                <p className="text-center text-muted-foreground">{t('tasksPage.loading')}</p>
               </CardContent>
             </Card>
           ) : filteredTasks.length === 0 ? (
             <Card>
               <CardContent className="pt-6">
                 <p className="text-center text-muted-foreground">
-                  {searchTerm ? "No se encontraron tareas" : "No hay tareas creadas. Crea una nueva tarea para comenzar."}
+                  {searchTerm ? t('tasksPage.empty.search') : t('tasksPage.empty.default')}
                 </p>
               </CardContent>
             </Card>
@@ -277,7 +279,7 @@ export default function Tasks() {
                         size="sm"
                         onClick={() => handleToggleComplete(task)}
                       >
-                        {task.status === "COMPLETADA" ? "Completada" : "Marcar Completa"}
+                        {task.status === "COMPLETADA" ? t('tasksPage.actions.completed') : t('tasksPage.actions.markComplete')}
                       </Button>
                       <EditTaskDialog task={task} />
                       <DeleteTaskDialog task={task} />
@@ -299,11 +301,11 @@ export default function Tasks() {
                     </div>
                     <div className="flex items-center gap-2 text-muted-foreground">
                       <User className="h-4 w-4" />
-                      <span>Asignado a: {task.assignedTo || "Sin asignar"}</span>
+                      <span>{t('tasksPage.assignedTo')}: {task.assignedTo || t('tasksPage.filters.unassigned')}</span>
                     </div>
                     <div className="flex items-center gap-2 text-muted-foreground">
                       <Clock className="h-4 w-4" />
-                      <span>Creada: {formatDate(task.createdAt)}</span>
+                      <span>{t('tasksPage.createdAt')}: {formatDate(task.createdAt)}</span>
                     </div>
                   </div>
                 </CardContent>

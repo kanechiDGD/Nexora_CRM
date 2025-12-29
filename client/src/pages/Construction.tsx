@@ -5,23 +5,25 @@ import { Input } from "@/components/ui/input";
 import { Building2, Search, Plus, Calendar, DollarSign, User, Eye } from "lucide-react";
 import { trpc } from "@/lib/trpc";
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { useLocation } from "wouter";
 import DashboardLayout from "@/components/DashboardLayout";
 
 export default function Construction() {
+  const { t, i18n } = useTranslation();
   const [searchTerm, setSearchTerm] = useState("");
   const [, setLocation] = useLocation();
 
   const { data: projects, isLoading } = trpc.construction.list.useQuery();
 
   const getStatusBadge = (status: string | null) => {
-    if (!status) return <Badge variant="outline">Sin Estado</Badge>;
+    if (!status) return <Badge variant="outline">{t('constructionPage.status.none')}</Badge>;
     
     const variants: Record<string, { variant: "default" | "secondary" | "destructive" | "outline", label: string }> = {
-      'PENDING': { variant: 'secondary', label: 'Pendiente' },
-      'IN_PROGRESS': { variant: 'default', label: 'En Progreso' },
-      'COMPLETED': { variant: 'outline', label: 'Completado' },
-      'ON_HOLD': { variant: 'destructive', label: 'En Espera' },
+      'PENDING': { variant: 'secondary', label: t('constructionPage.status.pending') },
+      'IN_PROGRESS': { variant: 'default', label: t('constructionPage.status.inProgress') },
+      'COMPLETED': { variant: 'outline', label: t('constructionPage.status.completed') },
+      'ON_HOLD': { variant: 'destructive', label: t('constructionPage.status.onHold') },
     };
     const config = variants[status] || { variant: 'outline', label: status };
     return <Badge variant={config.variant}>{config.label}</Badge>;
@@ -39,7 +41,7 @@ export default function Construction() {
 
   const formatDate = (date: Date | string | null) => {
     if (!date) return '-';
-    return new Date(date).toLocaleDateString('es-ES', {
+    return new Date(date).toLocaleDateString(i18n.language === 'es' ? 'es-ES' : 'en-US', {
       year: 'numeric',
       month: 'short',
       day: 'numeric'
@@ -60,14 +62,14 @@ export default function Construction() {
         {/* Header */}
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-3xl font-bold text-foreground">Proyectos de Construcción</h1>
+            <h1 className="text-3xl font-bold text-foreground">{t("constructionPage.title")}</h1>
             <p className="text-muted-foreground mt-1">
-              Clientes aprobados para construcción
+              {t("constructionPage.subtitle")}
             </p>
           </div>
           <Button>
             <Plus className="mr-2 h-4 w-4" />
-            Nuevo Proyecto
+            {t("constructionPage.actions.newProject")}
           </Button>
         </div>
 
@@ -80,7 +82,7 @@ export default function Construction() {
                   <Building2 className="h-5 w-5 text-primary" />
                 </div>
                 <div>
-                  <p className="text-sm text-muted-foreground">Total Proyectos</p>
+                  <p className="text-sm text-muted-foreground">{t("constructionPage.stats.totalProjects")}</p>
                   <p className="text-2xl font-bold">{projects?.length || 0}</p>
                 </div>
               </div>
@@ -94,7 +96,7 @@ export default function Construction() {
                   <Building2 className="h-5 w-5 text-blue-500" />
                 </div>
                 <div>
-                  <p className="text-sm text-muted-foreground">En Progreso</p>
+                  <p className="text-sm text-muted-foreground">{t("constructionPage.stats.inProgress")}</p>
                   <p className="text-2xl font-bold">
                     {projects?.filter((p: any) => p.status === 'IN_PROGRESS').length || 0}
                   </p>
@@ -110,7 +112,7 @@ export default function Construction() {
                   <Building2 className="h-5 w-5 text-green-500" />
                 </div>
                 <div>
-                  <p className="text-sm text-muted-foreground">Completados</p>
+                  <p className="text-sm text-muted-foreground">{t("constructionPage.stats.completed")}</p>
                   <p className="text-2xl font-bold">
                     {projects?.filter((p: any) => p.status === 'COMPLETED').length || 0}
                   </p>
@@ -126,7 +128,7 @@ export default function Construction() {
                   <DollarSign className="h-5 w-5 text-yellow-500" />
                 </div>
                 <div>
-                  <p className="text-sm text-muted-foreground">Valor Total</p>
+                  <p className="text-sm text-muted-foreground">{t("constructionPage.stats.totalValue")}</p>
                   <p className="text-2xl font-bold">
                     {formatCurrency(
                       projects?.reduce((sum: number, p: any) => sum + (p.estimatedCost || 0), 0) || 0
@@ -141,13 +143,13 @@ export default function Construction() {
         {/* Search */}
         <Card className="border-border">
           <CardHeader>
-            <CardTitle>Buscar Proyectos</CardTitle>
+            <CardTitle>{t("constructionPage.searchTitle")}</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
-                placeholder="Buscar por contratista o ID de cliente..."
+                placeholder={t('constructionPage.searchPlaceholder')}
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="pl-10"
@@ -160,17 +162,17 @@ export default function Construction() {
         {isLoading ? (
           <Card className="border-border">
             <CardContent className="py-12 text-center">
-              <p className="text-muted-foreground">Cargando proyectos...</p>
+              <p className="text-muted-foreground">{t("constructionPage.loading")}</p>
             </CardContent>
           </Card>
         ) : !filteredProjects || filteredProjects.length === 0 ? (
           <Card className="border-border">
             <CardContent className="py-12 text-center">
               <Building2 className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-              <p className="text-muted-foreground">No hay proyectos de construcción</p>
+              <p className="text-muted-foreground">{t("constructionPage.empty")}</p>
               <Button className="mt-4">
                 <Plus className="mr-2 h-4 w-4" />
-                Crear Primer Proyecto
+                {t("constructionPage.actions.createFirst")}
               </Button>
             </CardContent>
           </Card>
@@ -185,9 +187,9 @@ export default function Construction() {
                         <Building2 className="h-5 w-5 text-primary" />
                       </div>
                       <div>
-                        <CardTitle className="text-lg">Proyecto #{project.id}</CardTitle>
+                        <CardTitle className="text-lg">{t("constructionPage.projectTitle", { id: project.id })}</CardTitle>
                         <p className="text-sm text-muted-foreground">
-                          Cliente ID: {project.clientId}
+                          {t("constructionPage.clientId")}: {project.clientId}
                         </p>
                       </div>
                     </div>
@@ -199,7 +201,7 @@ export default function Construction() {
                     {project.contractor && (
                       <div className="flex items-center gap-2 text-sm">
                         <User className="h-4 w-4 text-muted-foreground" />
-                        <span className="text-muted-foreground">Contratista:</span>
+                        <span className="text-muted-foreground">{t("constructionPage.labels.contractor")}:</span>
                         <span className="font-medium">{project.contractor}</span>
                       </div>
                     )}
@@ -207,7 +209,7 @@ export default function Construction() {
                     {project.estimatedCost && (
                       <div className="flex items-center gap-2 text-sm">
                         <DollarSign className="h-4 w-4 text-muted-foreground" />
-                        <span className="text-muted-foreground">Costo Estimado:</span>
+                        <span className="text-muted-foreground">{t("constructionPage.labels.estimatedCost")}:</span>
                         <span className="font-medium">{formatCurrency(project.estimatedCost)}</span>
                       </div>
                     )}
@@ -215,7 +217,7 @@ export default function Construction() {
                     {project.startDate && (
                       <div className="flex items-center gap-2 text-sm">
                         <Calendar className="h-4 w-4 text-muted-foreground" />
-                        <span className="text-muted-foreground">Inicio:</span>
+                        <span className="text-muted-foreground">{t("constructionPage.labels.startDate")}:</span>
                         <span className="font-medium">{formatDate(project.startDate)}</span>
                       </div>
                     )}
@@ -223,7 +225,7 @@ export default function Construction() {
                     {project.completionDate && (
                       <div className="flex items-center gap-2 text-sm">
                         <Calendar className="h-4 w-4 text-muted-foreground" />
-                        <span className="text-muted-foreground">Finalización:</span>
+                        <span className="text-muted-foreground">{t("constructionPage.labels.completionDate")}:</span>
                         <span className="font-medium">{formatDate(project.completionDate)}</span>
                       </div>
                     )}
@@ -243,10 +245,10 @@ export default function Construction() {
                       onClick={() => setLocation(`/clients/${project.clientId}`)}
                     >
                       <Eye className="mr-2 h-4 w-4" />
-                      Ver Cliente
+                      {t("constructionPage.actions.viewClient")}
                     </Button>
                     <Button variant="outline" size="sm" className="flex-1">
-                      Editar Proyecto
+                      {t("constructionPage.actions.editProject")}
                     </Button>
                   </div>
                 </CardContent>
@@ -258,20 +260,20 @@ export default function Construction() {
         {/* Information Card */}
         <Card className="border-border bg-muted/50">
           <CardHeader>
-            <CardTitle className="text-base">Criterios de Aprobación para Construcción</CardTitle>
+            <CardTitle className="text-base">{t("constructionPage.approval.title")}</CardTitle>
           </CardHeader>
           <CardContent className="space-y-2 text-sm text-muted-foreground">
             <p>
-              • El reclamo debe estar aprobado por la aseguradora
+              - {t("constructionPage.approval.items.claimApproved")}
             </p>
             <p>
-              • Los fondos deben estar disponibles o el pago programado
+              - {t("constructionPage.approval.items.fundsAvailable")}
             </p>
             <p>
-              • El cliente debe haber firmado el contrato de construcción
+              - {t("constructionPage.approval.items.contractSigned")}
             </p>
             <p>
-              • Se debe haber seleccionado un contratista certificado
+              - {t("constructionPage.approval.items.contractorSelected")}
             </p>
           </CardContent>
         </Card>

@@ -11,7 +11,7 @@ import { EventDetailsDialog } from "@/components/EventDetailsDialog";
 import { useTranslation } from "react-i18next";
 
 export default function Calendar() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const [selectedClient, setSelectedClient] = useState<any>(null);
   const [contactDialogOpen, setContactDialogOpen] = useState(false);
   const [selectedEvent, setSelectedEvent] = useState<any>(null);
@@ -61,17 +61,17 @@ export default function Calendar() {
 
   const getEventBadge = (type: string) => {
     const variants: Record<string, { variant: "default" | "secondary" | "outline", label: string, color: string }> = {
-      'ESTIMADO': { variant: 'default', label: 'Estimado', color: 'bg-blue-500/10 text-blue-500' },
-      'REUNION': { variant: 'secondary', label: 'Reunión', color: 'bg-green-500/10 text-green-500' },
-      'AJUSTACION': { variant: 'outline', label: 'Ajustación', color: 'bg-yellow-500/10 text-yellow-500' },
-      'INTERNO': { variant: 'outline', label: 'Evento Interno', color: 'bg-purple-500/10 text-purple-500' },
+      'ESTIMADO': { variant: 'default', label: t('calendarPage.eventTypes.estimate'), color: 'bg-blue-500/10 text-blue-500' },
+      'REUNION': { variant: 'secondary', label: t('calendarPage.eventTypes.meeting'), color: 'bg-green-500/10 text-green-500' },
+      'AJUSTACION': { variant: 'outline', label: t('calendarPage.eventTypes.adjustment'), color: 'bg-yellow-500/10 text-yellow-500' },
+      'INTERNO': { variant: 'outline', label: t('calendarPage.eventTypes.internal'), color: 'bg-purple-500/10 text-purple-500' },
     };
     const config = variants[type] || { variant: 'outline', label: type, color: 'bg-gray-500/10 text-gray-500' };
     return <Badge variant={config.variant}>{config.label}</Badge>;
   };
 
   const formatDate = (date: Date) => {
-    return new Date(date).toLocaleDateString('es-ES', {
+    return new Date(date).toLocaleDateString(i18n.language === 'es' ? 'es-ES' : 'en-US', {
       weekday: 'long',
       year: 'numeric',
       month: 'long',
@@ -85,18 +85,18 @@ export default function Calendar() {
     const now = new Date();
     const eventDate = new Date(date);
     const days = Math.floor((eventDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
-    if (days === 0) return 'Hoy';
-    if (days === 1) return 'Mañana';
-    if (days < 0) return `Hace ${Math.abs(days)} día${Math.abs(days) !== 1 ? 's' : ''}`;
-    return `En ${days} día${days !== 1 ? 's' : ''}`;
+    if (days === 0) return t('calendarPage.daysUntil.today');
+    if (days === 1) return t('calendarPage.daysUntil.tomorrow');
+    if (days < 0) return t('calendarPage.daysUntil.daysAgo', { days: Math.abs(days) });
+    return t('calendarPage.daysUntil.inDays', { days });
   };
 
   const getPriorityBadge = (priority: string) => {
     const config: Record<string, { class: string; label: string }> = {
-      'URGENTE': { class: 'bg-red-500/10 text-red-500 border-red-500/20', label: 'Atrasado' },
-      'ALTA': { class: 'bg-orange-500/10 text-orange-500 border-orange-500/20', label: 'Hoy' },
-      'MEDIA': { class: 'bg-yellow-500/10 text-yellow-500 border-yellow-500/20', label: 'Mañana' },
-      'BAJA': { class: 'bg-green-500/10 text-green-500 border-green-500/20', label: 'Próximamente' },
+      'URGENTE': { class: 'bg-red-500/10 text-red-500 border-red-500/20', label: t('calendarPage.priority.overdue') },
+      'ALTA': { class: 'bg-orange-500/10 text-orange-500 border-orange-500/20', label: t('calendarPage.priority.today') },
+      'MEDIA': { class: 'bg-yellow-500/10 text-yellow-500 border-yellow-500/20', label: t('calendarPage.priority.tomorrow') },
+      'BAJA': { class: 'bg-green-500/10 text-green-500 border-green-500/20', label: t('calendarPage.priority.soon') },
     };
     const { class: className, label } = config[priority] || config['BAJA'];
     return <Badge className={className}>{label}</Badge>;
@@ -123,9 +123,9 @@ export default function Calendar() {
         {/* Header */}
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-3xl font-bold text-foreground">{t('calendar.title')}</h1>
+            <h1 className="text-3xl font-bold text-foreground">{t('dashboard.calendar.title')}</h1>
             <p className="text-muted-foreground mt-1">
-              {t('calendar.subtitle', 'Manage events and maintain regular contact with clients')}
+              {t('dashboard.calendar.subtitle', 'Manage events and maintain regular contact with clients')}
             </p>
           </div>
           <NewEventDialog />
@@ -138,11 +138,13 @@ export default function Calendar() {
               <div className="flex items-center gap-2">
                 <AlertCircle className="h-5 w-5 text-red-500" />
                 <CardTitle className="text-red-500">
-                  ¡Alerta! {clientsNeedingContact.length} Cliente{clientsNeedingContact.length !== 1 ? 's' : ''} Necesita{clientsNeedingContact.length === 1 ? '' : 'n'} Contacto
+                  {clientsNeedingContact.length === 1
+                    ? t('calendarPage.alerts.titleSingular')
+                    : t('calendarPage.alerts.titlePlural', { count: clientsNeedingContact.length })}
                 </CardTitle>
               </div>
               <CardDescription>
-                Los siguientes clientes necesitan ser contactados pronto
+                {t('calendarPage.alerts.subtitle')}
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-3">
@@ -159,16 +161,16 @@ export default function Calendar() {
                     <div>
                       <p className="font-medium">{client.firstName} {client.lastName}</p>
                       <p className="text-sm text-muted-foreground">
-                        {client.phone || client.email || 'Sin contacto'}
+                        {client.phone || client.email || t('calendarPage.alerts.noContact')}
                       </p>
                       <div className="flex items-center gap-2 mt-1">
                         <Clock className="h-3 w-3" />
                         <span className="text-xs font-medium">
-                          {client.daysUntil < 0 
-                            ? `${Math.abs(client.daysUntil)} día${Math.abs(client.daysUntil) !== 1 ? 's' : ''} de retraso`
+                          {client.daysUntil < 0
+                            ? t('calendarPage.alerts.daysLate', { count: Math.abs(client.daysUntil) })
                             : client.daysUntil === 0
-                            ? 'Contactar hoy'
-                            : `Contactar en ${client.daysUntil} día${client.daysUntil !== 1 ? 's' : ''}`
+                            ? t('calendarPage.alerts.contactToday')
+                            : t('calendarPage.alerts.contactInDays', { count: client.daysUntil })
                           }
                         </span>
                         {getPriorityBadge(client.priority)}
@@ -177,7 +179,7 @@ export default function Calendar() {
                   </div>
                   <Button size="sm" variant="outline">
                     <Phone className="mr-2 h-4 w-4" />
-                    Ver Detalles
+                    {t('calendarPage.alerts.viewDetails')}
                   </Button>
                 </div>
               ))}
@@ -194,7 +196,7 @@ export default function Calendar() {
                   <CalendarIcon className="h-5 w-5 text-primary" />
                 </div>
                 <div>
-                  <p className="text-sm text-muted-foreground">Eventos Próximos</p>
+                  <p className="text-sm text-muted-foreground">{t('calendarPage.stats.upcomingEvents')}</p>
                   <p className="text-2xl font-bold">{sortedEvents.length}</p>
                 </div>
               </div>
@@ -208,7 +210,7 @@ export default function Calendar() {
                   <AlertCircle className="h-5 w-5 text-red-500" />
                 </div>
                 <div>
-                  <p className="text-sm text-muted-foreground">Clientes Pendientes</p>
+                  <p className="text-sm text-muted-foreground">{t('calendarPage.stats.pendingClients')}</p>
                   <p className="text-2xl font-bold">{clientsNeedingContact.length}</p>
                 </div>
               </div>
@@ -222,7 +224,7 @@ export default function Calendar() {
                   <Clock className="h-5 w-5 text-green-500" />
                 </div>
                 <div>
-                  <p className="text-sm text-muted-foreground">Eventos Esta Semana</p>
+                  <p className="text-sm text-muted-foreground">{t('calendarPage.stats.eventsThisWeek')}</p>
                   <p className="text-2xl font-bold">
                     {sortedEvents.filter((e: any) => {
                       const days = Math.floor((new Date(e.eventDate).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24));
@@ -238,16 +240,16 @@ export default function Calendar() {
         {/* Upcoming Events */}
         <Card className="border-border">
           <CardHeader>
-            <CardTitle>Próximos Eventos</CardTitle>
+            <CardTitle>{t('calendarPage.upcomingEvents.title')}</CardTitle>
             <CardDescription>
-              Estimados, reuniones, ajustaciones y eventos internos programados
+              {t('calendarPage.upcomingEvents.subtitle')}
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             {sortedEvents.length === 0 ? (
               <div className="text-center py-12">
                 <CalendarIcon className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                <p className="text-muted-foreground">{t('calendar.noEvents')}</p>
+                <p className="text-muted-foreground">{t('dashboard.calendar.noEvents')}</p>
                 <div className="mt-4">
                   <NewEventDialog />
                 </div>
@@ -269,7 +271,7 @@ export default function Calendar() {
                         <h3 className="font-medium text-lg">{event.title}</h3>
                         {event.clientId && (
                           <p className="text-sm text-muted-foreground">
-                            Cliente: {clients?.find((c: any) => c.id === event.clientId)?.firstName} {clients?.find((c: any) => c.id === event.clientId)?.lastName}
+                            {t('calendarPage.upcomingEvents.clientLabel')} {clients?.find((c: any) => c.id === event.clientId)?.firstName} {clients?.find((c: any) => c.id === event.clientId)?.lastName}
                           </p>
                         )}
                       </div>
@@ -297,7 +299,7 @@ export default function Calendar() {
 
                     <div className="flex gap-2 mt-3">
                       {/* Los botones de editar/eliminar están integrados en los diálogos */}
-                      <p className="text-xs text-muted-foreground">Usa el calendario del dashboard para editar/eliminar eventos</p>
+                      <p className="text-xs text-muted-foreground">{t('calendarPage.upcomingEvents.editHint')}</p>
                     </div>
                   </div>
                 </div>
@@ -309,20 +311,20 @@ export default function Calendar() {
         {/* Information Card */}
         <Card className="border-border bg-muted/50">
           <CardHeader>
-            <CardTitle className="text-base">{t('calendar.policy.title')}</CardTitle>
+            <CardTitle className="text-base">{t('dashboard.calendar.policy.title')}</CardTitle>
           </CardHeader>
           <CardContent className="space-y-2 text-sm text-muted-foreground">
             <p>
-              • <strong>{t('calendar.policy.frequency')}</strong> {t('calendar.policy.frequencyDesc')}
+              • <strong>{t('dashboard.calendar.policy.frequency')}</strong> {t('dashboard.calendar.policy.frequencyDesc')}
             </p>
             <p>
-              • <strong>{t('calendar.policy.alerts')}</strong> {t('calendar.policy.alertsDesc')}
+              • <strong>{t('dashboard.calendar.policy.alerts')}</strong> {t('dashboard.calendar.policy.alertsDesc')}
             </p>
             <p>
-              • <strong>{t('calendar.policy.mandatory')}</strong> {t('calendar.policy.mandatoryDesc')}
+              • <strong>{t('dashboard.calendar.policy.mandatory')}</strong> {t('dashboard.calendar.policy.mandatoryDesc')}
             </p>
             <p>
-              • <strong>{t('calendar.policy.priority')}</strong> {t('calendar.policy.priorityDesc')}
+              • <strong>{t('dashboard.calendar.policy.priority')}</strong> {t('dashboard.calendar.policy.priorityDesc')}
             </p>
           </CardContent>
         </Card>

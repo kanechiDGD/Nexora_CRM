@@ -22,12 +22,14 @@ import {
 import { Edit } from "lucide-react";
 import { trpc } from "@/lib/trpc";
 import { toast } from "sonner";
+import { useTranslation } from "react-i18next";
 
 interface EditEventDialogProps {
   event: any;
 }
 
 export function EditEventDialog({ event }: EditEventDialogProps) {
+  const { t } = useTranslation();
   const [open, setOpen] = useState(false);
   const [formData, setFormData] = useState({
     eventType: event.eventType || "MEETING",
@@ -43,12 +45,12 @@ export function EditEventDialog({ event }: EditEventDialogProps) {
   
   const updateEvent = trpc.events.update.useMutation({
     onSuccess: () => {
-      toast.success("Evento actualizado exitosamente");
+      toast.success(t('eventDialogs.edit.success'));
       utils.events.list.invalidate();
       setOpen(false);
     },
     onError: (error) => {
-      toast.error(`Error al actualizar evento: ${error.message}`);
+      toast.error(t('eventDialogs.edit.error', { message: error.message }));
     },
   });
 
@@ -70,7 +72,7 @@ export function EditEventDialog({ event }: EditEventDialogProps) {
     e.preventDefault();
     
     if (!formData.title || !formData.eventDate) {
-      toast.error("Título y fecha son requeridos");
+      toast.error(t('eventDialogs.edit.missingRequired'));
       return;
     }
 
@@ -96,14 +98,14 @@ export function EditEventDialog({ event }: EditEventDialogProps) {
       <DialogContent className="sm:max-w-[600px]">
         <form onSubmit={handleSubmit}>
           <DialogHeader>
-            <DialogTitle>Editar Evento</DialogTitle>
+            <DialogTitle>{t('eventDialogs.edit.title')}</DialogTitle>
             <DialogDescription>
-              Actualiza los detalles del evento.
+              {t('eventDialogs.edit.description')}
             </DialogDescription>
           </DialogHeader>
           <div className="grid gap-4 py-4">
             <div className="grid gap-2">
-              <Label htmlFor="edit-eventType">Tipo de Evento</Label>
+              <Label htmlFor="edit-eventType">{t('eventDialogs.edit.eventTypeLabel')}</Label>
               <Select
                 value={formData.eventType}
                 onValueChange={(value) => setFormData({ ...formData, eventType: value })}
@@ -112,19 +114,19 @@ export function EditEventDialog({ event }: EditEventDialogProps) {
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="MEETING">Reunión</SelectItem>
-                  <SelectItem value="ADJUSTMENT">Ajustación</SelectItem>
-                  <SelectItem value="ESTIMATE">Estimado</SelectItem>
-                  <SelectItem value="INSPECTION">Inspección</SelectItem>
-                  <SelectItem value="APPOINTMENT">Cita</SelectItem>
-                  <SelectItem value="DEADLINE">Fecha Límite</SelectItem>
-                  <SelectItem value="OTHER">Otro</SelectItem>
+                  <SelectItem value="MEETING">{t('dashboard.calendar.newEvent.types.MEETING')}</SelectItem>
+                  <SelectItem value="ADJUSTMENT">{t('dashboard.calendar.newEvent.types.ADJUSTMENT')}</SelectItem>
+                  <SelectItem value="ESTIMATE">{t('dashboard.calendar.newEvent.types.ESTIMATE')}</SelectItem>
+                  <SelectItem value="INSPECTION">{t('dashboard.calendar.newEvent.types.INSPECTION')}</SelectItem>
+                  <SelectItem value="APPOINTMENT">{t('dashboard.calendar.newEvent.types.APPOINTMENT')}</SelectItem>
+                  <SelectItem value="DEADLINE">{t('dashboard.calendar.newEvent.types.DEADLINE')}</SelectItem>
+                  <SelectItem value="OTHER">{t('dashboard.calendar.newEvent.types.OTHER')}</SelectItem>
                 </SelectContent>
               </Select>
             </div>
 
             <div className="grid gap-2">
-              <Label htmlFor="edit-event-title">Título *</Label>
+              <Label htmlFor="edit-event-title">{t('eventDialogs.edit.titleLabel')}</Label>
               <Input
                 id="edit-event-title"
                 value={formData.title}
@@ -135,7 +137,7 @@ export function EditEventDialog({ event }: EditEventDialogProps) {
 
             <div className="grid grid-cols-2 gap-4">
               <div className="grid gap-2">
-                <Label htmlFor="edit-eventDate">Fecha *</Label>
+                <Label htmlFor="edit-eventDate">{t('eventDialogs.edit.dateLabel')}</Label>
                 <Input
                   id="edit-eventDate"
                   type="date"
@@ -145,7 +147,7 @@ export function EditEventDialog({ event }: EditEventDialogProps) {
                 />
               </div>
               <div className="grid gap-2">
-                <Label htmlFor="edit-eventTime">Hora</Label>
+                <Label htmlFor="edit-eventTime">{t('eventDialogs.edit.timeLabel')}</Label>
                 <Input
                   id="edit-eventTime"
                   type="time"
@@ -156,7 +158,7 @@ export function EditEventDialog({ event }: EditEventDialogProps) {
             </div>
 
             <div className="grid gap-2">
-              <Label htmlFor="edit-address">Dirección</Label>
+              <Label htmlFor="edit-address">{t('eventDialogs.edit.addressLabel')}</Label>
               <Input
                 id="edit-address"
                 value={formData.address}
@@ -165,7 +167,7 @@ export function EditEventDialog({ event }: EditEventDialogProps) {
             </div>
 
             <div className="grid gap-2">
-              <Label htmlFor="edit-event-description">Descripción</Label>
+              <Label htmlFor="edit-event-description">{t('eventDialogs.edit.descriptionLabel')}</Label>
               <Textarea
                 id="edit-event-description"
                 value={formData.description}
@@ -176,10 +178,10 @@ export function EditEventDialog({ event }: EditEventDialogProps) {
           </div>
           <DialogFooter>
             <Button type="button" variant="outline" onClick={() => setOpen(false)}>
-              Cancelar
+              {t('eventDialogs.edit.cancel')}
             </Button>
             <Button type="submit" disabled={updateEvent.isPending}>
-              {updateEvent.isPending ? "Guardando..." : "Guardar Cambios"}
+              {updateEvent.isPending ? t('eventDialogs.edit.saving') : t('eventDialogs.edit.save')}
             </Button>
           </DialogFooter>
         </form>

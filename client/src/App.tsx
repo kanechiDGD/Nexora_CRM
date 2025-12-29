@@ -18,6 +18,9 @@ import Calendar from "./pages/Calendar";
 import Tasks from "./pages/Tasks";
 import OnboardingWizard from "./pages/OnboardingWizard";
 import Login from "./pages/Login";
+import ForgotPassword from "./pages/ForgotPassword";
+import ResetPassword from "./pages/ResetPassword";
+import AcceptInvite from "./pages/AcceptInvite";
 import Users from "./pages/Users";
 import AuthGuard from "./components/AuthGuard";
 
@@ -27,6 +30,9 @@ function Router() {
     <Switch>
       <Route path={"/"} component={Home} />
       <Route path={"/login"} component={Login} />
+      <Route path={"/forgot-password"} component={ForgotPassword} />
+      <Route path={"/reset-password"} component={ResetPassword} />
+      <Route path={"/invite"} component={AcceptInvite} />
       <Route path={"/onboarding"} component={OnboardingWizard} />
       <Route path={"/dashboard"}>
         <AuthGuard>

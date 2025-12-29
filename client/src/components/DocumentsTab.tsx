@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Upload, Download, Trash2, File, FileText } from "lucide-react";
 import { toast } from "sonner";
+import { useTranslation } from "react-i18next";
 import { trpc } from "@/lib/trpc";
 
 interface DocumentsTabProps {
@@ -28,6 +29,7 @@ const ALLOWED_FILE_TYPES = [
 const ALLOWED_EXTENSIONS = ['.pdf', '.jpg', '.jpeg', '.png', '.gif', '.webp', '.doc', '.docx', '.xls', '.xlsx'];
 
 export default function DocumentsTab({ clientId }: DocumentsTabProps) {
+    const { t } = useTranslation();
     const { data: documents } = trpc.documents.getByClientId.useQuery(
         { clientId },
         { enabled: !!clientId }
@@ -39,7 +41,7 @@ export default function DocumentsTab({ clientId }: DocumentsTabProps) {
         if (file.size > MAX_FILE_SIZE_BYTES) {
             return {
                 valid: false,
-                error: `El archivo "${file.name}" excede el límite de ${MAX_FILE_SIZE_MB}MB (tamaño: ${(file.size / 1024 / 1024).toFixed(2)}MB)`
+                error: t('documents.errors.fileTooLarge', { fileName: file.name, maxMb: MAX_FILE_SIZE_MB, sizeMb: (file.size / 1024 / 1024).toFixed(2) })
             };
         }
 
@@ -47,7 +49,7 @@ export default function DocumentsTab({ clientId }: DocumentsTabProps) {
         if (!ALLOWED_FILE_TYPES.includes(file.type)) {
             return {
                 valid: false,
-                error: `El tipo de archivo "${file.type}" no está permitido para "${file.name}"`
+                error: t('documents.errors.invalidType', { fileName: file.name, fileType: file.type })
             };
         }
 
@@ -56,7 +58,7 @@ export default function DocumentsTab({ clientId }: DocumentsTabProps) {
         if (!ALLOWED_EXTENSIONS.includes(extension)) {
             return {
                 valid: false,
-                error: `La extensión "${extension}" no está permitida para "${file.name}"`
+                error: t('documents.errors.invalidExtension', { fileName: file.name, extension })
             };
         }
 
@@ -96,7 +98,7 @@ export default function DocumentsTab({ clientId }: DocumentsTabProps) {
 
             formData.append('clientId', clientId);
 
-            toast.info(`Subiendo ${validFiles.length} archivo(s)...`);
+            toast.info(t('documents.uploading', { count: validFiles.length }));
 
             const response = await fetch('/api/upload/documents', {
                 method: 'POST',
@@ -106,29 +108,29 @@ export default function DocumentsTab({ clientId }: DocumentsTabProps) {
 
             if (!response.ok) {
                 const error = await response.json();
-                throw new Error(error.error || 'Error al subir archivos');
+                throw new Error(error.error || t('documents.errors.uploadFailed'));
             }
 
             const result = await response.json();
 
-            toast.success(result.message || `${validFiles.length} archivo(s) subido(s) correctamente`);
+            toast.success(result.message || t('documents.uploadSuccess', { count: validFiles.length }));
 
             utils.documents.getByClientId.invalidate({ clientId });
 
         } catch (error) {
             console.error('Error uploading files:', error);
-            toast.error(error instanceof Error ? error.message : 'Error al subir archivos. Por favor intenta de nuevo.');
+            toast.error(error instanceof Error ? error.message : t('documents.errors.uploadError'));
         }
     };
 
     const handleDeleteDocument = async (documentId: number, documentName: string) => {
         // Usar window.confirm simple en lugar de AlertDialog
-        if (!window.confirm(`¿Estás seguro de que deseas eliminar "${documentName}"? Esta acción no se puede deshacer.`)) {
+        if (!window.confirm(t('documents.deleteConfirm', { name: documentName }))) {
             return;
         }
 
         try {
-            toast.info('Eliminando documento...');
+            toast.info(t('documents.deleting'));
 
             const response = await fetch(`/api/upload/documents/${documentId}`, {
                 method: 'DELETE',
@@ -137,16 +139,16 @@ export default function DocumentsTab({ clientId }: DocumentsTabProps) {
 
             if (!response.ok) {
                 const error = await response.json();
-                throw new Error(error.error || 'Error al eliminar documento');
+                throw new Error(error.error || t('documents.errors.deleteFailed'));
             }
 
-            toast.success('Documento eliminado correctamente');
+            toast.success(t('documents.deleteSuccess'));
 
             utils.documents.getByClientId.invalidate({ clientId });
 
         } catch (error) {
             console.error('Error deleting document:', error);
-            toast.error(error instanceof Error ? error.message : 'Error al eliminar documento');
+            toast.error(error instanceof Error ? error.message : t('documents.errors.deleteError'));
         }
     };
 
@@ -163,13 +165,13 @@ export default function DocumentsTab({ clientId }: DocumentsTabProps) {
 
     const getDocumentTypeBadge = (type: string) => {
         const types: Record<string, { label: string; variant: "default" | "secondary" | "outline" }> = {
-            POLIZA: { label: "Póliza", variant: "default" },
-            CONTRATO: { label: "Contrato", variant: "secondary" },
-            FOTO: { label: "Foto", variant: "outline" },
-            ESTIMADO: { label: "Estimado", variant: "default" },
-            FACTURA: { label: "Factura", variant: "secondary" },
-            PERMISO: { label: "Permiso", variant: "outline" },
-            OTRO: { label: "Otro", variant: "outline" },
+            POLIZA: { label: t('documents.types.policy'), variant: "default" },
+            CONTRATO: { label: t('documents.types.contract'), variant: "secondary" },
+            FOTO: { label: t('documents.types.photo'), variant: "outline" },
+            ESTIMADO: { label: t('documents.types.estimate'), variant: "default" },
+            FACTURA: { label: t('documents.types.invoice'), variant: "secondary" },
+            PERMISO: { label: t('documents.types.permit'), variant: "outline" },
+            OTRO: { label: t('documents.types.other'), variant: "outline" },
         };
 
         const typeInfo = types[type] || types.OTRO;
@@ -180,13 +182,13 @@ export default function DocumentsTab({ clientId }: DocumentsTabProps) {
         <Card>
             <CardHeader>
                 <CardTitle className="flex items-center justify-between">
-                    <span>Documentos</span>
+                    <span>{t('documents.title')}</span>
                     <Button
                         size="sm"
                         onClick={() => document.getElementById('file-upload')?.click()}
                     >
                         <Upload className="mr-2 h-4 w-4" />
-                        Subir Documentos
+                        {t('documents.uploadButton')}
                     </Button>
                 </CardTitle>
                 <input
@@ -206,7 +208,7 @@ export default function DocumentsTab({ clientId }: DocumentsTabProps) {
             <CardContent>
                 {!documents || documents.length === 0 ? (
                     <p className="text-muted-foreground text-center py-8">
-                        No hay documentos subidos para este cliente
+                        {t('documents.noDocuments')}
                     </p>
                 ) : (
                     <div className="space-y-2">
@@ -220,7 +222,7 @@ export default function DocumentsTab({ clientId }: DocumentsTabProps) {
                                     <div className="flex-1 min-w-0">
                                         <p className="font-medium truncate">{doc.fileName}</p>
                                         <p className="text-sm text-muted-foreground">
-                                            {doc.fileSize ? `${(doc.fileSize / 1024).toFixed(2)} KB` : 'Tamaño desconocido'}
+                                            {doc.fileSize ? `${(doc.fileSize / 1024).toFixed(2)} KB` : t('documents.unknownSize')}
                                         </p>
                                     </div>
                                     {getDocumentTypeBadge(doc.documentType)}

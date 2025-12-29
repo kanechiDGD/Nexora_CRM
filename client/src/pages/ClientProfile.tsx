@@ -26,6 +26,7 @@ import { toast } from "sonner";
 import { trpc } from "@/lib/trpc";
 import DashboardLayout from "@/components/DashboardLayout";
 import DocumentsTab from "@/components/DocumentsTab";
+import { useTranslation } from "react-i18next";
 
 type ActivityLog = {
   id: number;
@@ -37,6 +38,7 @@ type ActivityLog = {
 };
 
 export default function ClientProfile() {
+  const { t, i18n } = useTranslation();
   const { id } = useParams();
   const [, setLocation] = useLocation();
   const clientId = id || "";
@@ -62,11 +64,11 @@ export default function ClientProfile() {
       string,
       { variant: "default" | "secondary" | "destructive" | "outline"; label: string }
     > = {
-      NO_SOMETIDA: { variant: "outline", label: "No Sometida" },
-      EN_PROCESO: { variant: "secondary", label: "En Proceso" },
-      APROVADA: { variant: "default", label: "Aprobada" },
-      RECHAZADA: { variant: "destructive", label: "Rechazada" },
-      CERRADA: { variant: "outline", label: "Cerrada" },
+      NO_SOMETIDA: { variant: "outline", label: t("dashboard.claimStatus.status.NO_SOMETIDA") },
+      EN_PROCESO: { variant: "secondary", label: t("dashboard.claimStatus.status.EN_PROCESO") },
+      APROVADA: { variant: "default", label: t("dashboard.claimStatus.status.APROBADA") },
+      RECHAZADA: { variant: "destructive", label: t("dashboard.claimStatus.status.RECHAZADA") },
+      CERRADA: { variant: "outline", label: t("dashboard.claimStatus.status.CERRADA") },
     };
     const config = variants[status] || { variant: "outline", label: status };
     return <Badge variant={config.variant}>{config.label}</Badge>;
@@ -74,7 +76,7 @@ export default function ClientProfile() {
 
   const formatDate = (date: Date | string | null) => {
     if (!date) return "-";
-    return new Date(date).toLocaleDateString("es-ES", {
+    return new Date(date).toLocaleDateString(i18n.language.startsWith("es") ? "es-ES" : "en-US", {
       year: "numeric",
       month: "long",
       day: "numeric",
@@ -105,7 +107,7 @@ export default function ClientProfile() {
       <DashboardLayout>
         <div className="flex flex-col items-center justify-center min-h-[400px] gap-4">
           <AlertCircle className="h-12 w-12 text-muted-foreground" />
-          <p className="text-muted-foreground">Cliente no encontrado</p>
+          <p className="text-muted-foreground">{t("clientProfile.notFound")}</p>
           <Button onClick={() => setLocation("/clients")}>
             Volver a Clientes
           </Button>
@@ -127,12 +129,12 @@ export default function ClientProfile() {
               <h1 className="text-3xl font-bold text-foreground">
                 {client.firstName} {client.lastName}
               </h1>
-              <p className="text-muted-foreground mt-1">Cliente ID: {client.id}</p>
+              <p className="text-muted-foreground mt-1">{t("clientProfile.labels.clientId")}: {client.id}</p>
             </div>
           </div>
           <Button onClick={() => setLocation(`/clients/${client.id}/edit`)}>
             <Edit className="mr-2 h-4 w-4" />
-            Editar Cliente
+            {t("clientProfile.actions.edit")}
           </Button>
         </div>
 
@@ -145,7 +147,7 @@ export default function ClientProfile() {
                   <FileText className="h-5 w-5 text-primary" />
                 </div>
                 <div>
-                  <p className="text-sm text-muted-foreground">Estado</p>
+                  <p className="text-sm text-muted-foreground">{t("clientProfile.quick.status")}</p>
                   <div className="mt-1">{getStatusBadge(client.claimStatus || "NO_SOMETIDA")}</div>
                 </div>
               </div>
@@ -159,7 +161,7 @@ export default function ClientProfile() {
                   <Building className="h-5 w-5 text-primary" />
                 </div>
                 <div>
-                  <p className="text-sm text-muted-foreground">Aseguradora</p>
+                  <p className="text-sm text-muted-foreground">{t("clientProfile.quick.insurance")}</p>
                   <p className="font-medium mt-1">{client.insuranceCompany || "-"}</p>
                 </div>
               </div>
@@ -173,7 +175,7 @@ export default function ClientProfile() {
                   <DollarSign className="h-5 w-5 text-primary" />
                 </div>
                 <div>
-                  <p className="text-sm text-muted-foreground">Deducible</p>
+                  <p className="text-sm text-muted-foreground">{t("clientProfile.quick.deductible")}</p>
                   <p className="font-medium mt-1">{formatCurrency(client.deductible)}</p>
                 </div>
               </div>
@@ -187,7 +189,7 @@ export default function ClientProfile() {
                   <User className="h-5 w-5 text-primary" />
                 </div>
                 <div>
-                  <p className="text-sm text-muted-foreground">Vendedor</p>
+                  <p className="text-sm text-muted-foreground">{t("clientProfile.quick.salesPerson")}</p>
                   <p className="font-medium mt-1">{client.salesPerson || "-"}</p>
                 </div>
               </div>
@@ -201,7 +203,7 @@ export default function ClientProfile() {
                   <DollarSign className="h-5 w-5 text-green-500" />
                 </div>
                 <div>
-                  <p className="text-sm text-muted-foreground">Estimado Aseguranza</p>
+                  <p className="text-sm text-muted-foreground">{t("clientProfile.quick.insuranceEstimate")}</p>
                   <p className="font-medium mt-1">{formatCurrency(client.insuranceEstimate)}</p>
                 </div>
               </div>
@@ -215,7 +217,7 @@ export default function ClientProfile() {
                   <DollarSign className="h-5 w-5 text-blue-500" />
                 </div>
                 <div>
-                  <p className="text-sm text-muted-foreground">Primer Cheque</p>
+                  <p className="text-sm text-muted-foreground">{t("clientProfile.quick.firstCheck")}</p>
                   <p className="font-medium mt-1">{formatCurrency(client.firstCheckAmount)}</p>
                 </div>
               </div>
@@ -226,12 +228,12 @@ export default function ClientProfile() {
         {/* Detailed Information Tabs */}
         <Tabs defaultValue="general" className="space-y-4">
           <TabsList>
-            <TabsTrigger value="general">Información General</TabsTrigger>
-            <TabsTrigger value="claim">Reclamo</TabsTrigger>
-            <TabsTrigger value="property">Propiedad</TabsTrigger>
-            <TabsTrigger value="dates">Fechas</TabsTrigger>
-            <TabsTrigger value="documents">Documentos</TabsTrigger>
-            <TabsTrigger value="activity">Actividad</TabsTrigger>
+            <TabsTrigger value="general">{t("clientProfile.tabs.general")}</TabsTrigger>
+            <TabsTrigger value="claim">{t("clientProfile.tabs.claim")}</TabsTrigger>
+            <TabsTrigger value="property">{t("clientProfile.tabs.property")}</TabsTrigger>
+            <TabsTrigger value="dates">{t("clientProfile.tabs.dates")}</TabsTrigger>
+            <TabsTrigger value="documents">{t("clientProfile.tabs.documents")}</TabsTrigger>
+            <TabsTrigger value="activity">{t("clientProfile.tabs.activity")}</TabsTrigger>
           </TabsList>
 
           {/* General Tab */}
@@ -240,18 +242,18 @@ export default function ClientProfile() {
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <User className="h-5 w-5" />
-                  Información de Contacto
+                  {t("clientProfile.sections.contact.title")}
                 </CardTitle>
               </CardHeader>
               <CardContent className="grid gap-4 md:grid-cols-2">
                 <div>
-                  <label className="text-sm text-muted-foreground">Nombre Completo</label>
+                  <label className="text-sm text-muted-foreground">{t("clientProfile.labels.fullName")}</label>
                   <p className="font-medium mt-1">
                     {client.firstName} {client.lastName}
                   </p>
                 </div>
                 <div>
-                  <label className="text-sm text-muted-foreground">Email</label>
+                  <label className="text-sm text-muted-foreground">{t("clientProfile.labels.email")}</label>
                   <div className="flex items-center gap-2 mt-1">
                     <Mail className="h-4 w-4 text-muted-foreground" />
                     {client.email ? (
@@ -267,7 +269,7 @@ export default function ClientProfile() {
                   </div>
                 </div>
                 <div>
-                  <label className="text-sm text-muted-foreground">Teléfono Principal</label>
+                  <label className="text-sm text-muted-foreground">{t("clientProfile.labels.phone")}</label>
                   <div className="flex items-center gap-2 mt-1">
                     <Phone className="h-4 w-4 text-muted-foreground" />
                     {client.phone ? (
@@ -283,7 +285,7 @@ export default function ClientProfile() {
                   </div>
                 </div>
                 <div>
-                  <label className="text-sm text-muted-foreground">Teléfono Alternativo</label>
+                  <label className="text-sm text-muted-foreground">{t("clientProfile.labels.alternatePhone")}</label>
                   <div className="flex items-center gap-2 mt-1">
                     <Phone className="h-4 w-4 text-muted-foreground" />
                     {client.alternatePhone ? (
@@ -310,11 +312,11 @@ export default function ClientProfile() {
               </CardHeader>
               <CardContent className="grid gap-4 md:grid-cols-2">
                 <div>
-                  <label className="text-sm text-muted-foreground">Vendedor</label>
+                  <label className="text-sm text-muted-foreground">{t("clientProfile.labels.salesPerson")}</label>
                   <p className="font-medium mt-1">{client.salesPerson || "-"}</p>
                 </div>
                 <div>
-                  <label className="text-sm text-muted-foreground">Ajustador Asignado</label>
+                  <label className="text-sm text-muted-foreground">{t("clientProfile.labels.assignedAdjuster")}</label>
                   <p className="font-medium mt-1">{client.assignedAdjuster || "-"}</p>
                 </div>
               </CardContent>
@@ -327,24 +329,24 @@ export default function ClientProfile() {
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <FileText className="h-5 w-5" />
-                  Información del Reclamo
+                  {t("clientProfile.sections.claim.title")}
                 </CardTitle>
               </CardHeader>
               <CardContent className="grid gap-4 md:grid-cols-2">
                 <div>
-                  <label className="text-sm text-muted-foreground">Aseguradora</label>
+                  <label className="text-sm text-muted-foreground">{t("clientProfile.labels.insurance")}</label>
                   <p className="font-medium mt-1">{client.insuranceCompany || "-"}</p>
                 </div>
                 <div>
-                  <label className="text-sm text-muted-foreground">Número de Póliza</label>
+                  <label className="text-sm text-muted-foreground">{t("clientProfile.labels.policyNumber")}</label>
                   <p className="font-medium mt-1">{client.policyNumber || "-"}</p>
                 </div>
                 <div>
-                  <label className="text-sm text-muted-foreground">Número de Reclamo</label>
+                  <label className="text-sm text-muted-foreground">{t("clientProfile.labels.claimNumber")}</label>
                   <p className="font-medium mt-1">{client.claimNumber || "-"}</p>
                 </div>
                 <div>
-                  <label className="text-sm text-muted-foreground">Estado del Reclamo</label>
+                  <label className="text-sm text-muted-foreground">{t("clientProfile.labels.claimStatus")}</label>
                   <div className="mt-1">{getStatusBadge(client.claimStatus || "NO_SOMETIDA")}</div>
                 </div>
                 <div>
@@ -356,19 +358,19 @@ export default function ClientProfile() {
                   <p className="font-medium mt-1">{formatCurrency(client.coverageAmount)}</p>
                 </div>
                 <div>
-                  <label className="text-sm text-muted-foreground">Suplementado</label>
+                  <label className="text-sm text-muted-foreground">{t("clientProfile.labels.supplemented")}</label>
                   <Badge variant={client.suplementado === "si" ? "default" : "outline"} className="mt-1">
-                    {client.suplementado === "si" ? "Sí" : "No"}
+                    {client.suplementado === "si" ? t("common.yes") : t("common.no")}
                   </Badge>
                 </div>
                 <div>
-                  <label className="text-sm text-muted-foreground">Primer Cheque</label>
+                  <label className="text-sm text-muted-foreground">{t("clientProfile.labels.firstCheck")}</label>
                   <Badge variant={client.primerCheque === "OBTENIDO" ? "default" : "outline"} className="mt-1">
-                    {client.primerCheque === "OBTENIDO" ? "Obtenido" : "Pendiente"}
+                    {client.primerCheque === 'OBTENIDO' ? t('clientProfile.firstCheck.received') : t('clientProfile.firstCheck.pending')}
                   </Badge>
                 </div>
                 <div>
-                  <label className="text-sm text-muted-foreground">Pérdida Estimada</label>
+                  <label className="text-sm text-muted-foreground">{t("clientProfile.labels.estimatedLoss")}</label>
                   <p className="font-medium mt-1">{formatCurrency(client.estimatedLoss)}</p>
                 </div>
                 <div>
@@ -380,15 +382,15 @@ export default function ClientProfile() {
 
             <Card className="border-border">
               <CardHeader>
-                <CardTitle>Tipo y Descripción del Daño</CardTitle>
+                <CardTitle>{t("clientProfile.sections.damage.title")}</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div>
-                  <label className="text-sm text-muted-foreground">Tipo de Daño</label>
+                  <label className="text-sm text-muted-foreground">{t("clientProfile.labels.damageType")}</label>
                   <p className="font-medium mt-1">{client.damageType || "-"}</p>
                 </div>
                 <div>
-                  <label className="text-sm text-muted-foreground">Descripción del Daño</label>
+                  <label className="text-sm text-muted-foreground">{t("clientProfile.labels.damageDescription")}</label>
                   <p className="mt-1 text-sm whitespace-pre-wrap">{client.damageDescription || "-"}</p>
                 </div>
               </CardContent>
@@ -401,12 +403,12 @@ export default function ClientProfile() {
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <MapPin className="h-5 w-5" />
-                  Información de la Propiedad
+                  {t("clientProfile.sections.property.title")}
                 </CardTitle>
               </CardHeader>
               <CardContent className="grid gap-4 md:grid-cols-2">
                 <div className="md:col-span-2">
-                  <label className="text-sm text-muted-foreground">Dirección</label>
+                  <label className="text-sm text-muted-foreground">{t("clientProfile.labels.propertyAddress")}</label>
                   <p className="font-medium mt-1">{client.propertyAddress || "-"}</p>
                 </div>
                 <div>
@@ -414,15 +416,15 @@ export default function ClientProfile() {
                   <p className="font-medium mt-1">{client.city || "-"}</p>
                 </div>
                 <div>
-                  <label className="text-sm text-muted-foreground">Estado</label>
+                  <label className="text-sm text-muted-foreground">{t("clientProfile.labels.state")}</label>
                   <p className="font-medium mt-1">{client.state || "-"}</p>
                 </div>
                 <div>
-                  <label className="text-sm text-muted-foreground">Código Postal</label>
+                  <label className="text-sm text-muted-foreground">{t("clientProfile.labels.zipCode")}</label>
                   <p className="font-medium mt-1">{client.zipCode || "-"}</p>
                 </div>
                 <div>
-                  <label className="text-sm text-muted-foreground">Tipo de Propiedad</label>
+                  <label className="text-sm text-muted-foreground">{t("clientProfile.labels.propertyType")}</label>
                   <p className="font-medium mt-1">{client.propertyType || "-"}</p>
                 </div>
               </CardContent>
@@ -430,11 +432,11 @@ export default function ClientProfile() {
 
             <Card className="border-border">
               <CardHeader>
-                <CardTitle>Estado de Construcción</CardTitle>
+                <CardTitle>{t("clientProfile.sections.construction.title")}</CardTitle>
               </CardHeader>
               <CardContent>
                 <div>
-                  <label className="text-sm text-muted-foreground">Estado</label>
+                  <label className="text-sm text-muted-foreground">{t("clientProfile.labels.constructionStatus")}</label>
                   <p className="font-medium mt-1">{client.constructionStatus || "-"}</p>
                 </div>
               </CardContent>
@@ -447,16 +449,16 @@ export default function ClientProfile() {
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <Calendar className="h-5 w-5" />
-                  Fechas Importantes
+                  {t("clientProfile.sections.dates.title")}
                 </CardTitle>
               </CardHeader>
               <CardContent className="grid gap-4 md:grid-cols-2">
                 <div>
-                  <label className="text-sm text-muted-foreground">Fecha de Pérdida</label>
+                  <label className="text-sm text-muted-foreground">{t("clientProfile.labels.dateOfLoss")}</label>
                   <p className="font-medium mt-1">{formatDate(client.dateOfLoss)}</p>
                 </div>
                 <div>
-                  <label className="text-sm text-muted-foreground">Fecha de Sometimiento</label>
+                  <label className="text-sm text-muted-foreground">{t("clientProfile.labels.claimSubmittedDate")}</label>
                   <p className="font-medium mt-1">{formatDate(client.claimSubmittedDate)}</p>
                 </div>
                 <div>
@@ -464,15 +466,15 @@ export default function ClientProfile() {
                   <p className="font-medium mt-1">{formatDate(client.scheduledVisit)}</p>
                 </div>
                 <div>
-                  <label className="text-sm text-muted-foreground">Fecha de Ajuste</label>
+                  <label className="text-sm text-muted-foreground">{t("clientProfile.labels.adjustmentDate")}</label>
                   <p className="font-medium mt-1">{formatDate(client.adjustmentDate)}</p>
                 </div>
                 <div>
-                  <label className="text-sm text-muted-foreground">Último Contacto</label>
+                  <label className="text-sm text-muted-foreground">{t("clientProfile.labels.lastContactDate")}</label>
                   <p className="font-medium mt-1">{formatDate(client.lastContactDate)}</p>
                 </div>
                 <div>
-                  <label className="text-sm text-muted-foreground">Próximo Contacto</label>
+                  <label className="text-sm text-muted-foreground">{t("clientProfile.labels.nextContactDate")}</label>
                   <p className="font-medium mt-1">{formatDate(client.nextContactDate)}</p>
                 </div>
               </CardContent>

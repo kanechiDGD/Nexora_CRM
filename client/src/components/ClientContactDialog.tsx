@@ -6,7 +6,7 @@ import { Phone, Mail, MapPin, Calendar, User, FileText, CheckCircle } from "luci
 import { trpc } from "@/lib/trpc";
 import { toast } from "sonner";
 import { format } from "date-fns";
-import { es } from "date-fns/locale";
+import { es, enUS } from "date-fns/locale";
 import { useState } from "react";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -20,8 +20,10 @@ interface ClientContactDialogProps {
   clientId: string;
   clientName: string;
 }
-const { t, i18n } = useTranslation();
 export function ClientContactDialog({ open, onOpenChange, clientId, clientName }: ClientContactDialogProps) {
+  const { t, i18n } = useTranslation();
+  const dateLocale = i18n.language === "es" ? es : enUS;
+  const dateFormat = i18n.language === "es" ? "PPP 'a las' p" : "PPP 'at' p";
   const utils = trpc.useUtils();
   const [contactMethod, setContactMethod] = useState<string>("LLAMADA");
   const [description, setDescription] = useState("");
@@ -58,17 +60,18 @@ export function ClientContactDialog({ open, onOpenChange, clientId, clientName }
       });
     },
     onError: (error) => {
-      toast.error(`Error al registrar actividad: ${error.message}`);
+      toast.error(t('clientContactDialog.createActivityError', { message: error.message }));
     },
   });
 
   // Mutación para actualizar fecha de contacto del cliente
   const updateClientContact = trpc.clients.update.useMutation({
     onSuccess: () => {
-      toast.success("Contacto registrado y cliente actualizado");
+      toast.success(t('clientContactDialog.saveSuccess'));
       // Invalidar solo las queries específicas que se ven afectadas
       utils.dashboard.lateContact.invalidate();
       utils.dashboard.upcomingContacts.invalidate();
+      utils.clients.list.invalidate();
       utils.clients.getById.invalidate({ id: clientId });
       utils.activityLogs.getByClientId.invalidate({ clientId });
       setDescription("");
@@ -76,14 +79,14 @@ export function ClientContactDialog({ open, onOpenChange, clientId, clientName }
       onOpenChange(false);
     },
     onError: (error) => {
-      toast.error(`Error al actualizar cliente: ${error.message}`);
+      toast.error(t('clientContactDialog.updateClientError', { message: error.message }));
     },
   });
   
   const handleSubmit = () => {
     if (!clientId) return;
     if (!description || !subject) {
-      toast.error("Por favor completa el asunto y la descripción");
+      toast.error(t('clientContactDialog.missingFields'));
       return;
     }
     
@@ -103,10 +106,10 @@ export function ClientContactDialog({ open, onOpenChange, clientId, clientName }
       <Dialog open={open} onOpenChange={onOpenChange}>
         <DialogContent className="max-w-2xl">
           <DialogHeader>
-            <DialogTitle>Cargando información del cliente</DialogTitle>
+            <DialogTitle>{t('clientContactDialog.loadingTitle')}</DialogTitle>
           </DialogHeader>
           <div className="flex items-center justify-center py-8">
-            <p className="text-muted-foreground">Cargando información...</p>
+            <p className="text-muted-foreground">{t('clientContactDialog.loadingText')}</p>
           </div>
         </DialogContent>
       </Dialog>
@@ -123,9 +126,9 @@ export function ClientContactDialog({ open, onOpenChange, clientId, clientName }
     : 999;
   
   const getPriorityBadge = (days: number) => {
-    if (days >= 7) return <Badge variant="destructive">Alta Prioridad</Badge>;
-    if (days >= 5) return <Badge className="bg-orange-500">Media Prioridad</Badge>;
-    return <Badge className="bg-yellow-500">Baja Prioridad</Badge>;
+    if (days >= 7) return <Badge variant="destructive">{t('clientContactDialog.priority.high')}</Badge>;
+    if (days >= 5) return <Badge className="bg-orange-500">{t('clientContactDialog.priority.medium')}</Badge>;
+    return <Badge className="bg-yellow-500">{t('clientContactDialog.priority.low')}</Badge>;
   };
   
   return (
@@ -137,7 +140,7 @@ export function ClientContactDialog({ open, onOpenChange, clientId, clientName }
             {clientName}
           </DialogTitle>
           <DialogDescription>
-            Información de contacto y última actividad registrada
+            {t('clientContactDialog.dialogDescription')}
           </DialogDescription>
         </DialogHeader>
         
@@ -145,7 +148,7 @@ export function ClientContactDialog({ open, onOpenChange, clientId, clientName }
           {/* Estado de Contacto */}
           <div className="flex items-center justify-between p-4 bg-muted rounded-lg">
             <div>
-              <p className="text-sm text-muted-foreground">Días desde último contacto</p>
+              <p className="text-sm text-muted-foreground">{t('clientContactDialog.daysSinceLastContact')}</p>
               <p className="text-3xl font-bold">{daysSinceContact}</p>
             </div>
             <div>
@@ -153,11 +156,11 @@ export function ClientContactDialog({ open, onOpenChange, clientId, clientName }
             </div>
           </div>
           
-          {/* Información de Contacto */}
+          {/* {t('clientContactDialog.contactInfoTitle')} */}
           <div>
             <h3 className="font-semibold text-lg mb-3 flex items-center gap-2">
               <Phone className="h-5 w-5" />
-              Información de Contacto
+              {t('clientContactDialog.contactInfoTitle')}
             </h3>
             <div className="space-y-3 bg-card p-4 rounded-lg border">
               {client.phone && (
@@ -169,7 +172,7 @@ export function ClientContactDialog({ open, onOpenChange, clientId, clientName }
                   >
                     {client.phone}
                   </a>
-                  <Badge variant="outline">Principal</Badge>
+                  <Badge variant="outline">{t('clientContactDialog.phoneLabels.primary')}</Badge>
                 </div>
               )}
               
@@ -182,7 +185,7 @@ export function ClientContactDialog({ open, onOpenChange, clientId, clientName }
                   >
                     {client.alternatePhone}
                   </a>
-                  <Badge variant="outline">Alternativo</Badge>
+                  <Badge variant="outline">{t('clientContactDialog.phoneLabels.alternate')}</Badge>
                 </div>
               )}
               
@@ -220,7 +223,7 @@ export function ClientContactDialog({ open, onOpenChange, clientId, clientName }
           <div>
             <h3 className="font-semibold text-lg mb-3 flex items-center gap-2">
               <FileText className="h-5 w-5" />
-              Última Actividad Registrada
+              {t('clientContactDialog.lastActivityTitle')}
             </h3>
             
             {lastActivity ? (
@@ -229,27 +232,27 @@ export function ClientContactDialog({ open, onOpenChange, clientId, clientName }
                   <Badge>{lastActivity.activityType}</Badge>
                   <div className="flex items-center gap-2 text-sm text-muted-foreground">
                     <Calendar className="h-4 w-4" />
-                    {format(new Date(lastActivity.performedAt), "PPP 'a las' p", { locale: es })}
+                    {format(new Date(lastActivity.performedAt), dateFormat, { locale: dateLocale })}
                   </div>
                 </div>
                 
                 {lastActivity.subject && (
                   <div>
-                    <p className="text-sm font-semibold text-muted-foreground">Asunto:</p>
+                    <p className="text-sm font-semibold text-muted-foreground">{t('clientContactDialog.activityLabels.subject')}</p>
                     <p>{lastActivity.subject}</p>
                   </div>
                 )}
                 
                 {lastActivity.description && (
                   <div>
-                    <p className="text-sm font-semibold text-muted-foreground">Descripción:</p>
+                    <p className="text-sm font-semibold text-muted-foreground">{t('clientContactDialog.activityLabels.description')}</p>
                     <p className="text-sm">{lastActivity.description}</p>
                   </div>
                 )}
                 
                 {lastActivity.outcome && (
                   <div>
-                    <p className="text-sm font-semibold text-muted-foreground">Resultado:</p>
+                    <p className="text-sm font-semibold text-muted-foreground">{t('clientContactDialog.activityLabels.outcome')}</p>
                     <p className="text-sm">{lastActivity.outcome}</p>
                   </div>
                 )}
@@ -258,13 +261,13 @@ export function ClientContactDialog({ open, onOpenChange, clientId, clientName }
                 
                 <div className="flex items-center gap-2 text-sm">
                   <User className="h-4 w-4 text-muted-foreground" />
-                  <span className="text-muted-foreground">Contactado por:</span>
-                  <span className="font-semibold">Usuario #{lastActivity.performedBy}</span>
+                  <span className="text-muted-foreground">{t('clientContactDialog.activityLabels.contactedBy')}</span>
+                  <span className="font-semibold">{t('clientContactDialog.activityLabels.userLabel', { id: lastActivity.performedBy })}</span>
                 </div>
               </div>
             ) : (
               <div className="bg-muted p-4 rounded-lg text-center">
-                <p className="text-muted-foreground">No hay actividades registradas para este cliente</p>
+                <p className="text-muted-foreground">{t('clientContactDialog.noActivities')}</p>
               </div>
             )}
           </div>
@@ -274,29 +277,29 @@ export function ClientContactDialog({ open, onOpenChange, clientId, clientName }
             <>
               <Separator />
               <div>
-                <h3 className="font-semibold text-lg mb-3">Información del Reclamo</h3>
+                <h3 className="font-semibold text-lg mb-3">{t('clientContactDialog.claimInfoTitle')}</h3>
                 <div className="grid grid-cols-2 gap-4 bg-card p-4 rounded-lg border">
                   {client.insuranceCompany && (
                     <div>
-                      <p className="text-sm text-muted-foreground">Aseguradora</p>
+                      <p className="text-sm text-muted-foreground">{t('clientContactDialog.claimLabels.insurance')}</p>
                       <p className="font-semibold">{client.insuranceCompany}</p>
                     </div>
                   )}
                   {client.claimNumber && (
                     <div>
-                      <p className="text-sm text-muted-foreground">Número de Reclamo</p>
+                      <p className="text-sm text-muted-foreground">{t('clientContactDialog.claimLabels.claimNumber')}</p>
                       <p className="font-semibold">{client.claimNumber}</p>
                     </div>
                   )}
                   {client.claimStatus && (
                     <div>
-                      <p className="text-sm text-muted-foreground">Estado</p>
+                      <p className="text-sm text-muted-foreground">{t('clientContactDialog.claimLabels.status')}</p>
                       <Badge>{client.claimStatus}</Badge>
                     </div>
                   )}
                   {client.assignedAdjuster && (
                     <div>
-                      <p className="text-sm text-muted-foreground">Ajustador Asignado</p>
+                      <p className="text-sm text-muted-foreground">{t('clientContactDialog.claimLabels.assignedAdjuster')}</p>
                       <p className="font-semibold">{client.assignedAdjuster}</p>
                     </div>
                   )}
@@ -310,41 +313,41 @@ export function ClientContactDialog({ open, onOpenChange, clientId, clientName }
           <div>
             <h3 className="font-semibold text-lg mb-3 flex items-center gap-2">
               <CheckCircle className="h-5 w-5" />
-              Registrar Nuevo Contacto
+              {t('clientContactDialog.registerContactTitle')}
             </h3>
             <div className="space-y-4 bg-muted/50 p-4 rounded-lg border border-dashed">
               <div className="grid gap-2">
-                <Label htmlFor="contact-method">Método de Contacto</Label>
+                <Label htmlFor="contact-method">{t('clientContactDialog.contactMethodLabel')}</Label>
                 <Select value={contactMethod} onValueChange={setContactMethod}>
                   <SelectTrigger id="contact-method">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="LLAMADA">Llamada</SelectItem>
-                    <SelectItem value="CORREO">Email</SelectItem>
-                    <SelectItem value="VISITA">Visita</SelectItem>
-                    <SelectItem value="NOTA">Nota</SelectItem>
-                    <SelectItem value="DOCUMENTO">Documento</SelectItem>
-                    <SelectItem value="CAMBIO_ESTADO">Cambio de Estado</SelectItem>
+                    <SelectItem value="LLAMADA">{t('clientContactDialog.contactMethods.call')}</SelectItem>
+                    <SelectItem value="CORREO">{t('clientContactDialog.contactMethods.email')}</SelectItem>
+                    <SelectItem value="VISITA">{t('clientContactDialog.contactMethods.visit')}</SelectItem>
+                    <SelectItem value="NOTA">{t('clientContactDialog.contactMethods.note')}</SelectItem>
+                    <SelectItem value="DOCUMENTO">{t('clientContactDialog.contactMethods.document')}</SelectItem>
+                    <SelectItem value="CAMBIO_ESTADO">{t('clientContactDialog.contactMethods.statusChange')}</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
 
               <div className="grid gap-2">
-                <Label htmlFor="subject">Asunto</Label>
+                <Label htmlFor="subject">{t('clientContactDialog.subjectLabel')}</Label>
                 <Input
                   id="subject"
-                  placeholder="Resumen breve del contacto..."
+                  placeholder={t('clientContactDialog.subjectPlaceholder')}
                   value={subject}
                   onChange={(e) => setSubject(e.target.value)}
                 />
               </div>
 
               <div className="grid gap-2">
-                <Label htmlFor="description">Descripción / Notas</Label>
+                <Label htmlFor="description">{t('clientContactDialog.notesLabel')}</Label>
                 <Textarea
                   id="description"
-                  placeholder="Detalles de la conversación, acuerdos, próximos pasos..."
+                  placeholder={t('clientContactDialog.notesPlaceholder')}
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
                   rows={3}
@@ -358,13 +361,13 @@ export function ClientContactDialog({ open, onOpenChange, clientId, clientName }
                   disabled={createActivity.isPending || updateClientContact.isPending}
                 >
                   <CheckCircle className="h-4 w-4 mr-2" />
-                  {(createActivity.isPending || updateClientContact.isPending) ? "Guardando..." : "Guardar y Marcar Contactado"}
+                  {(createActivity.isPending || updateClientContact.isPending) ? t('clientContactDialog.savingButton') : t('clientContactDialog.saveButton')}
                 </Button>
                 <Button
                   variant="outline"
                   onClick={() => onOpenChange(false)}
                 >
-                  Cancelar
+                  {t('clientContactDialog.cancelButton')}
                 </Button>
               </div>
             </div>

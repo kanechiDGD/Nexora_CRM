@@ -95,7 +95,18 @@
           "INSPECTION": "Inspection",
           "APPOINTMENT": "Appointment",
           "DEADLINE": "Deadline",
-          "OTHER": "Other"
+          "OTHER": "Other",
+          "INTERNAL": "Internal"
+        },
+        "success": "Event created successfully and synced to the calendar",
+        "error": "Error creating event: {{message}}",
+        "missingRequired": "Please complete the required fields (Title and Date)",
+        "noClients": "No clients found.",
+        "placeholders": {
+          "adjusterNumber": "Ex: ADJ-12345",
+          "adjusterName": "Full name",
+          "adjusterEmail": "email@example.com",
+          "insuranceCompany": "Insurance company name"
         }
       },
       "policy": {
@@ -108,7 +119,12 @@
         "mandatoryDesc": "Document every call, email, or meeting in the system",
         "priority": "Automatic prioritization:",
         "priorityDesc": "Clients with overdue contact appear first with urgent priority"
-      }
+      },
+      "eventDetails": "Event details",
+      "location": "Location",
+      "description": "Description",
+      "notes": "Notes",
+      "clientInfo": "Client info"
     },
     "alerts": {
       "title": "Contact Alerts",
@@ -139,7 +155,8 @@
         "EN_PROCESO": "In Progress",
         "APROVADA": "Approved",
         "RECHAZADA": "Denied",
-        "CERRADA": "Closed"
+        "CERRADA": "Closed",
+        "APROBADA": "Approved"
       }
     },
     "kpis": {
@@ -372,27 +389,1017 @@
     }
   },
   "login": {
-    "appTitle": "CRM Public Adjusters",
-    "appSubtitle": "Client Management System",
+    "appTitle": "Nexora CRM",
+    "appSubtitle": "Claims + client operations for public adjusters",
     "welcome": "Welcome",
     "selectOption": "Select an option to continue",
-    "loginExisting": "Sign In with Existing Organization",
-    "loginExistingDesc": "I already have access credentials (username and password)",
-    "createNew": "Create New Organization",
-    "createNewDesc": "I'm new and want to create an organization from scratch",
-    "needHelp": "Need help? Contact your organization administrator",
-    "loginTitle": "Sign In",
-    "loginDescription": "Enter your credentials to access the system",
+    "loginExisting": "Log in with username",
+    "loginExistingDesc": "Use your organization credentials",
+    "createNew": "New to Nexora CRM?",
+    "createNewDesc": "Create your organization and invite your team.",
+    "needHelp": "Need help? Contact your organization admin.",
+    "loginTitle": "Log in with credentials",
+    "loginDescription": "Enter the username and password provided by your admin.",
     "username": "Username",
-    "usernamePlaceholder": "user@organization.internal",
+    "usernamePlaceholder": "username@company.internal",
     "password": "Password",
     "passwordPlaceholder": "••••••••",
-    "rememberMe": "Remember me",
-    "googleSignIn": "Continue with Google",
-    "googleSignInDesc": "Use your Google account to access instantly",
-    "loginButton": "Sign In",
-    "loggingIn": "Signing in...",
-    "backToOptions": "← Back to options",
-    "language": "Language"
+    "rememberMe": "Keep me signed in",
+    "googleSignIn": "Log in with Google",
+    "googleSignInDesc": "Fast access with your Google account",
+    "loginButton": "Log in",
+    "loggingIn": "Logging in...",
+    "backToOptions": "Back to login options",
+    "language": "Language",
+    "heroEyebrow": "Public Adjusters",
+    "heroDescription": "Run claims, contacts, and follow-ups from one focused workspace built for field and office teams.",
+    "featureOneTitle": "Claim pipeline clarity",
+    "featureOneDesc": "Track status, deadlines, and next steps at a glance.",
+    "featureTwoTitle": "Client-first follow-ups",
+    "featureTwoDesc": "Automated contact alerts keep you on schedule.",
+    "featureThreeTitle": "Team visibility",
+    "featureThreeDesc": "Shared tasks, notes, and calendars in one view.",
+    "trustLine": "Built for modern adjuster teams",
+    "accessEyebrow": "Access",
+    "accessTitle": "Log in to your workspace",
+    "accessSubtitle": "Choose Google or your organization credentials.",
+    "or": "or",
+    "createNewAction": "Create organization",
+    "loginEyebrow": "Credentials",
+    "languageEnglish": "English",
+    "languageSpanish": "Espanol",
+    "forgotPassword": "Forgot password?"
+  },
+  "clientContactDialog": {
+    "saveSuccess": "Contact saved and client updated",
+    "createActivityError": "Error saving activity: {{message}}",
+    "updateClientError": "Error updating client: {{message}}",
+    "missingFields": "Please complete the subject and description",
+    "loadingTitle": "Loading client information",
+    "loadingText": "Loading information...",
+    "dialogDescription": "Contact info and latest recorded activity",
+    "daysSinceLastContact": "Days since last contact",
+    "contactInfoTitle": "Contact information",
+    "phoneLabels": {
+      "primary": "Primary",
+      "alternate": "Alternate"
+    },
+    "lastActivityTitle": "Latest recorded activity",
+    "activityLabels": {
+      "subject": "Subject:",
+      "description": "Description:",
+      "outcome": "Outcome:",
+      "contactedBy": "Contacted by:",
+      "userLabel": "User #{{id}}"
+    },
+    "noActivities": "No activities recorded for this client",
+    "claimInfoTitle": "Claim information",
+    "claimLabels": {
+      "insurance": "Insurance",
+      "claimNumber": "Claim number",
+      "status": "Status",
+      "assignedAdjuster": "Assigned adjuster"
+    },
+    "registerContactTitle": "Log new contact",
+    "contactMethodLabel": "Contact method",
+    "contactMethods": {
+      "call": "Call",
+      "email": "Email",
+      "visit": "Visit",
+      "note": "Note",
+      "document": "Document",
+      "statusChange": "Status change"
+    },
+    "subjectLabel": "Subject",
+    "subjectPlaceholder": "Brief contact summary...",
+    "notesLabel": "Description / Notes",
+    "notesPlaceholder": "Conversation details, agreements, next steps...",
+    "savingButton": "Saving...",
+    "saveButton": "Save and mark contacted",
+    "cancelButton": "Cancel",
+    "priority": {
+      "high": "High priority",
+      "medium": "Medium priority",
+      "low": "Low priority"
+    }
+  },
+  "eventDialogs": {
+    "delete": {
+      "title": "Delete event?",
+      "description": "This action cannot be undone. The event \"{{title}}\" will be permanently deleted from the calendar.",
+      "cancel": "Cancel",
+      "confirm": "Delete",
+      "deleting": "Deleting...",
+      "success": "Event deleted successfully",
+      "error": "Error deleting event: {{message}}"
+    },
+    "edit": {
+      "success": "Event updated successfully",
+      "error": "Error updating event: {{message}}",
+      "missingRequired": "Title and date are required",
+      "title": "Edit event",
+      "description": "Update event details.",
+      "eventTypeLabel": "Event type",
+      "titleLabel": "Title *",
+      "dateLabel": "Date *",
+      "timeLabel": "Time",
+      "addressLabel": "Address",
+      "descriptionLabel": "Description",
+      "cancel": "Cancel",
+      "saving": "Saving...",
+      "save": "Save changes"
+    }
+  },
+  "taskDialogs": {
+    "delete": {
+      "title": "Delete task?",
+      "description": "This action cannot be undone. The task \"{{title}}\" will be permanently deleted.",
+      "cancel": "Cancel",
+      "confirm": "Delete",
+      "deleting": "Deleting...",
+      "success": "Task deleted successfully",
+      "error": "Error deleting task: {{message}}"
+    },
+    "edit": {
+      "success": "Task updated successfully",
+      "error": "Error updating task: {{message}}",
+      "missingTitle": "Title is required",
+      "title": "Edit task",
+      "description": "Update task details.",
+      "titleLabel": "Title *",
+      "descriptionLabel": "Description",
+      "categoryLabel": "Category",
+      "priorityLabel": "Priority",
+      "statusLabel": "Status",
+      "dueDateLabel": "Due date",
+      "cancel": "Cancel",
+      "saving": "Saving...",
+      "save": "Save changes",
+      "categories": {
+        "documentation": "Documentation",
+        "followUp": "Follow-up",
+        "estimate": "Estimate",
+        "meeting": "Meeting",
+        "review": "Review",
+        "other": "Other"
+      },
+      "priorities": {
+        "high": "High",
+        "medium": "Medium",
+        "low": "Low"
+      },
+      "status": {
+        "pending": "Pending",
+        "inProgress": "In Progress",
+        "completed": "Completed",
+        "canceled": "Canceled"
+      }
+    },
+    "new": {
+      "success": "Task created successfully",
+      "error": "Error creating task: {{message}}",
+      "missingTitle": "Please enter a title for the task",
+      "trigger": "New Task",
+      "title": "Create new task",
+      "description": "Assign a task to a team member with a due date and priority.",
+      "titleLabel": "Task Title *",
+      "titlePlaceholder": "Ex: Review client documentation",
+      "descriptionLabel": "Description",
+      "descriptionPlaceholder": "Task details...",
+      "categoryLabel": "Category",
+      "priorityLabel": "Priority",
+      "dueDateLabel": "Due date",
+      "assignedToLabel": "Assigned to",
+      "assignedToPlaceholder": "Select user...",
+      "assignedToNone": "Unassigned",
+      "assignedToYou": "You",
+      "clientLabel": "Related client (optional)",
+      "clientPlaceholder": "Select client...",
+      "clientSearchPlaceholder": "Search client...",
+      "noClients": "No clients found.",
+      "cancel": "Cancel",
+      "creating": "Creating...",
+      "create": "Create Task",
+      "validation": {
+        "titleRequired": "Please enter a task title"
+      }
+    }
+  },
+  "activityDialog": {
+    "new": {
+      "success": "Activity logged successfully",
+      "error": "Error logging activity: {{message}}",
+      "missingFields": "Please complete all required fields",
+      "trigger": "New Activity",
+      "title": "Log new activity",
+      "description": "Log a call, meeting, email, or note. The system will automatically record who performed the activity.",
+      "performedByLabel": "Performed by",
+      "unknownUser": "User",
+      "performedByHelp": "The current user is detected automatically",
+      "typeLabel": "Activity type *",
+      "typePlaceholder": "Select type",
+      "types": {
+        "call": "Call",
+        "email": "Email",
+        "visit": "Visit/Meeting",
+        "note": "Note",
+        "document": "Document",
+        "statusChange": "Status change"
+      },
+      "clientLabel": "Client (optional)",
+      "clientPlaceholder": "Search client...",
+      "clientSearchPlaceholder": "Type client name...",
+      "noClients": "No clients found.",
+      "clientHelp": "Search and select a client or leave it empty for a general activity",
+      "subjectLabel": "Subject *",
+      "subjectPlaceholder": "Ex: Claim follow-up",
+      "descriptionLabel": "Description *",
+      "descriptionPlaceholder": "Describe what was discussed, agreed, or done...",
+      "cancel": "Cancel",
+      "saving": "Saving...",
+      "save": "Save Activity"
+    }
+  },
+  "documents": {
+    "title": "Documents",
+    "uploadButton": "Upload Documents",
+    "noDocuments": "No documents uploaded for this client",
+    "unknownSize": "Unknown size",
+    "uploading": "Uploading {{count}} file(s)...",
+    "uploadSuccess": "{{count}} file(s) uploaded successfully",
+    "deleteConfirm": "Are you sure you want to delete \"{{name}}\"? This action cannot be undone.",
+    "deleting": "Deleting document...",
+    "deleteSuccess": "Document deleted successfully",
+    "errors": {
+      "fileTooLarge": "File \"{{fileName}}\" exceeds the {{maxMb}}MB limit (size: {{sizeMb}}MB)",
+      "invalidType": "File type \"{{fileType}}\" is not allowed for \"{{fileName}}\"",
+      "invalidExtension": "Extension \"{{extension}}\" is not allowed for \"{{fileName}}\"",
+      "uploadFailed": "Error uploading files",
+      "uploadError": "Error uploading files. Please try again.",
+      "deleteFailed": "Error deleting document",
+      "deleteError": "Error deleting document"
+    },
+    "types": {
+      "policy": "Policy",
+      "contract": "Contract",
+      "photo": "Photo",
+      "estimate": "Estimate",
+      "invoice": "Invoice",
+      "permit": "Permit",
+      "other": "Other"
+    }
+  },
+  "calendarPage": {
+    "eventTypes": {
+      "estimate": "Estimate",
+      "meeting": "Meeting",
+      "adjustment": "Adjustment",
+      "internal": "Internal event"
+    },
+    "daysUntil": {
+      "today": "Today",
+      "tomorrow": "Tomorrow",
+      "daysAgo": "{{days}} day(s) ago",
+      "daysIn": "In {{count}} day(s)",
+      "inDays": "In {{days}} day(s)"
+    },
+    "priority": {
+      "overdue": "Overdue",
+      "today": "Today",
+      "tomorrow": "Tomorrow",
+      "soon": "Soon"
+    },
+    "alerts": {
+      "titleSingular": "Alert! 1 client needs contact",
+      "titlePlural": "Alert! {{count}} clients need contact",
+      "subtitle": "The following clients need to be contacted soon",
+      "noContact": "No contact info",
+      "daysLate": "{{count}} day(s) overdue",
+      "contactToday": "Contact today",
+      "contactInDays": "Contact in {{count}} day(s)",
+      "viewDetails": "View details"
+    },
+    "stats": {
+      "upcomingEvents": "Upcoming Events",
+      "pendingClients": "Pending Clients",
+      "eventsThisWeek": "Events This Week"
+    },
+    "upcomingEvents": {
+      "title": "Upcoming Events",
+      "subtitle": "Estimates, meetings, adjustments, and internal events scheduled",
+      "clientLabel": "Client:",
+      "editHint": "Use the dashboard calendar to edit/delete events"
+    }
+  },
+  "claimStatusManager": {
+    "createSuccess": "Status created successfully",
+    "createError": "Error creating status",
+    "deleteSuccess": "Status deleted successfully",
+    "deleteError": "Error deleting status",
+    "deleteConfirm": "Are you sure you want to delete this status? This action cannot be undone.",
+    "missingFields": "Please complete all fields",
+    "triggerLabel": "Manage statuses",
+    "title": "Manage claim statuses",
+    "description": "Add or remove custom statuses for the claim status dropdown. Only ADMIN and CO_ADMIN can manage these statuses.",
+    "fields": {
+      "internalName": {
+        "label": "Internal name (no spaces)",
+        "placeholder": "ex: IN_REVIEW",
+        "help": "Used in the database"
+      },
+      "displayName": {
+        "label": "Display name",
+        "placeholder": "ex: In Review",
+        "help": "Shown in the dropdown"
+      }
+    },
+    "addButton": "Add status",
+    "customStatusesTitle": "Existing custom statuses",
+    "emptyCustomStatuses": "No custom statuses. Add one above.",
+    "defaultStatusesTitle": "Default statuses (cannot be deleted)",
+    "defaultLabel": "Default"
+  },
+  "clientEdit": {
+    "updateSuccess": "Client updated successfully",
+    "updateError": "Error updating client",
+    "adjusterPlaceholder": "Select adjuster...",
+    "notesPlaceholder": "Additional notes about the client or case...",
+    "saving": "Saving...",
+    "saveChanges": "Save changes",
+    "title": "Edit Client",
+    "loading": "Loading client...",
+    "notFound": "Client not found",
+    "backToClients": "Back to Clients",
+    "sections": {
+      "personal": {
+        "title": "Personal Information"
+      },
+      "property": {
+        "title": "Property Address"
+      },
+      "claim": {
+        "title": "Claim Information"
+      },
+      "dates": {
+        "title": "Important Dates"
+      },
+      "team": {
+        "title": "Assigned Team"
+      },
+      "notes": {
+        "title": "Additional Notes"
+      }
+    },
+    "fields": {
+      "dateOfLoss": "Date of Loss",
+      "claimSubmittedDate": "Report Date",
+      "firstCheckAmount": "First Check ($)"
+    },
+    "validation": {
+      "nameRequired": "First and last name are required",
+      "invalidEmail": "Invalid email format",
+      "invalidPhone": "Primary phone is invalid (minimum 10 digits)",
+      "invalidAlternatePhone": "Alternate phone is invalid (minimum 10 digits)",
+      "invalidZipCode": "ZIP code must be exactly 5 digits"
+    },
+    "actions": {
+      "cancel": "Cancel"
+    }
+  },
+  "clientNew": {
+    "createSuccess": "Client created successfully",
+    "supplementedLabel": "Supplemented",
+    "supplemented": {
+      "no": "No",
+      "yes": "Yes"
+    },
+    "firstCheck": {
+      "label": "First check",
+      "pending": "Pending",
+      "received": "Received"
+    },
+    "adjusterPlaceholder": "Select adjuster...",
+    "notesPlaceholder": "Notes visible to the client",
+    "saving": "Saving...",
+    "save": "Save client",
+    "title": "New Client",
+    "subtitle": "Complete the client information to add them to the system",
+    "createError": "Error creating client: {{message}}",
+    "claimStatusReadOnly": "Only administrators can change the claim status",
+    "unassigned": "Unassigned",
+    "actions": {
+      "cancel": "Cancel"
+    },
+    "sections": {
+      "contact": {
+        "title": "Contact Information",
+        "description": "Basic client details"
+      },
+      "property": {
+        "title": "Property Information",
+        "description": "Location and type of affected property"
+      },
+      "insurance": {
+        "title": "Insurance and Claim",
+        "description": "Policy and claim details"
+      },
+      "damage": {
+        "title": "Damage Information",
+        "description": "Type and description of property damage"
+      },
+      "dates": {
+        "title": "Important Dates",
+        "description": "Key claim process dates"
+      },
+      "team": {
+        "title": "Assigned Team",
+        "description": "Staff responsible for the case"
+      },
+      "notes": {
+        "title": "Notes",
+        "description": "Additional client information"
+      }
+    },
+    "fields": {
+      "firstName": "First Name *",
+      "lastName": "Last Name *",
+      "email": "Email",
+      "phone": "Primary Phone",
+      "alternatePhone": "Alternate Phone",
+      "propertyAddress": "Property Address",
+      "city": "City",
+      "state": "State",
+      "zipCode": "ZIP Code",
+      "propertyType": "Property Type",
+      "insuranceCompany": "Insurance Company",
+      "policyNumber": "Policy Number",
+      "claimNumber": "Claim Number",
+      "claimStatus": "Claim Status",
+      "deductible": "Deductible ($)",
+      "coverageAmount": "Coverage Amount ($)",
+      "damageType": "Damage Type",
+      "estimatedLoss": "Estimated Loss ($)",
+      "damageDescription": "Damage Description",
+      "dateOfLoss": "Date of Loss",
+      "claimSubmittedDate": "Claim Submission Date",
+      "scheduledVisit": "Scheduled Visit",
+      "adjustmentDate": "Adjustment Date",
+      "lastContactDate": "Last Contact",
+      "nextContactDate": "Next Contact",
+      "salesPerson": "Salesperson",
+      "assignedAdjuster": "Assigned Adjuster",
+      "notes": "Public Notes",
+      "internalNotes": "Internal Notes"
+    },
+    "propertyTypes": {
+      "residential": "Residential",
+      "commercial": "Commercial",
+      "condo": "Condo",
+      "townhouse": "Townhouse",
+      "apartment": "Apartment"
+    },
+    "damageTypes": {
+      "fire": "Fire",
+      "water": "Water",
+      "wind": "Wind",
+      "hail": "Hail",
+      "storm": "Storm",
+      "theft": "Theft",
+      "vandalism": "Vandalism",
+      "other": "Other"
+    },
+    "placeholders": {
+      "propertyType": "Select property type",
+      "damageType": "Select damage type",
+      "salesPerson": "Select salesperson...",
+      "internalNotes": "Notes for internal use only"
+    },
+    "validation": {
+      "nameRequired": "First and last name are required",
+      "invalidEmail": "Invalid email format",
+      "invalidPhone": "Primary phone is invalid (minimum 10 digits)",
+      "invalidAlternatePhone": "Alternate phone is invalid (minimum 10 digits)",
+      "invalidZipCode": "ZIP code must be exactly 5 digits",
+      "invalidDeductible": "Deductible must be a valid number",
+      "invalidCoverageAmount": "Coverage amount must be a valid number",
+      "invalidEstimatedLoss": "Estimated loss must be a valid number",
+      "invalidActualPayout": "Actual payout must be a valid number"
+    }
+  },
+  "clientProfile": {
+    "firstCheck": {
+      "pending": "Pending",
+      "received": "Received"
+    },
+    "notFound": "Client not found",
+    "labels": {
+      "clientId": "Client ID",
+      "fullName": "Full Name",
+      "email": "Email",
+      "phone": "Primary Phone",
+      "alternatePhone": "Alternate Phone",
+      "salesPerson": "Salesperson",
+      "assignedAdjuster": "Assigned Adjuster",
+      "insurance": "Insurance",
+      "policyNumber": "Policy Number",
+      "claimNumber": "Claim Number",
+      "claimStatus": "Claim Status",
+      "supplemented": "Supplemented",
+      "estimatedLoss": "Estimated Loss",
+      "firstCheck": "First Check",
+      "damageType": "Damage Type",
+      "damageDescription": "Damage Description",
+      "propertyAddress": "Address",
+      "state": "State",
+      "zipCode": "ZIP Code",
+      "constructionStatus": "Status",
+      "dateOfLoss": "Date of Loss",
+      "claimSubmittedDate": "Claim Submission Date",
+      "adjustmentDate": "Adjustment Date",
+      "lastContactDate": "Last Contact",
+      "nextContactDate": "Next Contact",
+      "propertyType": "Property Type"
+    },
+    "actions": {
+      "edit": "Edit Client"
+    },
+    "quick": {
+      "status": "Status",
+      "insurance": "Insurance",
+      "deductible": "Deductible",
+      "salesPerson": "Salesperson",
+      "insuranceEstimate": "Insurance Estimate",
+      "firstCheck": "First Check"
+    },
+    "tabs": {
+      "general": "General",
+      "claim": "Claim",
+      "property": "Property",
+      "dates": "Dates",
+      "documents": "Documents",
+      "activity": "Activity"
+    },
+    "sections": {
+      "contact": {
+        "title": "Contact Information"
+      },
+      "claim": {
+        "title": "Claim Information"
+      },
+      "damage": {
+        "title": "Damage Type and Description"
+      },
+      "property": {
+        "title": "Property Information"
+      },
+      "construction": {
+        "title": "Construction Status"
+      },
+      "dates": {
+        "title": "Important Dates"
+      }
+    }
+  },
+  "logsPage": {
+    "dateLabels": {
+      "today": "Today",
+      "yesterday": "Yesterday",
+      "thisWeek": "This Week",
+      "lastWeek": "Last Week",
+      "thisMonth": "This Month",
+      "older": "Older"
+    },
+    "filters": {
+      "datePlaceholder": "Filter by date",
+      "today": "Today",
+      "activityTypePlaceholder": "Filter by type",
+      "title": "Filters",
+      "searchPlaceholder": "Search by content or team member...",
+      "allDates": "All dates",
+      "thisWeek": "This week",
+      "lastWeek": "Last week",
+      "thisMonth": "This month",
+      "lastMonth": "Last month",
+      "allTypes": "All types"
+    },
+    "title": "Activity Logs",
+    "subtitle": "Full history of client interactions",
+    "stats": {
+      "totalActivities": "Total Activities"
+    },
+    "activityTypes": {
+      "call": "Call",
+      "email": "Email",
+      "meeting": "Meeting",
+      "note": "Note",
+      "update": "Update",
+      "callPlural": "Calls",
+      "emailPlural": "Emails",
+      "meetingPlural": "Meetings",
+      "notePlural": "Notes",
+      "updatePlural": "Updates"
+    },
+    "loading": "Loading activities...",
+    "emptyState": "No activities recorded",
+    "performedBy": "Performed by",
+    "clientId": "Client ID"
+  },
+  "onboarding": {
+    "createOrganization": "Create Organization",
+    "createSuccess": "Organization created successfully!",
+    "creating": "Creating...",
+    "title": "Initial Setup",
+    "stepDescription": "Step {{step}} of 3 - Set up your organization",
+    "orgInfo": {
+      "title": "Organization Information",
+      "subtitle": "Tell us about your company",
+      "orgNameLabel": "Organization Name *",
+      "orgNamePlaceholder": "e.g. Acme Public Adjusters",
+      "businessTypeLabel": "Business Type *",
+      "businessTypePlaceholder": "Select a business type",
+      "logoLabel": "Logo URL (Optional)",
+      "logoPlaceholder": "https://example.com/logo.png",
+      "logoHint": "You can add or change the logo later in settings",
+      "memberCountLabel": "Team Members Count (1-20)",
+      "memberCountHint": "Include everyone who will need CRM access"
+    },
+    "actions": {
+      "previous": "Previous"
+    },
+    "validation": {
+      "orgNameRequired": "Please enter the organization name",
+      "businessTypeRequired": "Please select a business type"
+    },
+    "toasts": {
+      "credentialsCopied": "Credentials copied to clipboard",
+      "csvDownloaded": "CSV downloaded"
+    },
+    "users": {
+      "title": "Organization Created!",
+      "subtitle": "Here are your users' credentials",
+      "importantLabel": "Important:",
+      "importantText": "Save these credentials in a safe place. You will not be able to see them again after closing this window.",
+      "table": {
+        "user": "User",
+        "password": "Password",
+        "role": "Role"
+      },
+      "roles": {
+        "coAdmin": "Co-Admin",
+        "seller": "Seller"
+      },
+      "copyAll": "Copy All",
+      "downloadCsv": "Download CSV",
+      "goToLogin": "Go to Login"
+    },
+    "businessTypes": {
+      "publicAdjusters": "Public Adjusters",
+      "insurance": "Insurance",
+      "realEstate": "Real Estate",
+      "construction": "Construction",
+      "legal": "Legal",
+      "healthcare": "Healthcare",
+      "other": "Other"
+    }
+  },
+  "tasksPage": {
+    "statusUpdated": "Status updated",
+    "status": {
+      "pending": "Pending",
+      "inProgress": "In Progress",
+      "completed": "Completed",
+      "canceled": "Canceled"
+    },
+    "priority": {
+      "high": "High",
+      "medium": "Medium",
+      "low": "Low"
+    },
+    "noDate": "No date",
+    "due": {
+      "overdue": "Overdue",
+      "today": "Today",
+      "tomorrow": "Tomorrow",
+      "inDays": "In {{days}} days"
+    },
+    "filters": {
+      "statusPlaceholder": "Filter by status",
+      "title": "Search and Filter Tasks",
+      "searchPlaceholder": "Search by title, description...",
+      "userPlaceholder": "Filter by user",
+      "allUsers": "All users",
+      "unassigned": "Unassigned",
+      "allStatuses": "All statuses"
+    },
+    "empty": {
+      "search": "No tasks found",
+      "default": "No tasks created. Create a new task to get started."
+    },
+    "title": "Task Management",
+    "subtitle": "Assign and monitor team tasks with due dates and priorities",
+    "stats": {
+      "total": "Total Tasks",
+      "pending": "Pending",
+      "inProgress": "In Progress",
+      "completed": "Completed"
+    },
+    "categories": {
+      "documentation": "Documentation",
+      "meeting": "Meeting",
+      "review": "Review"
+    },
+    "actions": {
+      "completed": "Completed",
+      "markComplete": "Mark Complete"
+    },
+    "assignedTo": "Assigned to",
+    "createdAt": "Created",
+    "loading": "Loading tasks..."
+  },
+  "usersPage": {
+    "delete": "Delete",
+    "title": "User Management",
+    "subtitle": "Manage members of your organization",
+    "actions": {
+      "addUser": "Add User",
+      "cancel": "Cancel",
+      "adding": "Adding...",
+      "delete": "Delete",
+      "deleting": "Deleting...",
+      "close": "Close",
+      "generating": "Generating...",
+      "generatePassword": "Generate New Password",
+      "inviteUser": "Invite by email",
+      "sendInvite": "Send invite",
+      "sending": "Sending..."
+    },
+    "toasts": {
+      "roleUpdated": "Role updated successfully",
+      "memberDeleted": "Member deleted successfully",
+      "memberAdded": "Member added successfully",
+      "passwordReset": "Password reset successfully",
+      "inviteSent": "Invite sent",
+      "inviteRevoked": "Invite revoked"
+    },
+    "validation": {
+      "completeAllFields": "Please complete all fields"
+    },
+    "roles": {
+      "admin": "Administrator",
+      "coAdmin": "Co-Administrator",
+      "seller": "Seller"
+    },
+    "membersTitle": "Organization Members",
+    "membersDescription": "List of all users with access to the system",
+    "table": {
+      "user": "User",
+      "role": "Role",
+      "createdAt": "Created At",
+      "actions": "Actions"
+    },
+    "dialogs": {
+      "add": {
+        "title": "Add New User",
+        "description": "Create a new member for your organization"
+      },
+      "delete": {
+        "title": "Delete User",
+        "description": "Are you sure you want to delete {{name}}? This action cannot be undone."
+      },
+      "reset": {
+        "title": "Reset Password",
+        "description": "Generate a new temporary password for {{name}}",
+        "generatedLabel": "New password generated:",
+        "generatedHint": "Copy this password and provide it to the user. You will not see it again.",
+        "pendingText": "A new temporary password will be generated for this user."
+      },
+      "invite": {
+        "title": "Invite a team member",
+        "description": "Send a secure invite link so they can set their password.",
+        "notice": "Invites expire after 72 hours. You can revoke and resend anytime."
+      }
+    },
+    "fields": {
+      "username": "Username",
+      "password": "Password",
+      "role": "Role",
+      "email": "Email"
+    },
+    "placeholders": {
+      "username": "user@organization.internal",
+      "password": "Minimum 8 characters",
+      "email": "name@company.com"
+    },
+    "invites": {
+      "title": "Pending invites",
+      "description": "Manage sent invitations and track their status.",
+      "empty": "No invites yet.",
+      "table": {
+        "email": "Email",
+        "role": "Role",
+        "status": "Status",
+        "expires": "Expires",
+        "actions": "Actions"
+      },
+      "status": {
+        "pending": "Pending",
+        "accepted": "Accepted",
+        "expired": "Expired",
+        "revoked": "Revoked"
+      }
+    }
+  },
+  "constructionPage": {
+    "status": {
+      "none": "No status",
+      "pending": "Pending",
+      "inProgress": "In Progress",
+      "completed": "Completed",
+      "onHold": "On Hold"
+    },
+    "searchPlaceholder": "Search by contractor or client ID...",
+    "title": "Construction Projects",
+    "subtitle": "Clients approved for construction",
+    "actions": {
+      "newProject": "New Project",
+      "createFirst": "Create First Project",
+      "viewClient": "View Client",
+      "editProject": "Edit Project"
+    },
+    "stats": {
+      "totalProjects": "Total Projects",
+      "inProgress": "In Progress",
+      "completed": "Completed",
+      "totalValue": "Total Value"
+    },
+    "searchTitle": "Search Projects",
+    "loading": "Loading projects...",
+    "empty": "No construction projects",
+    "projectTitle": "Project #{{id}}",
+    "clientId": "Client ID",
+    "labels": {
+      "contractor": "Contractor",
+      "estimatedCost": "Estimated Cost",
+      "startDate": "Start",
+      "completionDate": "Completion"
+    },
+    "approval": {
+      "title": "Construction Approval Criteria",
+      "items": {
+        "claimApproved": "The claim must be approved by the insurer",
+        "fundsAvailable": "Funds must be available or scheduled",
+        "contractSigned": "The client must have signed the construction contract",
+        "contractorSelected": "A certified contractor must be selected"
+      }
+    }
+  },
+  "contractsPage": {
+    "status": {
+      "signed": "Signed",
+      "pending": "Pending",
+      "canceled": "Canceled"
+    },
+    "types": {
+      "services": "Service Contract",
+      "adjustment": "Adjustment Contract"
+    },
+    "title": "Contracts",
+    "subtitle": "Manage your clients' contracts",
+    "actions": {
+      "newContract": "New Contract",
+      "createFirst": "Create First Contract"
+    },
+    "stats": {
+      "total": "Total Contracts",
+      "signed": "Signed",
+      "pending": "Pending"
+    },
+    "listTitle": "Contract List",
+    "labels": {
+      "client": "Client",
+      "date": "Date"
+    },
+    "empty": "No contracts registered",
+    "info": {
+      "title": "Contract Information",
+      "items": {
+        "autoGenerated": "Contracts are generated automatically when a client accepts services",
+        "downloadPdf": "You can download contracts in PDF format for printing or email delivery",
+        "legalValidity": "Digitally signed contracts are legally valid in Illinois",
+        "auditLog": "All contract changes are recorded in the audit log"
+      }
+    }
+  },
+  "profile": {
+    "title": "My Profile",
+    "subtitle": "Account information and settings",
+    "loading": "Loading profile...",
+    "actions": {
+      "edit": "Edit Profile",
+      "cancel": "Cancel",
+      "save": "Save Changes"
+    },
+    "toasts": {
+      "passwordUpdated": "Password updated successfully",
+      "editComingSoon": "Editing is coming soon",
+      "photoComingSoon": "Photo upload is coming soon"
+    },
+    "validation": {
+      "completePasswordFields": "Please complete all password fields",
+      "passwordsMismatch": "Passwords do not match",
+      "passwordTooShort": "Password must be at least 8 characters",
+      "nameRequired": "Name cannot be empty"
+    },
+    "photo": {
+      "title": "Profile Photo",
+      "description": "Update your profile image",
+      "hint": "JPG, PNG, or GIF. Max size 2MB.",
+      "change": "Change Photo"
+    },
+    "personal": {
+      "title": "Personal Information",
+      "description": "Your account details in the system",
+      "fullName": "Full Name",
+      "email": "Email",
+      "role": "Role in System",
+      "loginMethod": "Login Method",
+      "createdAt": "Account Created",
+      "lastSignIn": "Last Sign In"
+    },
+    "roles": {
+      "admin": "Administrator",
+      "coAdmin": "Co-Administrator",
+      "seller": "Seller"
+    },
+    "password": {
+      "title": "Change Password",
+      "description": "Update your login password",
+      "current": "Current Password",
+      "currentPlaceholder": "Enter your current password",
+      "new": "New Password",
+      "newPlaceholder": "Minimum 8 characters",
+      "confirm": "Confirm Password",
+      "confirmPlaceholder": "Repeat the new password",
+      "updating": "Updating...",
+      "update": "Change Password"
+    },
+    "settings": {
+      "title": "Account Settings",
+      "description": "Manage your account and system preferences",
+      "emailNotifications": "Email Notifications",
+      "emailNotificationsHint": "Receive updates about your clients and claims",
+      "comingSoon": "Coming soon",
+      "languagePreferences": "Language Preferences",
+      "languageHint": "Select the interface language",
+      "languageLabel": "English (US)"
+    },
+    "system": {
+      "title": "System Information",
+      "userId": "User ID",
+      "openId": "OpenID"
+    }
+  },
+  "forgotPassword": {
+    "eyebrow": "Reset access",
+    "title": "Forgot your password?",
+    "subtitle": "Enter your email and we will send a reset link.",
+    "emailLabel": "Work email",
+    "emailPlaceholder": "you@company.com",
+    "sendButton": "Send reset link",
+    "confirmation": "Request received. Once email delivery is enabled, you will receive a reset link.",
+    "backToLogin": "Back to login",
+    "sending": "Sending..."
+  },
+  "resetPassword": {
+    "eyebrow": "Reset access",
+    "title": "Set a new password",
+    "subtitle": "Choose a strong password to secure your account.",
+    "newPassword": "New password",
+    "newPasswordPlaceholder": "Create a secure password",
+    "confirmPassword": "Confirm password",
+    "confirmPasswordPlaceholder": "Re-enter your password",
+    "saveButton": "Update password",
+    "saving": "Updating...",
+    "success": "Password updated. You can now log in.",
+    "backToLogin": "Back to login",
+    "missingToken": "Invalid reset link. Please request a new one.",
+    "passwordMismatch": "Passwords do not match."
+  },
+  "invite": {
+    "eyebrow": "Invitation",
+    "title": "Activate your Nexora CRM account",
+    "subtitle": "Confirm your name and set a password to join your team.",
+    "nameLabel": "Full name",
+    "namePlaceholder": "Your name",
+    "passwordLabel": "Create password",
+    "passwordPlaceholder": "At least 8 characters",
+    "confirmPasswordLabel": "Confirm password",
+    "confirmPasswordPlaceholder": "Re-enter your password",
+    "acceptButton": "Accept invite",
+    "submitting": "Activating...",
+    "success": "Account activated. You can now log in.",
+    "backToLogin": "Back to login",
+    "missingToken": "Invalid invite link. Please ask for a new invite.",
+    "passwordMismatch": "Passwords do not match."
   }
 }

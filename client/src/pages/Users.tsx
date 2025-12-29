@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import {
@@ -28,11 +29,11 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Loader2, UserPlus, Trash2, KeyRound, AlertCircle } from "lucide-react";
+import { Loader2, UserPlus, Trash2, KeyRound, AlertCircle, MailPlus, XCircle } from "lucide-react";
 import { trpc } from "@/lib/trpc";
 import { toast } from "sonner";
 import { format } from "date-fns";
-import { es } from "date-fns/locale";
+import { enUS, es } from "date-fns/locale";
 import DashboardLayout from "@/components/DashboardLayout";
 
 type OrgMember = {
@@ -42,8 +43,20 @@ type OrgMember = {
   createdAt: string | Date;
 };
 
+type OrgInvite = {
+  id: number;
+  email: string;
+  role: "ADMIN" | "CO_ADMIN" | "VENDEDOR";
+  createdAt: string | Date;
+  expiresAt: string | Date;
+  acceptedAt?: string | Date | null;
+  revokedAt?: string | Date | null;
+};
+
 export default function Users() {
+  const { t, i18n } = useTranslation();
   const [showAddDialog, setShowAddDialog] = useState(false);
+  const [showInviteDialog, setShowInviteDialog] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [showResetDialog, setShowResetDialog] = useState(false);
   const [selectedMember, setSelectedMember] = useState<any>(null);
@@ -53,13 +66,20 @@ export default function Users() {
   const [newUsername, setNewUsername] = useState("");
   const [newUserPassword, setNewUserPassword] = useState("");
   const [newUserRole, setNewUserRole] = useState<"ADMIN" | "CO_ADMIN" | "VENDEDOR">("VENDEDOR");
+  const [inviteEmail, setInviteEmail] = useState("");
+  const [inviteRole, setInviteRole] = useState<"ADMIN" | "CO_ADMIN" | "VENDEDOR">("VENDEDOR");
 
   const utils = trpc.useUtils();
   const { data: members, isLoading } = trpc.organizations.getMembers.useQuery();
+  const invitesEnabled = import.meta.env.VITE_INVITES_ENABLED === "true";
+  const { data: invites, isLoading: isInvitesLoading } = trpc.organizations.listInvites.useQuery(
+    undefined,
+    { enabled: invitesEnabled }
+  );
 
   const updateRoleMutation = trpc.organizations.updateMemberRole.useMutation({
     onSuccess: () => {
-      toast.success("Rol actualizado correctamente");
+      toast.success(t("usersPage.toasts.roleUpdated"));
       utils.organizations.getMembers.invalidate();
     },
     onError: (error) => {
@@ -69,7 +89,7 @@ export default function Users() {
 
   const deleteMemberMutation = trpc.organizations.deleteMember.useMutation({
     onSuccess: () => {
-      toast.success("Miembro eliminado correctamente");
+      toast.success(t("usersPage.toasts.memberDeleted"));
       utils.organizations.getMembers.invalidate();
       setShowDeleteDialog(false);
       setSelectedMember(null);
@@ -81,7 +101,7 @@ export default function Users() {
 
   const addMemberMutation = trpc.organizations.addMember.useMutation({
     onSuccess: () => {
-      toast.success("Miembro agregado correctamente");
+      toast.success(t("usersPage.toasts.memberAdded"));
       utils.organizations.getMembers.invalidate();
       setShowAddDialog(false);
       setNewUsername("");
@@ -96,7 +116,30 @@ export default function Users() {
   const resetPasswordMutation = trpc.organizations.resetMemberPassword.useMutation({
     onSuccess: (data) => {
       setNewPassword(data.newPassword);
-      toast.success("Contraseña reseteada correctamente");
+      toast.success(t("usersPage.toasts.passwordReset"));
+    },
+    onError: (error) => {
+      toast.error(error.message);
+    },
+  });
+
+  const inviteMemberMutation = trpc.organizations.inviteMember.useMutation({
+    onSuccess: () => {
+      toast.success(t("usersPage.toasts.inviteSent"));
+      utils.organizations.listInvites.invalidate();
+      setShowInviteDialog(false);
+      setInviteEmail("");
+      setInviteRole("VENDEDOR");
+    },
+    onError: (error) => {
+      toast.error(error.message);
+    },
+  });
+
+  const revokeInviteMutation = trpc.organizations.revokeInvite.useMutation({
+    onSuccess: () => {
+      toast.success(t("usersPage.toasts.inviteRevoked"));
+      utils.organizations.listInvites.invalidate();
     },
     onError: (error) => {
       toast.error(error.message);
@@ -115,7 +158,7 @@ export default function Users() {
 
   const handleAddMember = () => {
     if (!newUsername || !newUserPassword) {
-      toast.error("Por favor completa todos los campos");
+      toast.error(t("usersPage.validation.completeAllFields"));
       return;
     }
     addMemberMutation.mutate({
@@ -131,35 +174,68 @@ export default function Users() {
     }
   };
 
+  const handleInviteMember = () => {
+    if (!inviteEmail) {
+      toast.error(t("usersPage.validation.completeAllFields"));
+      return;
+    }
+    inviteMemberMutation.mutate({ email: inviteEmail, role: inviteRole });
+  };
+
   const getRoleBadge = (role: string) => {
     const variants: Record<string, { variant: "default" | "secondary" | "outline"; label: string }> = {
-      ADMIN: { variant: "default", label: "Administrador" },
-      CO_ADMIN: { variant: "secondary", label: "Co-Administrador" },
-      VENDEDOR: { variant: "outline", label: "Vendedor" },
+      ADMIN: { variant: "default", label: t("usersPage.roles.admin") },
+      CO_ADMIN: { variant: "secondary", label: t("usersPage.roles.coAdmin") },
+      VENDEDOR: { variant: "outline", label: t("usersPage.roles.seller") },
     };
     const config = variants[role] || variants.VENDEDOR;
     return <Badge variant={config.variant}>{config.label}</Badge>;
   };
+
+  const getInviteStatusBadge = (invite: OrgInvite) => {
+    if (invite.revokedAt) {
+      return <Badge variant="outline">{t("usersPage.invites.status.revoked")}</Badge>;
+    }
+    if (invite.acceptedAt) {
+      return <Badge variant="secondary">{t("usersPage.invites.status.accepted")}</Badge>;
+    }
+    const isExpired = new Date(invite.expiresAt).getTime() < Date.now();
+    if (isExpired) {
+      return <Badge variant="outline">{t("usersPage.invites.status.expired")}</Badge>;
+    }
+    return <Badge variant="default">{t("usersPage.invites.status.pending")}</Badge>;
+  };
+
+  const dateLocale = i18n.language.startsWith("es") ? es : enUS;
+  const inviteRows = (invites as OrgInvite[] | undefined) ?? [];
 
   return (
     <DashboardLayout>
       <div className="container mx-auto p-6 space-y-6">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-3xl font-bold">Gestión de Usuarios</h1>
-            <p className="text-muted-foreground">Administra los miembros de tu organización</p>
+            <h1 className="text-3xl font-bold">{t("usersPage.title")}</h1>
+            <p className="text-muted-foreground">{t("usersPage.subtitle")}</p>
           </div>
-          <Button onClick={() => setShowAddDialog(true)}>
-            <UserPlus className="mr-2 h-4 w-4" />
-            Agregar Usuario
-          </Button>
+          <div className="flex items-center gap-2">
+            {invitesEnabled && (
+              <Button variant="outline" onClick={() => setShowInviteDialog(true)}>
+                <MailPlus className="mr-2 h-4 w-4" />
+                {t("usersPage.actions.inviteUser")}
+              </Button>
+            )}
+            <Button onClick={() => setShowAddDialog(true)}>
+              <UserPlus className="mr-2 h-4 w-4" />
+              {t("usersPage.actions.addUser")}
+            </Button>
+          </div>
         </div>
 
         <Card>
           <CardHeader>
-            <CardTitle>Miembros de la Organización</CardTitle>
+            <CardTitle>{t("usersPage.membersTitle")}</CardTitle>
             <CardDescription>
-              Lista de todos los usuarios con acceso al sistema
+              {t("usersPage.membersDescription")}
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -171,10 +247,10 @@ export default function Users() {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Usuario</TableHead>
-                    <TableHead>Rol</TableHead>
-                    <TableHead>Fecha de Creación</TableHead>
-                    <TableHead className="text-right">Acciones</TableHead>
+                    <TableHead>{t("usersPage.table.user")}</TableHead>
+                    <TableHead>{t("usersPage.table.role")}</TableHead>
+                    <TableHead>{t("usersPage.table.createdAt")}</TableHead>
+                    <TableHead className="text-right">{t("usersPage.table.actions")}</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -191,14 +267,14 @@ export default function Users() {
                             <SelectValue />
                           </SelectTrigger>
                           <SelectContent>
-                            <SelectItem value="ADMIN">Administrador</SelectItem>
-                            <SelectItem value="CO_ADMIN">Co-Administrador</SelectItem>
-                            <SelectItem value="VENDEDOR">Vendedor</SelectItem>
+                            <SelectItem value="ADMIN">{t("usersPage.roles.admin")}</SelectItem>
+                            <SelectItem value="CO_ADMIN">{t("usersPage.roles.coAdmin")}</SelectItem>
+                            <SelectItem value="VENDEDOR">{t("usersPage.roles.seller")}</SelectItem>
                           </SelectContent>
                         </Select>
                       </TableCell>
                       <TableCell>
-                        {format(new Date(member.createdAt), "dd/MM/yyyy", { locale: es })}
+                        {format(new Date(member.createdAt), "dd/MM/yyyy", { locale: dateLocale })}
                       </TableCell>
                       <TableCell className="text-right space-x-2">
                         <Button
@@ -231,80 +307,193 @@ export default function Users() {
           </CardContent>
         </Card>
 
-        {/* Dialog: Agregar Usuario */}
-        <Dialog open={showAddDialog} onOpenChange={setShowAddDialog}>
-          <DialogContent>
+        {invitesEnabled && (
+          <Card>
+            <CardHeader>
+              <CardTitle>{t("usersPage.invites.title")}</CardTitle>
+              <CardDescription>{t("usersPage.invites.description")}</CardDescription>
+            </CardHeader>
+            <CardContent>
+              {isInvitesLoading ? (
+                <div className="flex justify-center py-8">
+                  <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+                </div>
+              ) : inviteRows.length === 0 ? (
+                <p className="text-sm text-muted-foreground">{t("usersPage.invites.empty")}</p>
+              ) : (
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>{t("usersPage.invites.table.email")}</TableHead>
+                      <TableHead>{t("usersPage.invites.table.role")}</TableHead>
+                      <TableHead>{t("usersPage.invites.table.status")}</TableHead>
+                      <TableHead>{t("usersPage.invites.table.expires")}</TableHead>
+                      <TableHead className="text-right">{t("usersPage.invites.table.actions")}</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {inviteRows.map((invite) => {
+                      const isExpired = new Date(invite.expiresAt).getTime() < Date.now();
+                      const canRevoke = !invite.acceptedAt && !invite.revokedAt && !isExpired;
+                      return (
+                        <TableRow key={invite.id}>
+                          <TableCell className="font-medium">{invite.email}</TableCell>
+                          <TableCell>{getRoleBadge(invite.role)}</TableCell>
+                          <TableCell>{getInviteStatusBadge(invite)}</TableCell>
+                          <TableCell>
+                            {format(new Date(invite.expiresAt), "dd/MM/yyyy", { locale: dateLocale })}
+                          </TableCell>
+                          <TableCell className="text-right">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              disabled={!canRevoke || revokeInviteMutation.isPending}
+                              onClick={() => revokeInviteMutation.mutate({ id: invite.id })}
+                            >
+                              <XCircle className="h-4 w-4" />
+                            </Button>
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })}
+                  </TableBody>
+                </Table>
+              )}
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Dialog: Invitar Usuario */}
+        {invitesEnabled && (
+          <Dialog open={showInviteDialog} onOpenChange={setShowInviteDialog}>
+            <DialogContent>
             <DialogHeader>
-              <DialogTitle>Agregar Nuevo Usuario</DialogTitle>
+              <DialogTitle>{t("usersPage.dialogs.invite.title")}</DialogTitle>
               <DialogDescription>
-                Crea un nuevo miembro para tu organización
+                {t("usersPage.dialogs.invite.description")}
               </DialogDescription>
             </DialogHeader>
             <div className="space-y-4 py-4">
               <div className="space-y-2">
-                <Label htmlFor="username">Nombre de Usuario</Label>
+                <Label htmlFor="inviteEmail">{t("usersPage.fields.email")}</Label>
+                <Input
+                  id="inviteEmail"
+                  type="email"
+                  placeholder={t("usersPage.placeholders.email")}
+                  value={inviteEmail}
+                  onChange={(e) => setInviteEmail(e.target.value)}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>{t("usersPage.fields.role")}</Label>
+                <Select value={inviteRole} onValueChange={(value) => setInviteRole(value as any)}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="ADMIN">{t("usersPage.roles.admin")}</SelectItem>
+                    <SelectItem value="CO_ADMIN">{t("usersPage.roles.coAdmin")}</SelectItem>
+                    <SelectItem value="VENDEDOR">{t("usersPage.roles.seller")}</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <Alert className="bg-slate-900/60 border-slate-700">
+                <AlertCircle className="h-4 w-4" />
+                <AlertDescription className="text-xs sm:text-sm">
+                  {t("usersPage.dialogs.invite.notice")}
+                </AlertDescription>
+              </Alert>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setShowInviteDialog(false)}>
+                {t("usersPage.actions.cancel")}
+              </Button>
+              <Button
+                onClick={handleInviteMember}
+                disabled={inviteMemberMutation.isPending}
+              >
+                {inviteMemberMutation.isPending
+                  ? t("usersPage.actions.sending")
+                  : t("usersPage.actions.sendInvite")}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+          </Dialog>
+        )}
+
+        {/* Dialog: Agregar Usuario */}
+        <Dialog open={showAddDialog} onOpenChange={setShowAddDialog}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>{t("usersPage.dialogs.add.title")}</DialogTitle>
+              <DialogDescription>
+                {t("usersPage.dialogs.add.description")}
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4 py-4">
+              <div className="space-y-2">
+                <Label htmlFor="username">{t("usersPage.fields.username")}</Label>
                 <Input
                   id="username"
-                  placeholder="usuario@organizacion.internal"
+                  placeholder={t("usersPage.placeholders.username")}
                   value={newUsername}
                   onChange={(e) => setNewUsername(e.target.value)}
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="password">Contraseña</Label>
+                <Label htmlFor="password">{t("usersPage.fields.password")}</Label>
                 <Input
                   id="password"
                   type="password"
-                  placeholder="Mínimo 8 caracteres"
+                  placeholder={t("usersPage.placeholders.password")}
                   value={newUserPassword}
                   onChange={(e) => setNewUserPassword(e.target.value)}
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="role">Rol</Label>
+                <Label htmlFor="role">{t("usersPage.fields.role")}</Label>
                 <Select value={newUserRole} onValueChange={(value: any) => setNewUserRole(value)}>
                   <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="ADMIN">Administrador</SelectItem>
-                    <SelectItem value="CO_ADMIN">Co-Administrador</SelectItem>
-                    <SelectItem value="VENDEDOR">Vendedor</SelectItem>
+                    <SelectItem value="ADMIN">{t("usersPage.roles.admin")}</SelectItem>
+                    <SelectItem value="CO_ADMIN">{t("usersPage.roles.coAdmin")}</SelectItem>
+                    <SelectItem value="VENDEDOR">{t("usersPage.roles.seller")}</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
             </div>
             <DialogFooter>
               <Button variant="outline" onClick={() => setShowAddDialog(false)}>
-                Cancelar
+                {t("usersPage.actions.cancel")}
               </Button>
               <Button onClick={handleAddMember} disabled={addMemberMutation.isPending}>
                 {addMemberMutation.isPending ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Agregando...
+                    {t("usersPage.actions.adding")}
                   </>
                 ) : (
-                  "Agregar Usuario"
+                  t("usersPage.actions.addUser")
                 )}
               </Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>
 
-        {/* Dialog: Eliminar Usuario */}
+        {/* Dialog: {t('usersPage.delete')} Usuario */}
         <Dialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
           <DialogContent>
             <DialogHeader>
-              <DialogTitle>Eliminar Usuario</DialogTitle>
+              <DialogTitle>{t("usersPage.dialogs.delete.title")}</DialogTitle>
               <DialogDescription>
-                ¿Estás seguro de que deseas eliminar a <strong>{selectedMember?.username}</strong>?
-                Esta acción no se puede deshacer.
+                {t("usersPage.dialogs.delete.description", { name: selectedMember?.username })}
               </DialogDescription>
             </DialogHeader>
             <DialogFooter>
               <Button variant="outline" onClick={() => setShowDeleteDialog(false)}>
-                Cancelar
+                {t("usersPage.actions.cancel")}
               </Button>
               <Button
                 variant="destructive"
@@ -314,10 +503,10 @@ export default function Users() {
                 {deleteMemberMutation.isPending ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Eliminando...
+                    {t("usersPage.actions.deleting")}
                   </>
                 ) : (
-                  "Eliminar"
+                  t("usersPage.actions.delete")
                 )}
               </Button>
             </DialogFooter>
@@ -328,9 +517,9 @@ export default function Users() {
         <Dialog open={showResetDialog} onOpenChange={setShowResetDialog}>
           <DialogContent>
             <DialogHeader>
-              <DialogTitle>Resetear Contraseña</DialogTitle>
+              <DialogTitle>{t("usersPage.dialogs.reset.title")}</DialogTitle>
               <DialogDescription>
-                Genera una nueva contraseña temporal para <strong>{selectedMember?.username}</strong>
+                {t("usersPage.dialogs.reset.description", { name: selectedMember?.username })}
               </DialogDescription>
             </DialogHeader>
             {newPassword ? (
@@ -338,18 +527,18 @@ export default function Users() {
                 <AlertCircle className="h-4 w-4" />
                 <AlertDescription>
                   <div className="space-y-2">
-                    <p className="font-semibold">Nueva contraseña generada:</p>
+                    <p className="font-semibold">{t("usersPage.dialogs.reset.generatedLabel")}</p>
                     <div className="bg-muted p-3 rounded-md font-mono text-lg">
                       {newPassword}
                     </div>
                     <p className="text-sm text-muted-foreground">
-                      Copia esta contraseña y entrégala al usuario. No podrás verla nuevamente.
+                      {t("usersPage.dialogs.reset.generatedHint")}
                     </p>
                   </div>
                 </AlertDescription>
               </Alert>
             ) : (
-              <p>Se generará una nueva contraseña temporal para este usuario.</p>
+              <p>{t("usersPage.dialogs.reset.pendingText")}</p>
             )}
             <DialogFooter>
               <Button variant="outline" onClick={() => {
@@ -357,7 +546,7 @@ export default function Users() {
                 setNewPassword("");
                 setSelectedMember(null);
               }}>
-                Cerrar
+                {t("usersPage.actions.close")}
               </Button>
               {!newPassword && (
                 <Button
@@ -367,10 +556,10 @@ export default function Users() {
                   {resetPasswordMutation.isPending ? (
                     <>
                       <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Generando...
+                      {t("usersPage.actions.generating")}
                     </>
                   ) : (
-                    "Generar Nueva Contraseña"
+                    t("usersPage.actions.generatePassword")
                   )}
                 </Button>
               )}

@@ -11,8 +11,10 @@ import { User, Mail, Calendar, Shield, Edit, Save, X, Upload } from "lucide-reac
 import DashboardLayout from "@/components/DashboardLayout";
 import { trpc } from "@/lib/trpc";
 import { toast } from "sonner";
+import { useTranslation } from "react-i18next";
 
 export default function Profile() {
+  const { t, i18n } = useTranslation();
   const { user } = useAuth();
   const { role, isAdmin, isCoAdmin, isVendedor } = usePermissions();
   const [isEditing, setIsEditing] = useState(false);
@@ -28,7 +30,7 @@ export default function Profile() {
 
   const changePasswordMutation = trpc.auth.changePassword.useMutation({
     onSuccess: () => {
-      toast.success("Contraseña actualizada exitosamente");
+      toast.success(t("profile.toasts.passwordUpdated"));
       setFormData({
         ...formData,
         currentPassword: "",
@@ -43,15 +45,15 @@ export default function Profile() {
 
   const handleChangePassword = () => {
     if (!formData.currentPassword || !formData.newPassword || !formData.confirmPassword) {
-      toast.error("Por favor completa todos los campos de contraseña");
+      toast.error(t("profile.validation.completePasswordFields"));
       return;
     }
     if (formData.newPassword !== formData.confirmPassword) {
-      toast.error("Las contraseñas nuevas no coinciden");
+      toast.error(t("profile.validation.passwordsMismatch"));
       return;
     }
     if (formData.newPassword.length < 8) {
-      toast.error("La contraseña debe tener al menos 8 caracteres");
+      toast.error(t("profile.validation.passwordTooShort"));
       return;
     }
     changePasswordMutation.mutate({
@@ -64,7 +66,7 @@ export default function Profile() {
     return (
       <DashboardLayout>
         <div className="flex items-center justify-center min-h-[400px]">
-          <p className="text-muted-foreground">Cargando perfil...</p>
+          <p className="text-muted-foreground">{t("profile.loading")}</p>
         </div>
       </DashboardLayout>
     );
@@ -72,7 +74,7 @@ export default function Profile() {
 
   const formatDate = (date: Date | string | null) => {
     if (!date) return '-';
-    return new Date(date).toLocaleDateString('es-ES', {
+    return new Date(date).toLocaleDateString(i18n.language.startsWith('es') ? 'es-ES' : 'en-US', {
       year: 'numeric',
       month: 'long',
       day: 'numeric',
@@ -84,22 +86,22 @@ export default function Profile() {
   const handleSave = () => {
     // Validaciones
     if (!formData.name.trim()) {
-      toast.error("El nombre no puede estar vacío");
+      toast.error(t("profile.validation.nameRequired"));
       return;
     }
 
     if (formData.newPassword && formData.newPassword !== formData.confirmPassword) {
-      toast.error("Las contraseñas no coinciden");
+      toast.error(t("profile.validation.passwordsMismatch"));
       return;
     }
 
     if (formData.newPassword && formData.newPassword.length < 8) {
-      toast.error("La contraseña debe tener al menos 8 caracteres");
+      toast.error(t("profile.validation.passwordTooShort"));
       return;
     }
 
     // TODO: Implementar actualización cuando exista el endpoint
-    toast.info("Funcionalidad de edición próximamente disponible");
+    toast.info(t("profile.toasts.editComingSoon"));
     setIsEditing(false);
     
     // updateProfile.mutate({
@@ -123,7 +125,7 @@ export default function Profile() {
 
   const handlePhotoUpload = () => {
     // TODO: Implementar subida de foto a S3
-    toast.info("Funcionalidad de cambio de foto próximamente disponible");
+    toast.info(t("profile.toasts.photoComingSoon"));
   };
 
   return (
@@ -132,25 +134,25 @@ export default function Profile() {
         {/* Header */}
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-3xl font-bold text-foreground">Mi Perfil</h1>
+            <h1 className="text-3xl font-bold text-foreground">{t("profile.title")}</h1>
             <p className="text-muted-foreground mt-1">
-              Información de tu cuenta y configuración
+              {t("profile.subtitle")}
             </p>
           </div>
           {!isEditing ? (
             <Button onClick={() => setIsEditing(true)}>
               <Edit className="h-4 w-4 mr-2" />
-              Editar Perfil
+              {t("profile.actions.edit")}
             </Button>
           ) : (
             <div className="flex gap-2">
               <Button variant="outline" onClick={handleCancel}>
                 <X className="h-4 w-4 mr-2" />
-                Cancelar
+                {t("profile.actions.cancel")}
               </Button>
               <Button onClick={handleSave}>
                 <Save className="h-4 w-4 mr-2" />
-                Guardar Cambios
+                {t("profile.actions.save")}
               </Button>
             </div>
           )}
@@ -159,8 +161,8 @@ export default function Profile() {
         {/* Profile Photo */}
         <Card className="border-border">
           <CardHeader>
-            <CardTitle>Foto de Perfil</CardTitle>
-            <CardDescription>Actualiza tu imagen de perfil</CardDescription>
+            <CardTitle>{t("profile.photo.title")}</CardTitle>
+            <CardDescription>{t("profile.photo.description")}</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="flex items-center gap-6">
@@ -172,11 +174,11 @@ export default function Profile() {
               </Avatar>
               <div className="space-y-2">
                 <p className="text-sm text-muted-foreground">
-                  JPG, PNG o GIF. Tamaño máximo 2MB.
+                  {t("profile.photo.hint")}
                 </p>
                 <Button variant="outline" size="sm" onClick={handlePhotoUpload} disabled={!isEditing}>
                   <Upload className="h-4 w-4 mr-2" />
-                  Cambiar Foto
+                  {t("profile.photo.change")}
                 </Button>
               </div>
             </div>
@@ -188,14 +190,14 @@ export default function Profile() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <User className="h-5 w-5" />
-              Información Personal
+              {t("profile.personal.title")}
             </CardTitle>
-            <CardDescription>Datos de tu cuenta en el sistema</CardDescription>
+            <CardDescription>{t("profile.personal.description")}</CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
             <div className="grid gap-4 md:grid-cols-2">
               <div className="space-y-2">
-                <Label htmlFor="name">Nombre Completo</Label>
+                <Label htmlFor="name">{t("profile.personal.fullName")}</Label>
                 <Input
                   id="name"
                   value={isEditing ? formData.name : (user.name || '-')}
@@ -205,7 +207,7 @@ export default function Profile() {
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="email">Email</Label>
+                <Label htmlFor="email">{t("profile.personal.email")}</Label>
                 <div className="flex items-center gap-2">
                   <Mail className="h-4 w-4 text-muted-foreground" />
                   <Input
@@ -222,16 +224,16 @@ export default function Profile() {
 
             <div className="grid gap-4 md:grid-cols-2">
               <div className="space-y-2">
-                <Label>Rol en el Sistema</Label>
+                <Label>{t("profile.personal.role")}</Label>
                 <div className="flex items-center gap-2">
                   <Shield className="h-4 w-4 text-muted-foreground" />
                   <Badge variant={isAdmin ? 'default' : isCoAdmin ? 'secondary' : 'outline'}>
-                    {isAdmin ? 'Administrador' : isCoAdmin ? 'Co-Administrador' : 'Vendedor'}
+                    {isAdmin ? t("profile.roles.admin") : isCoAdmin ? t("profile.roles.coAdmin") : t("profile.roles.seller")}
                   </Badge>
                 </div>
               </div>
               <div className="space-y-2">
-                <Label>Método de Inicio de Sesión</Label>
+                <Label>{t("profile.personal.loginMethod")}</Label>
                 <Input
                   value={user.loginMethod || '-'}
                   disabled
@@ -244,7 +246,7 @@ export default function Profile() {
               <div className="space-y-2">
                 <Label className="flex items-center gap-2">
                   <Calendar className="h-4 w-4" />
-                  Cuenta Creada
+                  {t("profile.personal.createdAt")}
                 </Label>
                 <Input
                   value={formatDate(user.createdAt)}
@@ -255,7 +257,7 @@ export default function Profile() {
               <div className="space-y-2">
                 <Label className="flex items-center gap-2">
                   <Calendar className="h-4 w-4" />
-                  Último Acceso
+                  {t("profile.personal.lastSignIn")}
                 </Label>
                 <Input
                   value={formatDate(user.lastSignedIn)}
@@ -270,41 +272,41 @@ export default function Profile() {
         {/* Change Password */}
         <Card className="border-border">
           <CardHeader>
-            <CardTitle>Cambiar Contraseña</CardTitle>
+            <CardTitle>{t("profile.password.title")}</CardTitle>
             <CardDescription>
-              Actualiza tu contraseña de acceso
+              {t("profile.password.description")}
             </CardDescription>
           </CardHeader>
             <CardContent className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="currentPassword">Contraseña Actual</Label>
+                <Label htmlFor="currentPassword">{t("profile.password.current")}</Label>
                 <Input
                   id="currentPassword"
                   type="password"
                   value={formData.currentPassword}
                   onChange={(e) => setFormData({ ...formData, currentPassword: e.target.value })}
-                  placeholder="Ingresa tu contraseña actual"
+                  placeholder={t("profile.password.currentPlaceholder")}
                 />
               </div>
               <div className="grid gap-4 md:grid-cols-2">
                 <div className="space-y-2">
-                  <Label htmlFor="newPassword">Nueva Contraseña</Label>
+                  <Label htmlFor="newPassword">{t("profile.password.new")}</Label>
                   <Input
                     id="newPassword"
                     type="password"
                     value={formData.newPassword}
                     onChange={(e) => setFormData({ ...formData, newPassword: e.target.value })}
-                    placeholder="Mínimo 8 caracteres"
+                    placeholder={t("profile.password.newPlaceholder")}
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="confirmPassword">Confirmar Contraseña</Label>
+                  <Label htmlFor="confirmPassword">{t("profile.password.confirm")}</Label>
                   <Input
                     id="confirmPassword"
                     type="password"
                     value={formData.confirmPassword}
                     onChange={(e) => setFormData({ ...formData, confirmPassword: e.target.value })}
-                    placeholder="Repite la nueva contraseña"
+                    placeholder={t("profile.password.confirmPlaceholder")}
                   />
                 </div>
               </div>
@@ -313,7 +315,7 @@ export default function Profile() {
                 disabled={changePasswordMutation.isPending}
                 className="w-full"
               >
-                {changePasswordMutation.isPending ? "Actualizando..." : "Cambiar Contraseña"}
+                {changePasswordMutation.isPending ? t("profile.password.updating") : t("profile.password.update")}
               </Button>
             </CardContent>
           </Card>
@@ -321,32 +323,32 @@ export default function Profile() {
         {/* Account Settings */}
         <Card className="border-border">
           <CardHeader>
-            <CardTitle>Configuración de Cuenta</CardTitle>
+            <CardTitle>{t("profile.settings.title")}</CardTitle>
             <CardDescription>
-              Gestiona tu cuenta y preferencias del sistema
+              {t("profile.settings.description")}
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="flex items-center justify-between p-4 border border-border rounded-lg">
               <div>
-                <p className="font-medium">Notificaciones por Email</p>
+                <p className="font-medium">{t("profile.settings.emailNotifications")}</p>
                 <p className="text-sm text-muted-foreground">
-                  Recibe actualizaciones sobre tus clientes y reclamos
+                  {t("profile.settings.emailNotificationsHint")}
                 </p>
               </div>
               <Button variant="outline" disabled>
-                Próximamente
+                {t("profile.settings.comingSoon")}
               </Button>
             </div>
 
             <div className="flex items-center justify-between p-4 border border-border rounded-lg">
               <div>
-                <p className="font-medium">Preferencias de Idioma</p>
+                <p className="font-medium">{t("profile.settings.languagePreferences")}</p>
                 <p className="text-sm text-muted-foreground">
-                  Selecciona el idioma de la interfaz
+                  {t("profile.settings.languageHint")}
                 </p>
               </div>
-              <Badge variant="outline">Español (ES)</Badge>
+              <Badge variant="outline">{t("profile.settings.languageLabel")}</Badge>
             </div>
           </CardContent>
         </Card>
@@ -354,15 +356,15 @@ export default function Profile() {
         {/* System Information */}
         <Card className="border-border">
           <CardHeader>
-            <CardTitle>Información del Sistema</CardTitle>
+            <CardTitle>{t("profile.system.title")}</CardTitle>
           </CardHeader>
           <CardContent className="space-y-2">
             <div className="flex justify-between text-sm">
-              <span className="text-muted-foreground">ID de Usuario:</span>
+              <span className="text-muted-foreground">{t("profile.system.userId")}:</span>
               <span className="font-mono">{user.id}</span>
             </div>
             <div className="flex justify-between text-sm">
-              <span className="text-muted-foreground">OpenID:</span>
+              <span className="text-muted-foreground">{t("profile.system.openId")}:</span>
               <span className="font-mono text-xs">{user.openId}</span>
             </div>
           </CardContent>

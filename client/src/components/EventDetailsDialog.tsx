@@ -29,17 +29,17 @@ export function EventDetailsDialog({ event, open, onOpenChange, onEdit }: EventD
 
   const getEventBadge = (type: string) => {
     const variants: Record<string, { variant: "default" | "secondary" | "outline" | "destructive"; label: string }> = {
-      'ESTIMADO': { variant: 'default', label: 'Estimado' },
-      'REUNION': { variant: 'secondary', label: 'Reunión' },
-      'AJUSTACION': { variant: 'outline', label: 'Ajustación' },
-      'INTERNO': { variant: 'outline', label: 'Evento Interno' },
-      'MEETING': { variant: 'secondary', label: 'Meeting' },
-      'ADJUSTMENT': { variant: 'outline', label: 'Adjustment' },
-      'ESTIMATE': { variant: 'default', label: 'Estimate' },
-      'INSPECTION': { variant: 'outline', label: 'Inspection' },
-      'APPOINTMENT': { variant: 'secondary', label: 'Appointment' },
-      'DEADLINE': { variant: 'destructive', label: 'Deadline' },
-      'OTHER': { variant: 'outline', label: 'Other' },
+      'ESTIMADO': { variant: 'default', label: t('dashboard.calendar.newEvent.types.ESTIMATE') },
+      'REUNION': { variant: 'secondary', label: t('dashboard.calendar.newEvent.types.MEETING') },
+      'AJUSTACION': { variant: 'outline', label: t('dashboard.calendar.newEvent.types.ADJUSTMENT') },
+      'INTERNO': { variant: 'outline', label: t('dashboard.calendar.newEvent.types.INTERNAL') },
+      'MEETING': { variant: 'secondary', label: t('dashboard.calendar.newEvent.types.MEETING') },
+      'ADJUSTMENT': { variant: 'outline', label: t('dashboard.calendar.newEvent.types.ADJUSTMENT') },
+      'ESTIMATE': { variant: 'default', label: t('dashboard.calendar.newEvent.types.ESTIMATE') },
+      'INSPECTION': { variant: 'outline', label: t('dashboard.calendar.newEvent.types.INSPECTION') },
+      'APPOINTMENT': { variant: 'secondary', label: t('dashboard.calendar.newEvent.types.APPOINTMENT') },
+      'DEADLINE': { variant: 'destructive', label: t('dashboard.calendar.newEvent.types.DEADLINE') },
+      'OTHER': { variant: 'outline', label: t('dashboard.calendar.newEvent.types.OTHER') },
     };
     const config = variants[type] || { variant: 'outline', label: type };
     // Try to translate label if possible, else use config label
@@ -58,7 +58,7 @@ export function EventDetailsDialog({ event, open, onOpenChange, onEdit }: EventD
             {getEventBadge(event.eventType)}
           </div>
           <DialogDescription>
-            {t('calendar.eventDetails')}
+            {t('dashboard.calendar.eventDetails')}
           </DialogDescription>
         </DialogHeader>
 
@@ -66,7 +66,7 @@ export function EventDetailsDialog({ event, open, onOpenChange, onEdit }: EventD
           <div className="flex items-start gap-3">
             <Calendar className="h-5 w-5 text-muted-foreground mt-0.5" />
             <div>
-              <p className="font-medium">{t('calendar.date')}</p>
+              <p className="font-medium">{t('dashboard.calendar.date')}</p>
               <p className="text-sm text-muted-foreground">{formattedDate}</p>
             </div>
           </div>
@@ -75,7 +75,7 @@ export function EventDetailsDialog({ event, open, onOpenChange, onEdit }: EventD
             <div className="flex items-start gap-3">
               <Clock className="h-5 w-5 text-muted-foreground mt-0.5" />
               <div>
-                <p className="font-medium">{t('calendar.time')}</p>
+                <p className="font-medium">{t('dashboard.calendar.time')}</p>
                 <p className="text-sm text-muted-foreground">{formattedTime}</p>
               </div>
             </div>
@@ -85,7 +85,7 @@ export function EventDetailsDialog({ event, open, onOpenChange, onEdit }: EventD
             <div className="flex items-start gap-3">
               <MapPin className="h-5 w-5 text-muted-foreground mt-0.5" />
               <div>
-                <p className="font-medium">{t('calendar.location')}</p>
+                <p className="font-medium">{t('dashboard.calendar.location')}</p>
                 <p className="text-sm text-muted-foreground">{event.address}</p>
               </div>
             </div>
@@ -95,7 +95,7 @@ export function EventDetailsDialog({ event, open, onOpenChange, onEdit }: EventD
             <div className="flex items-start gap-3">
               <AlignLeft className="h-5 w-5 text-muted-foreground mt-0.5" />
               <div>
-                <p className="font-medium">{t('calendar.description')}</p>
+                <p className="font-medium">{t('dashboard.calendar.description')}</p>
                 <p className="text-sm text-muted-foreground whitespace-pre-wrap">{event.description}</p>
               </div>
             </div>
@@ -108,7 +108,7 @@ export function EventDetailsDialog({ event, open, onOpenChange, onEdit }: EventD
 
           {event.notes && (
             <div className="bg-muted p-3 rounded-md text-sm">
-              <span className="font-semibold">{t('calendar.notes')}:</span> {event.notes}
+              <span className="font-semibold">{t('dashboard.calendar.notes')}:</span> {event.notes}
             </div>
           )}
         </div>
@@ -139,7 +139,7 @@ function ClientInfoSection({ clientId }: { clientId: string }) {
 
   return (
     <div className="border-t pt-4 mt-2">
-      <h4 className="text-sm font-medium mb-2">{t('calendar.clientInfo')}</h4>
+      <h4 className="text-sm font-medium mb-2">{t('dashboard.calendar.clientInfo')}</h4>
       <div className="grid grid-cols-1 gap-2 text-sm">
         <div className="flex items-center gap-2">
           <User className="h-4 w-4 text-muted-foreground" />

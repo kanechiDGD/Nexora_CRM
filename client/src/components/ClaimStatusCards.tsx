@@ -34,7 +34,7 @@ export function ClaimStatusCards() {
     // Check if it's a default status and translate it
     const defaultStatuses = ["NO_SOMETIDA", "EN_PROCESO", "APROVADA", "RECHAZADA", "CERRADA"];
     if (defaultStatuses.includes(status)) {
-        return t(`claimStatus.status.${status}`);
+        return t(`dashboard.claimStatus.status.${status}`);
     }
     
     // Buscar en estados personalizados
@@ -85,7 +85,7 @@ export function ClaimStatusCards() {
       <Card>
         <CardContent className="pt-6">
           <p className="text-sm text-muted-foreground text-center">
-            {t('claimStatus.noClients')}
+            {t('dashboard.claimStatus.noClients')}
           </p>
         </CardContent>
       </Card>
@@ -110,7 +110,7 @@ export function ClaimStatusCards() {
             <CardContent>
               <div className="text-2xl font-bold">{statusInfo.count}</div>
               <p className="text-xs text-muted-foreground">
-                {statusInfo.count === 1 ? t('claimStatus.client') : t('claimStatus.clients')}
+                {statusInfo.count === 1 ? t('dashboard.claimStatus.client') : t('dashboard.claimStatus.clients')}
               </p>
             </CardContent>
           </Card>
@@ -127,15 +127,15 @@ export function ClaimStatusCards() {
             </DialogTitle>
             <DialogDescription>
               {selectedStatus?.clients.length === 1 
-                ? t('claimStatus.oneClient')
-                : t('claimStatus.manyClients', { count: selectedStatus?.clients.length })}
+                ? t('dashboard.claimStatus.oneClient')
+                : t('dashboard.claimStatus.manyClients', { count: selectedStatus?.clients.length })}
             </DialogDescription>
           </DialogHeader>
 
           <div className="space-y-2">
             {selectedStatus?.clients.length === 0 ? (
               <p className="text-sm text-muted-foreground text-center py-4">
-                {t('claimStatus.noClientsInStatus')}
+                {t('dashboard.claimStatus.noClientsInStatus')}
               </p>
             ) : (
               selectedStatus?.clients.map((client: any) => (
@@ -159,7 +159,7 @@ export function ClaimStatusCards() {
                         </div>
                       </div>
                     </div>
-                    <Badge variant="outline">{t('claimStatus.viewProfile')}</Badge>
+                    <Badge variant="outline">{t('dashboard.claimStatus.viewProfile')}</Badge>
                   </CardContent>
                 </Card>
               ))
@@ -168,7 +168,7 @@ export function ClaimStatusCards() {
 
           <div className="flex justify-end mt-4">
             <Button variant="outline" onClick={() => setSelectedStatus(null)}>
-              {t('claimStatus.close')}
+              {t('dashboard.claimStatus.close')}
             </Button>
           </div>
         </DialogContent>

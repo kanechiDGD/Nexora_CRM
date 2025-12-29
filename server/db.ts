@@ -22,6 +22,10 @@ import {
   InsertOrganization,
   organizationMembers,
   InsertOrganizationMember,
+  organizationInvites,
+  InsertOrganizationInvite,
+  passwordResetTokens,
+  InsertPasswordResetToken,
   customClaimStatuses,
   InsertCustomClaimStatus
 } from "../drizzle/schema";
@@ -158,6 +162,22 @@ export async function getUserById(id: number) {
 
   const result = await db.select().from(users).where(eq(users.id, id)).limit(1);
 
+  return result.length > 0 ? result[0] : undefined;
+}
+
+export async function getUserByEmail(email: string) {
+  const db = await getDb();
+  if (!db) {
+    console.warn("[Database] Cannot get user: database not available");
+    return undefined;
+  }
+
+  const trimmedEmail = email?.trim();
+  if (!trimmedEmail) {
+    return undefined;
+  }
+
+  const result = await db.select().from(users).where(eq(users.email, trimmedEmail)).limit(1);
   return result.length > 0 ? result[0] : undefined;
 }
 
@@ -746,6 +766,81 @@ export async function getOrganizationMemberCount(organizationId: number): Promis
   if (!db) return 0;
   const members = await getOrganizationMembersByOrgId(organizationId);
   return members.length;
+}
+
+// ==================== Organization Invites ====================
+
+export async function createOrganizationInvite(data: InsertOrganizationInvite) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  return await db.insert(organizationInvites).values(data);
+}
+
+export async function getOrganizationInviteByTokenHash(tokenHash: string) {
+  const db = await getDb();
+  if (!db) return undefined;
+  const result = await db.select().from(organizationInvites)
+    .where(eq(organizationInvites.tokenHash, tokenHash))
+    .limit(1);
+  return result.length > 0 ? result[0] : undefined;
+}
+
+export async function getOrganizationInviteByEmail(organizationId: number, email: string) {
+  const db = await getDb();
+  if (!db) return undefined;
+  const { and } = await import('drizzle-orm');
+  const result = await db.select().from(organizationInvites)
+    .where(and(
+      eq(organizationInvites.organizationId, organizationId),
+      eq(organizationInvites.email, email)
+    ))
+    .limit(1);
+  return result.length > 0 ? result[0] : undefined;
+}
+
+export async function listOrganizationInvites(organizationId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  return await db.select().from(organizationInvites)
+    .where(eq(organizationInvites.organizationId, organizationId));
+}
+
+export async function getOrganizationInviteById(id: number) {
+  const db = await getDb();
+  if (!db) return undefined;
+  const result = await db.select().from(organizationInvites)
+    .where(eq(organizationInvites.id, id))
+    .limit(1);
+  return result.length > 0 ? result[0] : undefined;
+}
+
+export async function updateOrganizationInvite(id: number, data: Partial<InsertOrganizationInvite>) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  await db.update(organizationInvites).set(data).where(eq(organizationInvites.id, id));
+}
+
+// ==================== Password Reset Tokens ====================
+
+export async function createPasswordResetToken(data: InsertPasswordResetToken) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  return await db.insert(passwordResetTokens).values(data);
+}
+
+export async function getPasswordResetTokenByHash(tokenHash: string) {
+  const db = await getDb();
+  if (!db) return undefined;
+  const result = await db.select().from(passwordResetTokens)
+    .where(eq(passwordResetTokens.tokenHash, tokenHash))
+    .limit(1);
+  return result.length > 0 ? result[0] : undefined;
+}
+
+export async function updatePasswordResetToken(id: number, data: Partial<InsertPasswordResetToken>) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  await db.update(passwordResetTokens).set(data).where(eq(passwordResetTokens.id, id));
 }
 
 // ==================== Custom Claim Statuses ====================

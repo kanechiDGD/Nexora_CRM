@@ -36,9 +36,11 @@ import {
 import { Plus, Check, ChevronsUpDown } from "lucide-react";
 import { trpc } from "@/lib/trpc";
 import { toast } from "sonner";
+import { useTranslation } from "react-i18next";
 import { cn } from "@/lib/utils";
 
 export function NewTaskDialog() {
+  const { t } = useTranslation();
   const { user } = useAuth();
   const [open, setOpen] = useState(false);
   const [clientSearchOpen, setClientSearchOpen] = useState(false);
@@ -59,13 +61,13 @@ export function NewTaskDialog() {
   
   const createTask = trpc.tasks.create.useMutation({
     onSuccess: () => {
-      toast.success("Tarea creada exitosamente");
+      toast.success(t('taskDialogs.new.success'));
       utils.tasks.list.invalidate();
       setOpen(false);
       resetForm();
     },
     onError: (error) => {
-      toast.error(`Error al crear tarea: ${error.message}`);
+      toast.error(t('taskDialogs.new.error', { message: error.message }));
     },
   });
 
@@ -86,7 +88,7 @@ export function NewTaskDialog() {
     e.preventDefault();
     
     if (!formData.title) {
-      toast.error("Por favor ingresa un título para la tarea");
+      toast.error(t("taskDialogs.new.validation.titleRequired"));
       return;
     }
 
@@ -111,43 +113,43 @@ export function NewTaskDialog() {
       <DialogTrigger asChild>
         <Button>
           <Plus className="h-4 w-4 mr-2" />
-          Nueva Tarea
+          {t('taskDialogs.new.trigger')}
         </Button>
       </DialogTrigger>
       <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
         <form onSubmit={handleSubmit}>
           <DialogHeader>
-            <DialogTitle>Crear Nueva Tarea</DialogTitle>
+            <DialogTitle>{t('taskDialogs.new.title')}</DialogTitle>
             <DialogDescription>
-              Asigna una tarea a un miembro del equipo con fecha límite y prioridad.
+              {t('taskDialogs.new.description')}
             </DialogDescription>
           </DialogHeader>
           <div className="grid gap-4 py-4">
             <div className="grid gap-2">
-              <Label htmlFor="title">Título de la Tarea *</Label>
+              <Label htmlFor="title">{t("taskDialogs.new.titleLabel")}</Label>
               <Input
                 id="title"
                 value={formData.title}
                 onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                placeholder="Ej: Revisar documentación del cliente"
+                placeholder={t('taskDialogs.new.titlePlaceholder')}
                 required
               />
             </div>
 
             <div className="grid gap-2">
-              <Label htmlFor="description">Descripción</Label>
+              <Label htmlFor="description">{t('taskDialogs.new.descriptionLabel')}</Label>
               <Textarea
                 id="description"
                 value={formData.description}
                 onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                placeholder="Detalles de la tarea..."
+                placeholder={t('taskDialogs.new.descriptionPlaceholder')}
                 rows={3}
               />
             </div>
 
             <div className="grid grid-cols-3 gap-4">
               <div className="grid gap-2">
-                <Label htmlFor="category">Categoría</Label>
+                <Label htmlFor="category">{t('taskDialogs.new.categoryLabel')}</Label>
                 <Select
                   value={formData.category}
                   onValueChange={(value) =>
@@ -158,18 +160,18 @@ export function NewTaskDialog() {
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="DOCUMENTACION">Documentación</SelectItem>
-                    <SelectItem value="SEGUIMIENTO">Seguimiento</SelectItem>
-                    <SelectItem value="ESTIMADO">Estimado</SelectItem>
-                    <SelectItem value="REUNION">Reunión</SelectItem>
-                    <SelectItem value="REVISION">Revisión</SelectItem>
-                    <SelectItem value="OTRO">Otro</SelectItem>
+                    <SelectItem value="DOCUMENTACION">{t('taskDialogs.edit.categories.documentation')}</SelectItem>
+                    <SelectItem value="SEGUIMIENTO">{t('taskDialogs.edit.categories.followUp')}</SelectItem>
+                    <SelectItem value="ESTIMADO">{t('taskDialogs.edit.categories.estimate')}</SelectItem>
+                    <SelectItem value="REUNION">{t('taskDialogs.edit.categories.meeting')}</SelectItem>
+                    <SelectItem value="REVISION">{t('taskDialogs.edit.categories.review')}</SelectItem>
+                    <SelectItem value="OTRO">{t('taskDialogs.edit.categories.other')}</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
 
               <div className="grid gap-2">
-                <Label htmlFor="priority">Prioridad</Label>
+                <Label htmlFor="priority">{t('taskDialogs.new.priorityLabel')}</Label>
                 <Select
                   value={formData.priority}
                   onValueChange={(value) =>
@@ -180,15 +182,15 @@ export function NewTaskDialog() {
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="ALTA">Alta</SelectItem>
-                    <SelectItem value="MEDIA">Media</SelectItem>
-                    <SelectItem value="BAJA">Baja</SelectItem>
+                    <SelectItem value="ALTA">{t('taskDialogs.edit.priorities.high')}</SelectItem>
+                    <SelectItem value="MEDIA">{t('taskDialogs.edit.priorities.medium')}</SelectItem>
+                    <SelectItem value="BAJA">{t('taskDialogs.edit.priorities.low')}</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
 
               <div className="grid gap-2">
-                <Label htmlFor="dueDate">Fecha Límite</Label>
+                <Label htmlFor="dueDate">{t("taskDialogs.new.dueDateLabel")}</Label>
                 <Input
                   id="dueDate"
                   type="date"
@@ -199,7 +201,7 @@ export function NewTaskDialog() {
             </div>
 
             <div className="grid gap-2">
-              <Label>Asignado a</Label>
+              <Label>{t('taskDialogs.new.assignedToLabel')}</Label>
               <Select
                 value={formData.assignedTo?.toString() || ""}
                 onValueChange={(value) =>
@@ -207,14 +209,14 @@ export function NewTaskDialog() {
                 }
               >
                 <SelectTrigger>
-                  <SelectValue placeholder="Seleccionar usuario..." />
+                  <SelectValue placeholder={t('taskDialogs.new.assignedToPlaceholder')} />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="0">Sin asignar</SelectItem>
+                  <SelectItem value="0">{t('taskDialogs.new.assignedToNone')}</SelectItem>
                   {allUsers?.map((member: any) => (
                     <SelectItem key={member.id} value={member.userId.toString()}>
                       {member.username} ({member.role})
-                      {member.userId === user?.id ? " - Tú" : ""}
+                      {member.userId === user?.id ? ` - ${t('taskDialogs.new.assignedToYou')}` : ''}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -222,7 +224,7 @@ export function NewTaskDialog() {
             </div>
 
             <div className="grid gap-2">
-              <Label>Cliente Relacionado (opcional)</Label>
+              <Label>{t('taskDialogs.new.clientLabel')}</Label>
               <Popover open={clientSearchOpen} onOpenChange={setClientSearchOpen}>
                 <PopoverTrigger asChild>
                   <Button
@@ -231,15 +233,15 @@ export function NewTaskDialog() {
                     aria-expanded={clientSearchOpen}
                     className="justify-between"
                   >
-                    {formData.clientName || "Seleccionar cliente..."}
+                    {formData.clientName || t('taskDialogs.new.clientPlaceholder')}
                     <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                   </Button>
                 </PopoverTrigger>
                 <PopoverContent className="w-[500px] p-0">
                   <Command>
-                    <CommandInput placeholder="Buscar cliente..." />
+                    <CommandInput placeholder={t('taskDialogs.new.clientSearchPlaceholder')} />
                     <CommandList>
-                      <CommandEmpty>No se encontraron clientes.</CommandEmpty>
+                      <CommandEmpty>{t('taskDialogs.new.noClients')}</CommandEmpty>
                       <CommandGroup>
                         {clients?.map((client: any) => (
                           <CommandItem
@@ -277,10 +279,10 @@ export function NewTaskDialog() {
           </div>
           <DialogFooter>
             <Button type="button" variant="outline" onClick={() => setOpen(false)}>
-              Cancelar
+              {t('taskDialogs.new.cancel')}
             </Button>
             <Button type="submit" disabled={createTask.isPending}>
-              {createTask.isPending ? "Creando..." : "Crear Tarea"}
+              {createTask.isPending ? t('taskDialogs.new.creating') : t('taskDialogs.new.create')}
             </Button>
           </DialogFooter>
         </form>
