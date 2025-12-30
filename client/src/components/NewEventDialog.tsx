@@ -38,6 +38,7 @@ import { trpc } from "@/lib/trpc";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { useTranslation } from "react-i18next";
+import { loadGoogleMapsScript } from "@/lib/googleMaps";
 
 export function NewEventDialog() {
   const { t } = useTranslation();
@@ -79,22 +80,7 @@ export function NewEventDialog() {
     let listener: any = null;
     const w = window as any;
 
-    const loadScript = () => {
-      if (w.google?.maps?.places) {
-        return Promise.resolve();
-      }
-      return new Promise<void>((resolve, reject) => {
-        const script = document.createElement("script");
-        script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&libraries=places`;
-        script.async = true;
-        script.defer = true;
-        script.onload = () => resolve();
-        script.onerror = () => reject(new Error("google-maps-load-failed"));
-        document.head.appendChild(script);
-      });
-    };
-
-    loadScript()
+    loadGoogleMapsScript(apiKey)
       .then(() => {
         const input = addressInputRef.current;
         if (!input || !w.google?.maps?.places) return;

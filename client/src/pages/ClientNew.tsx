@@ -16,28 +16,7 @@ import { ManageClaimStatusesDialog } from "@/components/ManageClaimStatusesDialo
 import { AlertCircle } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useTranslation } from "react-i18next";
-
-let googleMapsScriptPromise: Promise<void> | null = null;
-
-const loadGoogleMapsScript = (apiKey: string) => {
-  const w = window as any;
-  if (w.google?.maps?.places) {
-    return Promise.resolve();
-  }
-  if (googleMapsScriptPromise) {
-    return googleMapsScriptPromise;
-  }
-  googleMapsScriptPromise = new Promise<void>((resolve, reject) => {
-    const script = document.createElement("script");
-    script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&libraries=places`;
-    script.async = true;
-    script.defer = true;
-    script.onload = () => resolve();
-    script.onerror = () => reject(new Error("google-maps-load-failed"));
-    document.head.appendChild(script);
-  });
-  return googleMapsScriptPromise;
-};
+import { loadGoogleMapsScript } from "@/lib/googleMaps";
 
 export default function ClientNew() {
   const { t } = useTranslation();

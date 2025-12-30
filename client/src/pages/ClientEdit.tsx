@@ -6,7 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { ArrowLeft, Save, AlertCircle } from "lucide-react";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import { trpc } from "@/lib/trpc";
@@ -26,6 +26,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import { loadGoogleMapsScript } from "@/lib/googleMaps";
 
 export default function ClientEdit() {
   const { t } = useTranslation();
@@ -34,6 +35,7 @@ export default function ClientEdit() {
   const clientId = id || "";
   const { user } = useAuth();
   const { canEdit, canDelete } = usePermissions();
+  const addressInputRef = useRef<HTMLInputElement | null>(null);
 
   const { data: client, isLoading } = trpc.clients.getById.useQuery(
     { id: clientId },
@@ -114,6 +116,69 @@ export default function ClientEdit() {
       });
     }
   }, [client]);
+
+  useEffect(() => {
+    const apiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY as string | undefined;
+    if (!apiKey) return;
+
+    let autocomplete: any = null;
+    let listener: any = null;
+    const w = window as any;
+
+    loadGoogleMapsScript(apiKey)
+      .then(() => {
+        const input = addressInputRef.current;
+        if (!input || !w.google?.maps?.places) return;
+
+        autocomplete = new w.google.maps.places.Autocomplete(input, {
+          types: ["address"],
+          fields: ["address_components", "formatted_address"],
+        });
+
+        const getComponent = (type: string, useShort = false) => {
+          const place = autocomplete?.getPlace();
+          const components = place?.address_components || [];
+          const component = components.find((item: any) => item.types?.includes(type));
+          if (!component) return "";
+          return useShort ? component.short_name : component.long_name;
+        };
+
+        listener = autocomplete.addListener("place_changed", () => {
+          const place = autocomplete?.getPlace();
+          if (!place) return;
+
+          const streetNumber = getComponent("street_number");
+          const route = getComponent("route");
+          const streetLine = [streetNumber, route].filter(Boolean).join(" ").trim();
+          const city =
+            getComponent("locality") ||
+            getComponent("postal_town") ||
+            getComponent("sublocality") ||
+            getComponent("sublocality_level_1");
+          const state = getComponent("administrative_area_level_1", true) || getComponent("administrative_area_level_1");
+          const zipCode = getComponent("postal_code");
+          const formatted = place.formatted_address || streetLine;
+
+          setFormData((prev) => ({
+            ...prev,
+            propertyAddress: streetLine || formatted || prev.propertyAddress,
+            city: city || prev.city,
+            state: state || prev.state,
+            zipCode: zipCode || prev.zipCode,
+          }));
+        });
+      })
+      .catch(() => {});
+
+    return () => {
+      if (listener) {
+        listener.remove();
+      }
+      if (autocomplete) {
+        w.google?.maps?.event?.clearInstanceListeners(autocomplete);
+      }
+    };
+  }, []);
 
   // Funciones de validación
   const validateEmail = (email: string): boolean => {
@@ -319,6 +384,7 @@ export default function ClientEdit() {
                 <Label htmlFor="propertyAddress">{t("clientNew.fields.propertyAddress")}</Label>
                 <Input
                   id="propertyAddress"
+                  ref={addressInputRef}
                   value={formData.propertyAddress}
                   onChange={(e) => setFormData({ ...formData, propertyAddress: e.target.value })}
                 />
