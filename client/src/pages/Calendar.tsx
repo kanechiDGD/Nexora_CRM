@@ -8,7 +8,10 @@ import DashboardLayout from "@/components/DashboardLayout";
 import { NewEventDialog } from "@/components/NewEventDialog";
 import { ClientContactDialog } from "@/components/ClientContactDialog";
 import { EventDetailsDialog } from "@/components/EventDetailsDialog";
+import { EditEventDialog } from "@/components/EditEventDialog";
+import { DeleteEventDialog } from "@/components/DeleteEventDialog";
 import { useTranslation } from "react-i18next";
+import { usePermissions } from "@/hooks/usePermissions";
 
 export default function Calendar() {
   const { t, i18n } = useTranslation();
@@ -16,6 +19,7 @@ export default function Calendar() {
   const [contactDialogOpen, setContactDialogOpen] = useState(false);
   const [selectedEvent, setSelectedEvent] = useState<any>(null);
   const [eventDetailsOpen, setEventDetailsOpen] = useState(false);
+  const { canEdit, canDelete } = usePermissions();
 
   const { data: clients } = trpc.clients.list.useQuery();
   const { data: events } = trpc.events.list.useQuery();
@@ -297,10 +301,19 @@ export default function Calendar() {
                       )}
                     </div>
 
-                    <div className="flex gap-2 mt-3">
-                      {/* Los botones de editar/eliminar están integrados en los diálogos */}
-                      <p className="text-xs text-muted-foreground">{t('calendarPage.upcomingEvents.editHint')}</p>
-                    </div>
+                                        {canEdit || canDelete ? (
+                      <div
+                        className="flex items-center gap-2 mt-3"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        {canEdit && <EditEventDialog event={event} />}
+                        {canDelete && <DeleteEventDialog event={event} />}
+                      </div>
+                    ) : (
+                      <div className="mt-3">
+                        <p className="text-xs text-muted-foreground">{t('calendarPage.upcomingEvents.editHint')}</p>
+                      </div>
+                    )}
                   </div>
                 </div>
               ))
@@ -351,3 +364,4 @@ export default function Calendar() {
     </DashboardLayout>
   );
 }
+

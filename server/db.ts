@@ -16,6 +16,10 @@ import {
   InsertAuditLog,
   events,
   InsertEvent,
+  eventAttendees,
+  InsertEventAttendee,
+  notifications,
+  InsertNotification,
   tasks,
   InsertTask,
   organizations,
@@ -339,7 +343,12 @@ export async function getActivityLogsByClientId(clientId: string, organizationId
   const db = await getDb();
   if (!db) return [];
   const { desc, and } = await import('drizzle-orm');
-  return await db.select().from(activityLogs)
+  return await db.select({
+    ...activityLogs,
+    performedByName: users.name,
+    performedByEmail: users.email,
+  }).from(activityLogs)
+    .leftJoin(users, eq(activityLogs.performedBy, users.id))
     .where(and(
       eq(activityLogs.clientId, clientId),
       eq(activityLogs.organizationId, organizationId)
@@ -351,7 +360,12 @@ export async function getRecentActivityLogs(organizationId: number, limit: numbe
   const db = await getDb();
   if (!db) return [];
   const { desc } = await import('drizzle-orm');
-  return await db.select().from(activityLogs)
+  return await db.select({
+    ...activityLogs,
+    performedByName: users.name,
+    performedByEmail: users.email,
+  }).from(activityLogs)
+    .leftJoin(users, eq(activityLogs.performedBy, users.id))
     .where(eq(activityLogs.organizationId, organizationId))
     .orderBy(desc(activityLogs.performedAt))
     .limit(limit);
@@ -551,6 +565,53 @@ export async function deleteEvent(id: number, organizationId: number) {
   return { id };
 }
 
+// ============ EVENT ATTENDEES ============
+
+export async function getEventAttendees(eventId: number, organizationId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  const { and } = await import('drizzle-orm');
+  return await db.select({
+    id: eventAttendees.id,
+    eventId: eventAttendees.eventId,
+    memberId: eventAttendees.memberId,
+    role: organizationMembers.role,
+    userId: organizationMembers.userId,
+    userName: users.name,
+    userEmail: users.email,
+  }).from(eventAttendees)
+    .leftJoin(organizationMembers, eq(eventAttendees.memberId, organizationMembers.id))
+    .leftJoin(users, eq(organizationMembers.userId, users.id))
+    .where(and(
+      eq(eventAttendees.eventId, eventId),
+      eq(eventAttendees.organizationId, organizationId)
+    ));
+}
+
+export async function createEventAttendees(data: InsertEventAttendee[]) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  if (!data.length) return;
+  await db.insert(eventAttendees).values(data);
+}
+
+export async function replaceEventAttendees(eventId: number, organizationId: number, memberIds: number[]) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  const { and } = await import('drizzle-orm');
+  await db.delete(eventAttendees).where(and(
+    eq(eventAttendees.eventId, eventId),
+    eq(eventAttendees.organizationId, organizationId)
+  ));
+  if (!memberIds.length) return;
+  const rows = memberIds.map((memberId) => ({
+    eventId,
+    memberId,
+    organizationId,
+  })) satisfies InsertEventAttendee[];
+  await db.insert(eventAttendees).values(rows);
+}
+
 // ============ TASKS ============
 
 export async function getAllTasks(organizationId: number) {
@@ -603,6 +664,41 @@ export async function createTask(data: InsertTask) {
   if (!db) throw new Error("Database not available");
   const result = await db.insert(tasks).values(data);
   return result;
+}
+
+// ============ NOTIFICATIONS ============
+
+export async function createNotifications(data: InsertNotification[]) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  if (!data.length) return;
+  await db.insert(notifications).values(data);
+}
+
+export async function getNotificationsByUser(organizationId: number, userId: number, limit: number = 200) {
+  const db = await getDb();
+  if (!db) return [];
+  const { desc, and } = await import('drizzle-orm');
+  return await db.select().from(notifications)
+    .where(and(
+      eq(notifications.organizationId, organizationId),
+      eq(notifications.userId, userId)
+    ))
+    .orderBy(desc(notifications.createdAt))
+    .limit(limit);
+}
+
+export async function markNotificationRead(id: number, userId: number, organizationId: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  const { and } = await import('drizzle-orm');
+  await db.update(notifications)
+    .set({ readAt: new Date() })
+    .where(and(
+      eq(notifications.id, id),
+      eq(notifications.userId, userId),
+      eq(notifications.organizationId, organizationId)
+    ));
 }
 
 export async function updateTask(id: number, organizationId: number, data: Partial<InsertTask>) {

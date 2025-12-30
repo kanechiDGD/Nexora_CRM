@@ -24,7 +24,7 @@ import { useIsMobile } from "@/hooks/useMobile";
 import { usePermissions } from "@/hooks/usePermissions";
 import { Badge } from "@/components/ui/badge";
 import { trpc } from "@/lib/trpc";
-import { LayoutDashboard, LogOut, PanelLeft, Users, FileText, Building2, ArrowLeft, UserCircle, FileSignature, Calendar, CheckSquare, Sun, Moon, Settings } from "lucide-react";
+import { LayoutDashboard, LogOut, PanelLeft, Users, FileText, Building2, ArrowLeft, UserCircle, FileSignature, Calendar, CheckSquare, Sun, Moon, Settings, Bell } from "lucide-react";
 import { useTheme } from "@/contexts/ThemeContext";
 import { CSSProperties, useEffect, useRef, useState } from "react";
 import { useLocation } from "wouter";
@@ -39,6 +39,7 @@ const getMenuItems = (canManageUsers: boolean, t: any) => {
     { icon: LayoutDashboard, label: t('dashboard.menu.dashboard'), path: "/dashboard" },
     { icon: Users, label: t('dashboard.menu.clients'), path: "/clients" },
     { icon: FileText, label: t('dashboard.menu.logs'), path: "/logs" },
+    { icon: Bell, label: t('dashboard.menu.notifications'), path: "/notifications" },
     { icon: Building2, label: t('dashboard.menu.construction'), path: "/construction" },
     { icon: Calendar, label: t('dashboard.menu.calendar'), path: "/calendar" },
     { icon: CheckSquare, label: t('dashboard.menu.tasks'), path: "/tasks" },

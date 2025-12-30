@@ -15,6 +15,17 @@ import { useAuth } from "@/_core/hooks/useAuth";
 import { usePermissions } from "@/hooks/usePermissions";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { ManageClaimStatusesDialog } from "@/components/ManageClaimStatusesDialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 
 export default function ClientEdit() {
   const { t } = useTranslation();
@@ -22,7 +33,7 @@ export default function ClientEdit() {
   const [, setLocation] = useLocation();
   const clientId = id || "";
   const { user } = useAuth();
-  const { canEdit } = usePermissions();
+  const { canEdit, canDelete } = usePermissions();
 
   const { data: client, isLoading } = trpc.clients.getById.useQuery(
     { id: clientId },
@@ -31,6 +42,16 @@ export default function ClientEdit() {
   const { data: organizationMembers } = trpc.organizations.getMembers.useQuery();
   const { data: customClaimStatuses = [] } = trpc.customClaimStatuses.list.useQuery();
   const updateMutation = trpc.clients.update.useMutation();
+  const deleteMutation = trpc.clients.delete.useMutation({
+    onSuccess: () => {
+      toast.success(t("clientEdit.deleteSuccess"));
+      utils.clients.list.invalidate();
+      setLocation("/clients");
+    },
+    onError: (error) => {
+      toast.error(t("clientEdit.deleteError", { message: error.message }));
+    },
+  });
   const utils = trpc.useUtils();
   
   // Solo ADMIN y CO_ADMIN pueden editar estado del reclamo
@@ -549,18 +570,52 @@ export default function ClientEdit() {
           </Card>
 
           {/* Actions */}
-          <div className="flex justify-end gap-4">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => setLocation(`/clients/${clientId}`)}
-            >
-              {t("clientEdit.actions.cancel")}
-            </Button>
-            <Button type="submit" disabled={updateMutation.isPending}>
-              <Save className="mr-2 h-4 w-4" />
-              {updateMutation.isPending ? t('clientEdit.saving') : t('clientEdit.saveChanges')}
-            </Button>
+          <div className="flex flex-wrap items-center justify-between gap-4">
+            {canDelete ? (
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button variant="destructive" type="button">
+                    {t("clientEdit.actions.delete")}
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>{t("clientEdit.deleteConfirm.title")}</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      {t("clientEdit.deleteConfirm.description", {
+                        name: `${client.firstName} ${client.lastName}`,
+                      })}
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>{t("clientEdit.deleteConfirm.cancel")}</AlertDialogCancel>
+                    <AlertDialogAction
+                      onClick={() => deleteMutation.mutate({ id: clientId })}
+                      disabled={deleteMutation.isPending}
+                    >
+                      {deleteMutation.isPending
+                        ? t("clientEdit.deleteConfirm.deleting")
+                        : t("clientEdit.deleteConfirm.confirm")}
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
+            ) : (
+              <span />
+            )}
+            <div className="flex justify-end gap-4">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setLocation(`/clients/${clientId}`)}
+              >
+                {t("clientEdit.actions.cancel")}
+              </Button>
+              <Button type="submit" disabled={updateMutation.isPending}>
+                <Save className="mr-2 h-4 w-4" />
+                {updateMutation.isPending ? t('clientEdit.saving') : t('clientEdit.saveChanges')}
+              </Button>
+            </div>
           </div>
         </form>
       </div>

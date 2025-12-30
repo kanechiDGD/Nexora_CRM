@@ -25,6 +25,26 @@
       "actions": "Acciones"
     }
   },
+  "notifications": {
+    "title": "Notifications",
+    "subtitle": "Updates for your organization",
+    "listTitle": "Recent notifications",
+    "countLabel": "notifications",
+    "empty": "No notifications yet.",
+    "markRead": "Mark as read",
+    "filters": {
+      "placeholder": "Filter by date",
+      "all": "All time",
+      "today": "Today",
+      "week": "This week",
+      "month": "This month"
+    },
+    "types": {
+      "event": "Event",
+      "task": "Task",
+      "activity": "Activity"
+    }
+  },
   "dashboard": {
     "title": "Dashboard",
     "subtitle": "Vista general de métricas y KPIs del CRM",
@@ -32,6 +52,7 @@
       "dashboard": "Dashboard",
       "clients": "Clientes",
       "logs": "Logs",
+      "notifications": "Notifications",
       "construction": "Construcción",
       "calendar": "Calendario",
       "tasks": "Tareas",
@@ -71,6 +92,10 @@
         "titlePlaceholder": "Ej: Reunión con aseguradora",
         "relatedClient": "Cliente Relacionado (opcional)",
         "searchClient": "Buscar cliente...",
+        "attendees": "Attendees",
+        "attendeesPlaceholder": "Select team members...",
+        "attendeesSelected": "{{count}} attendees selected",
+        "attendeesEmpty": "No team members found",
         "date": "Fecha",
         "time": "Hora",
         "address": "Dirección del Evento",
@@ -123,6 +148,7 @@
       "eventDetails": "Detalles del evento",
       "location": "Ubicacion",
       "description": "Descripcion",
+      "attendees": "Attendees",
       "notes": "Notas",
       "clientInfo": "Informacion del cliente"
     },
@@ -720,6 +746,8 @@
     "defaultLabel": "Predeterminado"
   },
   "clientEdit": {
+    "deleteSuccess": "Cliente eliminado correctamente",
+    "deleteError": "Error al eliminar el cliente: {{message}}",
     "updateSuccess": "Cliente actualizado correctamente",
     "updateError": "Error al actualizar el cliente",
     "adjusterPlaceholder": "Seleccionar ajustador...",
@@ -763,7 +791,15 @@
       "invalidZipCode": "El c?digo postal debe tener exactamente 5 d?gitos"
     },
     "actions": {
-      "cancel": "Cancelar"
+      "cancel": "Cancelar",
+      "delete": "Eliminar cliente"
+    },
+    "deleteConfirm": {
+      "title": "Eliminar cliente",
+      "description": "Esto eliminara permanentemente a {{name}} y su informacion. Esta accion no se puede deshacer.",
+      "cancel": "Cancelar",
+      "confirm": "Eliminar",
+      "deleting": "Eliminando..."
     }
   },
   "clientNew": {

@@ -262,7 +262,9 @@ export function ClientContactDialog({ open, onOpenChange, clientId, clientName }
                 <div className="flex items-center gap-2 text-sm">
                   <User className="h-4 w-4 text-muted-foreground" />
                   <span className="text-muted-foreground">{t('clientContactDialog.activityLabels.contactedBy')}</span>
-                  <span className="font-semibold">{t('clientContactDialog.activityLabels.userLabel', { id: lastActivity.performedBy })}</span>
+                  <span className="font-semibold">
+                    {lastActivity.performedByName || lastActivity.performedByEmail || t('clientContactDialog.activityLabels.userLabel', { id: lastActivity.performedBy })}
+                  </span>
                 </div>
               </div>
             ) : (

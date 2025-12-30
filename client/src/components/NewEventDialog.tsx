@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import {
@@ -44,6 +44,7 @@ export function NewEventDialog() {
   const { user } = useAuth();
   const [open, setOpen] = useState(false);
   const [clientSearchOpen, setClientSearchOpen] = useState(false);
+  const [attendeeSearchOpen, setAttendeeSearchOpen] = useState(false);
   const [formData, setFormData] = useState({
     eventType: "MEETING" as "MEETING" | "ADJUSTMENT" | "ESTIMATE" | "INSPECTION" | "APPOINTMENT" | "DEADLINE" | "OTHER",
     title: "",
@@ -54,6 +55,7 @@ export function NewEventDialog() {
     address: "",
     clientId: null as string | null,
     clientName: "",
+    attendeeIds: [] as number[],
     // Campos específicos para ajustaciones
     adjusterNumber: "",
     adjusterName: "",
@@ -63,9 +65,61 @@ export function NewEventDialog() {
     claimNumber: "",
     notes: "",
   });
+  const addressInputRef = useRef<HTMLInputElement | null>(null);
 
   const { data: clients } = trpc.clients.list.useQuery();
+  const { data: organizationMembers = [] } = trpc.organizations.getMembers.useQuery();
   const utils = trpc.useUtils();
+
+  useEffect(() => {
+    const apiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY as string | undefined;
+    if (!apiKey) return;
+
+    let autocomplete: any = null;
+    let listener: any = null;
+    const w = window as any;
+
+    const loadScript = () => {
+      if (w.google?.maps?.places) {
+        return Promise.resolve();
+      }
+      return new Promise<void>((resolve, reject) => {
+        const script = document.createElement("script");
+        script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&libraries=places`;
+        script.async = true;
+        script.defer = true;
+        script.onload = () => resolve();
+        script.onerror = () => reject(new Error("google-maps-load-failed"));
+        document.head.appendChild(script);
+      });
+    };
+
+    loadScript()
+      .then(() => {
+        const input = addressInputRef.current;
+        if (!input || !w.google?.maps?.places) return;
+        autocomplete = new w.google.maps.places.Autocomplete(input, {
+          types: ["address"],
+          fields: ["formatted_address"],
+        });
+        listener = autocomplete.addListener("place_changed", () => {
+          const place = autocomplete?.getPlace();
+          if (!place?.formatted_address) return;
+          setFormData((prev) => ({
+            ...prev,
+            address: place.formatted_address,
+          }));
+        });
+      })
+      .catch(() => {});
+
+    return () => {
+      if (listener) listener.remove();
+      if (autocomplete) {
+        w.google?.maps?.event?.clearInstanceListeners(autocomplete);
+      }
+    };
+  }, []);
   
   const createEvent = trpc.events.create.useMutation({
     onSuccess: () => {
@@ -90,6 +144,7 @@ export function NewEventDialog() {
       address: "",
       clientId: null,
       clientName: "",
+      attendeeIds: [],
       adjusterNumber: "",
       adjusterName: "",
       adjusterPhone: "",
@@ -117,6 +172,7 @@ export function NewEventDialog() {
       endTime: formData.endTime || null,
       address: formData.address || null,
       clientId: formData.clientId,
+      attendeeIds: formData.attendeeIds,
       adjusterNumber: formData.adjusterNumber || null,
       adjusterName: formData.adjusterName || null,
       adjusterPhone: formData.adjusterPhone || null,
@@ -130,6 +186,18 @@ export function NewEventDialog() {
   const handleClientSelect = (clientId: string, clientName: string) => {
     setFormData({ ...formData, clientId, clientName });
     setClientSearchOpen(false);
+  };
+
+  const toggleAttendee = (memberId: number) => {
+    setFormData((prev) => {
+      const isSelected = prev.attendeeIds.includes(memberId);
+      return {
+        ...prev,
+        attendeeIds: isSelected
+          ? prev.attendeeIds.filter((id) => id !== memberId)
+          : [...prev.attendeeIds, memberId],
+      };
+    });
   };
 
   const isAdjustment = formData.eventType === "ADJUSTMENT";
@@ -246,6 +314,55 @@ export function NewEventDialog() {
               </Popover>
             </div>
 
+            <div className="grid gap-2">
+              <Label>{t('dashboard.calendar.newEvent.attendees')}</Label>
+              <Popover open={attendeeSearchOpen} onOpenChange={setAttendeeSearchOpen}>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    role="combobox"
+                    aria-expanded={attendeeSearchOpen}
+                    className="justify-between"
+                  >
+                    {formData.attendeeIds.length > 0
+                      ? t('dashboard.calendar.newEvent.attendeesSelected', { count: formData.attendeeIds.length })
+                      : t('dashboard.calendar.newEvent.attendeesPlaceholder')}
+                    <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-[500px] p-0">
+                  <Command>
+                    <CommandInput placeholder={t('dashboard.calendar.newEvent.attendeesPlaceholder')} />
+                    <CommandList>
+                      <CommandEmpty>{t('dashboard.calendar.newEvent.attendeesEmpty')}</CommandEmpty>
+                      <CommandGroup>
+                        {organizationMembers.map((member: any) => (
+                          <CommandItem
+                            key={member.id}
+                            value={member.username}
+                            onSelect={() => toggleAttendee(member.id)}
+                          >
+                            <Check
+                              className={cn(
+                                "mr-2 h-4 w-4",
+                                formData.attendeeIds.includes(member.id)
+                                  ? "opacity-100"
+                                  : "opacity-0"
+                              )}
+                            />
+                            <div className="flex flex-col">
+                              <span className="font-medium">{member.username}</span>
+                              <span className="text-xs text-muted-foreground">{member.role}</span>
+                            </div>
+                          </CommandItem>
+                        ))}
+                      </CommandGroup>
+                    </CommandList>
+                  </Command>
+                </PopoverContent>
+              </Popover>
+            </div>
+
             <div className="grid grid-cols-2 gap-4">
               <div className="grid gap-2">
                 <Label htmlFor="eventDate">{t('dashboard.calendar.newEvent.date')} *</Label>
@@ -276,6 +393,7 @@ export function NewEventDialog() {
               <Label htmlFor="address">{t('dashboard.calendar.newEvent.address')}</Label>
               <Input
                 id="address"
+                ref={addressInputRef}
                 placeholder={t('dashboard.calendar.newEvent.addressPlaceholder')}
                 value={formData.address}
                 onChange={(e) =>

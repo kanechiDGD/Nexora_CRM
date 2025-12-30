@@ -357,6 +357,39 @@ export type Event = typeof events.$inferSelect;
 export type InsertEvent = typeof events.$inferInsert;
 
 /**
+ * Event attendees (organization members assigned to events).
+ */
+export const eventAttendees = mysqlTable("eventAttendees", {
+  id: int("id").autoincrement().primaryKey(),
+  eventId: int("eventId").notNull().references(() => events.id, { onDelete: "cascade" }),
+  memberId: int("memberId").notNull().references(() => organizationMembers.id, { onDelete: "cascade" }),
+  organizationId: int("organizationId").notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+export type EventAttendee = typeof eventAttendees.$inferSelect;
+export type InsertEventAttendee = typeof eventAttendees.$inferInsert;
+
+/**
+ * Notifications delivered to organization members.
+ */
+export const notifications = mysqlTable("notifications", {
+  id: int("id").autoincrement().primaryKey(),
+  organizationId: int("organizationId").notNull(),
+  userId: int("userId").notNull().references(() => users.id),
+  type: mysqlEnum("type", ["EVENT", "TASK", "ACTIVITY"]).notNull(),
+  title: varchar("title", { length: 200 }).notNull(),
+  body: text("body"),
+  entityType: varchar("entityType", { length: 50 }),
+  entityId: varchar("entityId", { length: 50 }),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  readAt: timestamp("readAt"),
+});
+
+export type Notification = typeof notifications.$inferSelect;
+export type InsertNotification = typeof notifications.$inferInsert;
+
+/**
  * Tabla de tareas del equipo
  */
 export const tasks = mysqlTable("tasks", {

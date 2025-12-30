@@ -25,6 +25,26 @@
       "actions": "Actions"
     }
   },
+  "notifications": {
+    "title": "Notifications",
+    "subtitle": "Updates for your organization",
+    "listTitle": "Recent notifications",
+    "countLabel": "notifications",
+    "empty": "No notifications yet.",
+    "markRead": "Mark as read",
+    "filters": {
+      "placeholder": "Filter by date",
+      "all": "All time",
+      "today": "Today",
+      "week": "This week",
+      "month": "This month"
+    },
+    "types": {
+      "event": "Event",
+      "task": "Task",
+      "activity": "Activity"
+    }
+  },
   "dashboard": {
     "title": "Dashboard",
     "subtitle": "Overview of CRM metrics and KPIs",
@@ -32,6 +52,7 @@
       "dashboard": "Dashboard",
       "clients": "Clients",
       "logs": "Logs",
+      "notifications": "Notifications",
       "construction": "Construction",
       "calendar": "Calendar",
       "tasks": "Tasks",
@@ -71,6 +92,10 @@
         "titlePlaceholder": "Ex: Meeting with insurance company",
         "relatedClient": "Related Client (optional)",
         "searchClient": "Search client...",
+        "attendees": "Attendees",
+        "attendeesPlaceholder": "Select team members...",
+        "attendeesSelected": "{{count}} attendees selected",
+        "attendeesEmpty": "No team members found",
         "date": "Date",
         "time": "Time",
         "address": "Event Address",
@@ -123,6 +148,7 @@
       "eventDetails": "Event details",
       "location": "Location",
       "description": "Description",
+      "attendees": "Attendees",
       "notes": "Notes",
       "clientInfo": "Client info"
     },
@@ -720,6 +746,8 @@
     "defaultLabel": "Default"
   },
   "clientEdit": {
+    "deleteSuccess": "Client deleted successfully",
+    "deleteError": "Error deleting client: {{message}}",
     "updateSuccess": "Client updated successfully",
     "updateError": "Error updating client",
     "adjusterPlaceholder": "Select adjuster...",
@@ -763,7 +791,15 @@
       "invalidZipCode": "ZIP code must be exactly 5 digits"
     },
     "actions": {
-      "cancel": "Cancel"
+      "cancel": "Cancel",
+      "delete": "Delete client"
+    },
+    "deleteConfirm": {
+      "title": "Delete client",
+      "description": "This will permanently remove {{name}} and their data. This action cannot be undone.",
+      "cancel": "Cancel",
+      "confirm": "Delete",
+      "deleting": "Deleting..."
     }
   },
   "clientNew": {

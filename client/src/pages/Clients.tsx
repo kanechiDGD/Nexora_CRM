@@ -26,7 +26,9 @@ export default function Clients() {
   const [searchTerm, setSearchTerm] = useState("");
 
   // Obtener todos los clientes
-  const { data: allClients, isLoading } = trpc.clients.list.useQuery();
+  const { data: allClients, isLoading } = trpc.clients.list.useQuery(undefined, {
+    refetchOnMount: "always",
+  });
   const { data: customStatuses = [] } = trpc.customClaimStatuses.list.useQuery();
 
   // Filtrar clientes según el parámetro de filtro

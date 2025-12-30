@@ -22,6 +22,7 @@ import ForgotPassword from "./pages/ForgotPassword";
 import ResetPassword from "./pages/ResetPassword";
 import AcceptInvite from "./pages/AcceptInvite";
 import Users from "./pages/Users";
+import Notifications from "./pages/Notifications";
 import AuthGuard from "./components/AuthGuard";
 
 function Router() {
@@ -62,6 +63,9 @@ function Router() {
       </Route>
       <Route path={"/tasks"}>
         <AuthGuard><Tasks /></AuthGuard>
+      </Route>
+      <Route path={"/notifications"}>
+        <AuthGuard><Notifications /></AuthGuard>
       </Route>
       <Route path={"/profile"}>
         <AuthGuard><Profile /></AuthGuard>

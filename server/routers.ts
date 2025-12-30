@@ -11,6 +11,7 @@ import { TRPCError } from "@trpc/server";
 import bcrypt from "bcryptjs";
 import { ENV } from "./_core/env";
 import { buildInviteEmail, buildPasswordResetEmail, sendEmail } from "./_core/email";
+import { sdk } from "./_core/sdk";
 
 // Helper para verificar roles
 const adminProcedure = protectedProcedure.use(({ ctx, next }) => {
@@ -72,13 +73,36 @@ const coAdminOrgProcedure = orgProcedure.use(({ ctx, next }) => {
   return next({ ctx });
 });
 
+async function notifyOrganizationMembers(params: {
+  organizationId: number;
+  type: "EVENT" | "TASK" | "ACTIVITY";
+  title: string;
+  body?: string | null;
+  entityType?: string | null;
+  entityId?: string | null;
+}) {
+  const members = await db.getOrganizationMembers(params.organizationId);
+  if (!members.length) return;
+  const rows = members.map((member) => ({
+    organizationId: params.organizationId,
+    userId: member.userId,
+    type: params.type,
+    title: params.title,
+    body: params.body ?? null,
+    entityType: params.entityType ?? null,
+    entityId: params.entityId ?? null,
+  }));
+  await db.createNotifications(rows);
+}
+
 export const appRouter = router({
   system: systemRouter,
+
+
 
   auth: router({
     me: publicProcedure.query(opts => opts.ctx.user),
 
-    // Login con username/password para miembros de organización
     loginWithCredentials: publicProcedure
       .input(z.object({
         username: z.string(),
@@ -86,148 +110,84 @@ export const appRouter = router({
         rememberMe: z.boolean().optional().default(false),
       }))
       .mutation(async ({ input, ctx }) => {
-        // Buscar miembro por username
         const member = await db.getOrganizationMemberByUsername(input.username);
-        if (!member) {
-          throw new TRPCError({
-            code: 'UNAUTHORIZED',
-            message: 'Usuario o contraseña incorrectos',
-          });
+        if (!member || !member.password) {
+          throw new TRPCError({ code: "UNAUTHORIZED", message: "Invalid credentials" });
         }
 
-        // Verificar contraseña
         const isValid = await bcrypt.compare(input.password, member.password);
         if (!isValid) {
-          throw new TRPCError({
-            code: 'UNAUTHORIZED',
-            message: 'Usuario o contraseña incorrectos',
-          });
+          throw new TRPCError({ code: "UNAUTHORIZED", message: "Invalid credentials" });
         }
 
-        // Obtener usuario asociado
         const user = await db.getUserById(member.userId);
-        if (!user) {
-          throw new TRPCError({
-            code: 'INTERNAL_SERVER_ERROR',
-            message: 'Error al obtener información del usuario',
-          });
+        if (!user?.openId) {
+          throw new TRPCError({ code: "UNAUTHORIZED", message: "User not found" });
         }
 
-        // Crear sesión JWT (igual que OAuth)
-        const { sdk } = await import('./_core/sdk');
-        // Crear sesión y cookie con expiración de 1 año
+        await db.upsertUser({
+          openId: user.openId,
+          name: user.name ?? null,
+          email: user.email ?? null,
+          loginMethod: user.loginMethod ?? null,
+          lastSignedIn: new Date(),
+        });
+
         const sessionToken = await sdk.createSessionToken(user.openId, {
-          name: user.name || input.username,
+          name: user.name || "",
           expiresInMs: ONE_YEAR_MS,
         });
 
         const cookieOptions = getSessionCookieOptions(ctx.req);
-        // Establecer maxAge:
-        // - Si rememberMe es true: 1 año (ONE_YEAR_MS)
-        // - Si rememberMe es false: 30 días (para evitar cierre de sesión por timeout corto)
-        // Esto responde a la necesidad de "nunca cerrar sesión sola"
-        const THIRTY_DAYS_MS = 30 * 24 * 60 * 60 * 1000;
-        const maxAge = input.rememberMe ? ONE_YEAR_MS : THIRTY_DAYS_MS;
-
-        ctx.res.cookie(COOKIE_NAME, sessionToken, {
-          ...cookieOptions,
-          maxAge,
-          expires: new Date(Date.now() + maxAge), // Redundancia para compatibilidad
-        });
-
-        return {
-          success: true,
-          user: {
-            id: user.id,
-            name: user.name,
-            email: user.email,
-            role: member.role,
-            organizationId: member.organizationId,
-          },
-        };
-      }),
-
-    logout: publicProcedure.mutation(({ ctx }) => {
-      const cookieOptions = getSessionCookieOptions(ctx.req);
-      ctx.res.clearCookie(COOKIE_NAME, { ...cookieOptions, maxAge: -1 });
-      return {
-        success: true,
-      } as const;
-    }),
-
-    // Cambiar contraseña (requiere contraseña actual)
-    changePassword: protectedProcedure
-      .input(z.object({
-        currentPassword: z.string(),
-        newPassword: z.string().min(8, "La contraseña debe tener al menos 8 caracteres"),
-      }))
-      .mutation(async ({ input, ctx }) => {
-        // Obtener miembro de organización del usuario actual
-        const member = await db.getOrganizationMemberByUserId(ctx.user.id);
-        if (!member) {
-          throw new TRPCError({
-            code: 'NOT_FOUND',
-            message: 'Usuario no encontrado en ninguna organización',
-          });
+        if (input.rememberMe) {
+          ctx.res.cookie(COOKIE_NAME, sessionToken, { ...cookieOptions, maxAge: ONE_YEAR_MS });
+        } else {
+          ctx.res.cookie(COOKIE_NAME, sessionToken, cookieOptions);
         }
-
-        // Verificar contraseña actual
-        const isValid = await bcrypt.compare(input.currentPassword, member.password);
-        if (!isValid) {
-          throw new TRPCError({
-            code: 'UNAUTHORIZED',
-            message: 'Contraseña actual incorrecta',
-          });
-        }
-
-        // Hashear nueva contraseña
-        const newPasswordHash = await bcrypt.hash(input.newPassword, 10);
-
-        // Actualizar contraseña
-        await db.updateOrganizationMember(member.id, {
-          password: newPasswordHash,
-        });
 
         return { success: true };
       }),
 
+    logout: protectedProcedure.mutation(async ({ ctx }) => {
+      const cookieOptions = getSessionCookieOptions(ctx.req);
+      ctx.res.clearCookie(COOKIE_NAME, cookieOptions);
+      return { success: true };
+    }),
+
     requestPasswordReset: publicProcedure
-      .input(z.object({
-        email: z.string().email(),
-      }))
+      .input(z.object({ email: z.string().email() }))
       .mutation(async ({ input }) => {
-        try {
-          const user = await db.getUserByEmail(input.email);
-          if (!user) {
-            return { success: true };
-          }
-
-          const member = await db.getOrganizationMemberByUserId(user.id);
-          if (!member) {
-            return { success: true };
-          }
-
-          const token = generateToken(32);
-          const tokenHash = hashToken(token);
-          const expiresAt = new Date(Date.now() + ENV.passwordResetTokenHours * 60 * 60 * 1000);
-
-          await db.createPasswordResetToken({
-            userId: user.id,
-            tokenHash,
-            expiresAt,
-          });
-
-          const resetUrl = `${ENV.appBaseUrl}/reset-password?token=${token}`;
-          const email = buildPasswordResetEmail({ resetUrl });
-
-          await sendEmail({
-            to: input.email,
-            subject: email.subject,
-            html: email.html,
-          });
-        } catch (error) {
-          console.error("[Auth] Password reset request failed", error);
+        const member = await db.getOrganizationMemberByUsername(input.email);
+        if (!member) {
+          return { success: true };
         }
+
+        const user = await db.getUserById(member.userId);
+        if (!user) {
+          return { success: true };
+        }
+
+        const token = generateToken(32);
+        const tokenHash = hashToken(token);
+        const expiresAt = new Date(Date.now() + ENV.passwordResetTokenHours * 60 * 60 * 1000);
+
+        await db.createPasswordResetToken({
+          userId: user.id,
+          tokenHash,
+          expiresAt,
+        });
+
+        const resetUrl = `${ENV.appBaseUrl}/reset-password?token=${token}`;
+        const email = buildPasswordResetEmail({
+          userName: user.name || input.email,
+          resetUrl,
+        });
+
+        await sendEmail({
+          to: input.email,
+          subject: email.subject,
+          html: email.html,
+        });
 
         return { success: true };
       }),
@@ -263,51 +223,62 @@ export const appRouter = router({
 
         return { success: true };
       }),
+
+    changePassword: protectedProcedure
+      .input(z.object({
+        currentPassword: z.string().min(1),
+        newPassword: z.string().min(8),
+      }))
+      .mutation(async ({ input, ctx }) => {
+        const member = await db.getOrganizationMemberByUserId(ctx.user.id);
+        if (!member?.password) {
+          throw new TRPCError({ code: "BAD_REQUEST", message: "User not found" });
+        }
+
+        const isValid = await bcrypt.compare(input.currentPassword, member.password);
+        if (!isValid) {
+          throw new TRPCError({ code: "BAD_REQUEST", message: "Current password is incorrect" });
+        }
+
+        const passwordHash = await bcrypt.hash(input.newPassword, 10);
+        await db.updateOrganizationMember(member.id, { password: passwordHash });
+        return { success: true };
+      }),
   }),
 
-  // ============ CLIENTS ROUTER ============"
+  // ============ CLIENTS ROUTER ============
   clients: router({
-    // Listar todos los clientes
     list: orgProcedure.query(async ({ ctx }) => {
       return await db.getAllClients(ctx.organizationId);
     }),
 
-    // Obtener cliente por ID
     getById: orgProcedure
       .input(z.object({ id: z.string() }))
       .query(async ({ input, ctx }) => {
         const client = await db.getClientById(input.id, ctx.organizationId);
         if (!client) {
-          throw new TRPCError({ code: 'NOT_FOUND', message: 'Cliente no encontrado' });
+          throw new TRPCError({ code: "NOT_FOUND", message: "Client not found" });
         }
         return client;
       }),
 
-    // Buscar clientes por nombre
-    search: orgProcedure
-      .input(z.object({ searchTerm: z.string() }))
-      .query(async ({ input, ctx }) => {
-        return await db.searchClientsByName(input.searchTerm, ctx.organizationId);
-      }),
-
-    // Crear nuevo cliente
     create: orgProcedure
       .input(z.object({
         firstName: z.string(),
         lastName: z.string(),
-        email: z.string().email({ message: "El formato del email no es válido" }).optional().nullable(),
-        phone: z.string().regex(/^[0-9\s\-\(\)]+$/, { message: "El número de teléfono contiene caracteres no válidos" }).optional().nullable(),
-        alternatePhone: z.string().regex(/^[0-9\s\-\(\)]+$/, { message: "El número de teléfono alternativo contiene caracteres no válidos" }).optional().nullable(),
+        email: z.string().email({ message: "El formato del email no es vA-lido" }).optional().nullable(),
+        phone: z.string().regex(/^[0-9\s\-\(\)]+$/, { message: "El nA?mero de telAcfono contiene caracteres no vA-lidos" }).optional().nullable(),
+        alternatePhone: z.string().regex(/^[0-9\s\-\(\)]+$/, { message: "El nA?mero de telAcfono alternativo contiene caracteres no vA-lidos" }).optional().nullable(),
         propertyAddress: z.string().optional().nullable(),
         city: z.string().optional().nullable(),
         state: z.string().optional().nullable(),
-        zipCode: z.string().regex(/^\d{5}$/, { message: "El código postal debe tener 5 dígitos" }).optional().nullable(),
+        zipCode: z.string().regex(/^\d{5}$/, { message: "El cA3digo postal debe tener 5 dA-gitos" }).optional().nullable(),
         propertyType: z.string().optional().nullable(),
         insuranceCompany: z.string().optional().nullable(),
         policyNumber: z.string().optional().nullable(),
         claimNumber: z.string().optional().nullable(),
-        deductible: z.number().positive({ message: "El deducible debe ser un número positivo" }).optional().nullable(),
-        coverageAmount: z.number().positive({ message: "El monto de cobertura debe ser un número positivo" }).optional().nullable(),
+        deductible: z.number().positive({ message: "El deducible debe ser un nA?mero positivo" }).optional().nullable(),
+        coverageAmount: z.number().positive({ message: "El monto de cobertura debe ser un nA?mero positivo" }).optional().nullable(),
         claimStatus: z.string().optional().nullable(),
         suplementado: z.enum(["si", "no"]).optional(),
         primerCheque: z.enum(["OBTENIDO", "PENDIENTE"]).optional(),
@@ -325,59 +296,86 @@ export const appRouter = router({
         driveFolderId: z.string().optional().nullable(),
         damageType: z.string().optional().nullable(),
         damageDescription: z.string().optional().nullable(),
-        estimatedLoss: z.number().positive({ message: "La pérdida estimada debe ser un número positivo" }).optional().nullable(),
-        actualPayout: z.number().positive({ message: "El pago real debe ser un número positivo" }).optional().nullable(),
+        estimatedLoss: z.number().positive({ message: "La pAcrdida estimada debe ser un nA?mero positivo" }).optional().nullable(),
+        insuranceEstimate: z.number().optional().nullable(),
+        firstCheckAmount: z.number().optional().nullable(),
+        actualPayout: z.number().positive({ message: "El pago real debe ser un nA?mero positivo" }).optional().nullable(),
         notes: z.string().optional().nullable(),
         internalNotes: z.string().optional().nullable(),
         constructionStatus: z.string().optional().nullable(),
       }))
       .mutation(async ({ input, ctx }) => {
-        // Generar ID personalizado
-        const customId = generateClientId(
-          input.city || "",
-          input.firstName,
-          input.lastName
-        );
+        try {
+          const baseId = generateClientId(
+            input.city || "",
+            input.firstName,
+            input.lastName
+          );
 
-        const result = await db.createClient({
-          ...input,
-          id: customId,
-          organizationId: ctx.organizationId,
-          createdBy: ctx.user.id,
-          updatedBy: ctx.user.id,
-        });
+          let customId = baseId;
+          let suffix = 1;
+          while (await db.getClientById(customId, ctx.organizationId)) {
+            suffix += 1;
+            customId = `${baseId}-${suffix}`;
+            if (customId.length > 50) {
+              customId = `${baseId}-${Date.now().toString().slice(-4)}`;
+              break;
+            }
+          }
 
-        // Crear log de auditoría
-        await db.createAuditLog({
-          entityType: "CLIENT",
-          entityId: 0, // No aplicable para IDs de texto
-          action: "CREATE",
-          performedBy: ctx.user.id,
-        });
+          const result = await db.createClient({
+            ...input,
+            id: customId,
+            organizationId: ctx.organizationId,
+            createdBy: ctx.user.id,
+            updatedBy: ctx.user.id,
+          });
 
-        return result;
+          await db.createAuditLog({
+            entityType: "CLIENT",
+            entityId: 0,
+            action: "CREATE",
+            performedBy: ctx.user.id,
+          });
+
+          await db.createActivityLog({
+            clientId: customId,
+            activityType: "NOTA",
+            subject: "Client created",
+            description: `Client created by ${ctx.user.name || ctx.user.email || "user"}`,
+            organizationId: ctx.organizationId,
+            performedBy: ctx.user.id,
+          });
+
+          return result;
+        } catch (error) {
+          console.error("[Clients] Failed to create client", error);
+          throw new TRPCError({
+            code: "INTERNAL_SERVER_ERROR",
+            message: "Failed to create client",
+          });
+        }
       }),
 
-    // Actualizar cliente
     update: orgProcedure
       .input(z.object({
         id: z.string(),
         data: z.object({
           firstName: z.string().optional(),
           lastName: z.string().optional(),
-          email: z.string().email({ message: "El formato del email no es válido" }).optional().nullable(),
-          phone: z.string().regex(/^[0-9\s\-\(\)]+$/, { message: "El número de teléfono contiene caracteres no válidos" }).optional().nullable(),
-          alternatePhone: z.string().regex(/^[0-9\s\-\(\)]+$/, { message: "El número de teléfono alternativo contiene caracteres no válidos" }).optional().nullable(),
+          email: z.string().email({ message: "El formato del email no es vA-lido" }).optional().nullable(),
+          phone: z.string().regex(/^[0-9\s\-\(\)]+$/, { message: "El nA?mero de telAcfono contiene caracteres no vA-lidos" }).optional().nullable(),
+          alternatePhone: z.string().regex(/^[0-9\s\-\(\)]+$/, { message: "El nA?mero de telAcfono alternativo contiene caracteres no vA-lidos" }).optional().nullable(),
           propertyAddress: z.string().optional().nullable(),
           city: z.string().optional().nullable(),
           state: z.string().optional().nullable(),
-          zipCode: z.string().regex(/^\d{5}$/, { message: "El código postal debe tener 5 dígitos" }).optional().nullable(),
+          zipCode: z.string().regex(/^\d{5}$/, { message: "El cA3digo postal debe tener 5 dA-gitos" }).optional().nullable(),
           propertyType: z.string().optional().nullable(),
           insuranceCompany: z.string().optional().nullable(),
           policyNumber: z.string().optional().nullable(),
           claimNumber: z.string().optional().nullable(),
-          deductible: z.number().positive({ message: "El deducible debe ser un número positivo" }).optional().nullable(),
-          coverageAmount: z.number().positive({ message: "El monto de cobertura debe ser un número positivo" }).optional().nullable(),
+          deductible: z.number().positive({ message: "El deducible debe ser un nA?mero positivo" }).optional().nullable(),
+          coverageAmount: z.number().positive({ message: "El monto de cobertura debe ser un nA?mero positivo" }).optional().nullable(),
           claimStatus: z.string().optional().nullable(),
           suplementado: z.enum(["si", "no"]).optional(),
           primerCheque: z.enum(["OBTENIDO", "PENDIENTE"]).optional(),
@@ -395,10 +393,10 @@ export const appRouter = router({
           driveFolderId: z.string().optional().nullable(),
           damageType: z.string().optional().nullable(),
           damageDescription: z.string().optional().nullable(),
-          estimatedLoss: z.number().positive({ message: "La pérdida estimada debe ser un número positivo" }).optional().nullable(),
+          estimatedLoss: z.number().positive({ message: "La pAcrdida estimada debe ser un nA?mero positivo" }).optional().nullable(),
           insuranceEstimate: z.number().optional().nullable(),
           firstCheckAmount: z.number().optional().nullable(),
-          actualPayout: z.number().positive({ message: "El pago real debe ser un número positivo" }).optional().nullable(),
+          actualPayout: z.number().positive({ message: "El pago real debe ser un nA?mero positivo" }).optional().nullable(),
           notes: z.string().optional().nullable(),
           internalNotes: z.string().optional().nullable(),
           constructionStatus: z.string().optional().nullable(),
@@ -410,27 +408,33 @@ export const appRouter = router({
           updatedBy: ctx.user.id,
         });
 
-        // Crear log de auditoría para campos importantes
         await db.createAuditLog({
           entityType: "CLIENT",
-          entityId: 0, // No aplicable para IDs de texto
+          entityId: 0,
           action: "UPDATE",
+          performedBy: ctx.user.id,
+        });
+
+        await db.createActivityLog({
+          clientId: input.id,
+          activityType: "NOTA",
+          subject: "Client updated",
+          description: `Client updated by ${ctx.user.name || ctx.user.email || "user"}`,
+          organizationId: ctx.organizationId,
           performedBy: ctx.user.id,
         });
 
         return updated;
       }),
 
-    // Eliminar cliente (solo admin y co-admin)
     delete: coAdminOrgProcedure
       .input(z.object({ id: z.string() }))
       .mutation(async ({ input, ctx }) => {
-        // TODO: Verificar que sea admin de la organización
         await db.deleteClient(input.id, ctx.organizationId);
 
         await db.createAuditLog({
           entityType: "CLIENT",
-          entityId: 0, // No aplicable para IDs de texto
+          entityId: 0,
           action: "DELETE",
           performedBy: ctx.user.id,
         });
@@ -438,7 +442,6 @@ export const appRouter = router({
         return { success: true };
       }),
   }),
-
   // ============ DASHBOARD / KPIs ROUTER ============
   dashboard: router({
     // Total de clientes
@@ -511,11 +514,28 @@ export const appRouter = router({
         duration: z.number().optional().nullable(),
       }))
       .mutation(async ({ input, ctx }) => {
-        return await db.createActivityLog({
+        const result = await db.createActivityLog({
           ...input,
           organizationId: ctx.organizationId,
           performedBy: ctx.user.id,
         });
+
+        const client = input.clientId
+          ? await db.getClientById(input.clientId, ctx.organizationId)
+          : null;
+        const clientName = client ? `${client.firstName} ${client.lastName}` : "Client";
+        const subject = input.subject || "Activity logged";
+
+        await notifyOrganizationMembers({
+          organizationId: ctx.organizationId,
+          type: "ACTIVITY",
+          title: `New activity for ${clientName}`,
+          body: `${subject}${input.description ? ` - ${input.description}` : ""}`,
+          entityType: "activity",
+          entityId: (result as any)?.insertId ? String((result as any).insertId) : null,
+        });
+
+        return result;
       }),
   }),
 
@@ -687,6 +707,12 @@ export const appRouter = router({
         return event;
       }),
 
+    getAttendees: orgProcedure
+      .input(z.object({ eventId: z.number() }))
+      .query(async ({ input, ctx }) => {
+        return await db.getEventAttendees(input.eventId, ctx.organizationId);
+      }),
+
     // Obtener eventos por cliente
     getByClientId: orgProcedure
       .input(z.object({ clientId: z.string() }))
@@ -705,6 +731,7 @@ export const appRouter = router({
         eventTime: z.string().optional().nullable(),
         endTime: z.string().optional().nullable(),
         address: z.string().optional().nullable(),
+        attendeeIds: z.array(z.number()).optional(),
         adjusterNumber: z.string().optional().nullable(),
         adjusterName: z.string().optional().nullable(),
         adjusterPhone: z.string().optional().nullable(),
@@ -715,16 +742,49 @@ export const appRouter = router({
         notes: z.string().optional().nullable(),
       }))
       .mutation(async ({ input, ctx }) => {
-        return await db.createEvent({
-          ...input,
+        const { attendeeIds, ...eventData } = input;
+        const result = await db.createEvent({
+          ...eventData,
           organizationId: ctx.organizationId,
           createdBy: ctx.user.id,
           updatedBy: ctx.user.id,
         });
+
+        const eventId = Number((result as any)?.insertId || 0);
+        if (eventId && attendeeIds?.length) {
+          await db.createEventAttendees(
+            attendeeIds.map((memberId) => ({
+              eventId,
+              memberId,
+              organizationId: ctx.organizationId,
+            }))
+          );
+        }
+
+        await db.createActivityLog({
+          clientId: input.clientId ?? null,
+          activityType: "NOTA",
+          subject: `Event scheduled: ${input.title}`,
+          description: input.description || null,
+          organizationId: ctx.organizationId,
+          performedBy: ctx.user.id,
+        });
+
+        const eventDate = input.eventDate.toISOString().split("T")[0];
+        await notifyOrganizationMembers({
+          organizationId: ctx.organizationId,
+          type: "EVENT",
+          title: `New event: ${input.title}`,
+          body: `Scheduled on ${eventDate}${input.eventTime ? ` at ${input.eventTime}` : ""}`,
+          entityType: "event",
+          entityId: eventId ? String(eventId) : null,
+        });
+
+        return result;
       }),
 
     // Actualizar evento
-    update: orgProcedure
+    update: coAdminOrgProcedure
       .input(z.object({
         id: z.number(),
         clientId: z.string().optional().nullable(),
@@ -735,6 +795,7 @@ export const appRouter = router({
         eventTime: z.string().optional().nullable(),
         endTime: z.string().optional().nullable(),
         address: z.string().optional().nullable(),
+        attendeeIds: z.array(z.number()).optional(),
         adjusterNumber: z.string().optional().nullable(),
         adjusterName: z.string().optional().nullable(),
         adjusterPhone: z.string().optional().nullable(),
@@ -745,11 +806,17 @@ export const appRouter = router({
         notes: z.string().optional().nullable(),
       }))
       .mutation(async ({ input, ctx }) => {
-        const { id, ...data } = input;
-        return await db.updateEvent(id, ctx.organizationId, {
+        const { id, attendeeIds, ...data } = input;
+        const updated = await db.updateEvent(id, ctx.organizationId, {
           ...data,
           updatedBy: ctx.user.id,
         });
+
+        if (attendeeIds) {
+          await db.replaceEventAttendees(id, ctx.organizationId, attendeeIds);
+        }
+
+        return updated;
       }),
 
     // Eliminar evento (solo admin y co-admin)
@@ -806,12 +873,32 @@ export const appRouter = router({
         attachments: z.string().optional().nullable(),
       }))
       .mutation(async ({ input, ctx }) => {
-        return await db.createTask({
+        const result = await db.createTask({
           ...input,
           organizationId: ctx.organizationId,
           createdBy: ctx.user.id,
           updatedBy: ctx.user.id,
         });
+
+        await db.createActivityLog({
+          clientId: input.clientId ?? null,
+          activityType: "NOTA",
+          subject: `Task created: ${input.title}`,
+          description: input.description || null,
+          organizationId: ctx.organizationId,
+          performedBy: ctx.user.id,
+        });
+
+        await notifyOrganizationMembers({
+          organizationId: ctx.organizationId,
+          type: "TASK",
+          title: `New task: ${input.title}`,
+          body: input.description || null,
+          entityType: "task",
+          entityId: (result as any)?.insertId ? String((result as any).insertId) : null,
+        });
+
+        return result;
       }),
 
     // Actualizar tarea
@@ -842,6 +929,22 @@ export const appRouter = router({
       .input(z.object({ id: z.number() }))
       .mutation(async ({ input, ctx }) => {
         return await db.deleteTask(input.id, ctx.organizationId);
+      }),
+  }),
+
+  // ============ NOTIFICATIONS ROUTER ============
+  notifications: router({
+    list: orgProcedure
+      .input(z.object({ limit: z.number().optional() }))
+      .query(async ({ input, ctx }) => {
+        return await db.getNotificationsByUser(ctx.organizationId, ctx.user.id, input.limit || 200);
+      }),
+
+    markRead: orgProcedure
+      .input(z.object({ id: z.number() }))
+      .mutation(async ({ input, ctx }) => {
+        await db.markNotificationRead(input.id, ctx.user.id, ctx.organizationId);
+        return { success: true };
       }),
   }),
 

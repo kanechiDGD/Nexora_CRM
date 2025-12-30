@@ -81,6 +81,7 @@ async function uploadToR2(
     Key: key,
     Body: buffer,
     ContentType: contentType,
+    ACL: "public-read",
   });
 
   try {

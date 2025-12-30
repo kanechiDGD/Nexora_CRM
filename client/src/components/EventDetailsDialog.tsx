@@ -8,11 +8,14 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Calendar, Clock, MapPin, AlignLeft, User, Phone, Mail } from "lucide-react";
+import { Calendar, Clock, MapPin, AlignLeft, User, Phone, Mail, Users } from "lucide-react";
 import { trpc } from "@/lib/trpc";
 import { format } from "date-fns";
 import { es, enUS } from "date-fns/locale";
 import { useTranslation } from "react-i18next";
+import { usePermissions } from "@/hooks/usePermissions";
+import { EditEventDialog } from "@/components/EditEventDialog";
+import { DeleteEventDialog } from "@/components/DeleteEventDialog";
 
 interface EventDetailsDialogProps {
   event: any;
@@ -24,6 +27,11 @@ interface EventDetailsDialogProps {
 export function EventDetailsDialog({ event, open, onOpenChange, onEdit }: EventDetailsDialogProps) {
   const { t, i18n } = useTranslation();
   const locale = i18n.language === 'es' ? es : enUS;
+  const { canEdit, canDelete } = usePermissions();
+  const { data: attendees = [] } = trpc.events.getAttendees.useQuery(
+    { eventId: event?.id },
+    { enabled: open && !!event?.id }
+  );
 
   if (!event) return null;
 
@@ -106,6 +114,18 @@ export function EventDetailsDialog({ event, open, onOpenChange, onEdit }: EventD
              <ClientInfoSection clientId={event.clientId} />
           )}
 
+          {attendees.length > 0 && (
+            <div className="flex items-start gap-3">
+              <Users className="h-5 w-5 text-muted-foreground mt-0.5" />
+              <div>
+                <p className="font-medium">{t('dashboard.calendar.attendees')}</p>
+                <div className="text-sm text-muted-foreground">
+                  {attendees.map((attendee: any) => attendee.userName || attendee.userEmail || attendee.memberId).join(", ")}
+                </div>
+              </div>
+            </div>
+          )}
+
           {event.notes && (
             <div className="bg-muted p-3 rounded-md text-sm">
               <span className="font-semibold">{t('dashboard.calendar.notes')}:</span> {event.notes}
@@ -114,10 +134,15 @@ export function EventDetailsDialog({ event, open, onOpenChange, onEdit }: EventD
         </div>
 
         <DialogFooter>
-          {onEdit && (
+          {onEdit ? (
             <Button variant="outline" onClick={() => { onOpenChange(false); onEdit(event); }}>
               {t('common.edit')}
             </Button>
+          ) : (
+            <>
+              {canEdit && <EditEventDialog event={event} />}
+              {canDelete && <DeleteEventDialog event={event} />}
+            </>
           )}
           <Button onClick={() => onOpenChange(false)}>
             {t('common.close')}

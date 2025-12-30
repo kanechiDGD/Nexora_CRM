@@ -20,11 +20,12 @@ export default function Logs() {
 
   const getActivityIcon = (type: string) => {
     const icons: Record<string, any> = {
-      'CALL': Phone,
-      'EMAIL': Mail,
-      'MEETING': Calendar,
-      'NOTE': FileText,
-      'UPDATE': FileText,
+      LLAMADA: Phone,
+      CORREO: Mail,
+      VISITA: Calendar,
+      NOTA: FileText,
+      DOCUMENTO: FileText,
+      CAMBIO_ESTADO: FileText,
     };
     const Icon = icons[type] || FileText;
     return <Icon className="h-4 w-4" />;
@@ -32,11 +33,12 @@ export default function Logs() {
 
   const getActivityBadge = (type: string) => {
     const variants: Record<string, { variant: "default" | "secondary" | "outline", label: string }> = {
-      'CALL': { variant: 'default', label: t('logsPage.activityTypes.call') },
-      'EMAIL': { variant: 'secondary', label: t('logsPage.activityTypes.email') },
-      'MEETING': { variant: 'default', label: t('logsPage.activityTypes.meeting') },
-      'NOTE': { variant: 'outline', label: t('logsPage.activityTypes.note') },
-      'UPDATE': { variant: 'secondary', label: t('logsPage.activityTypes.update') },
+      LLAMADA: { variant: 'default', label: t('logsPage.activityTypes.call') },
+      CORREO: { variant: 'secondary', label: t('logsPage.activityTypes.email') },
+      VISITA: { variant: 'default', label: t('logsPage.activityTypes.visit') },
+      NOTA: { variant: 'outline', label: t('logsPage.activityTypes.note') },
+      DOCUMENTO: { variant: 'secondary', label: t('logsPage.activityTypes.document') },
+      CAMBIO_ESTADO: { variant: 'outline', label: t('logsPage.activityTypes.statusChange') },
     };
     const config = variants[type] || { variant: 'outline', label: type };
     return <Badge variant={config.variant}>{config.label}</Badge>;
@@ -81,10 +83,12 @@ export default function Logs() {
     }
 
     if (searchTerm) {
-      return filtered.filter((log: any) => 
-        log.subject?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        log.description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        log.performedBy?.toLowerCase().includes(searchTerm.toLowerCase())
+      const term = searchTerm.toLowerCase();
+      return filtered.filter((log: any) =>
+        log.subject?.toLowerCase().includes(term) ||
+        log.description?.toLowerCase().includes(term) ||
+        log.performedByName?.toLowerCase().includes(term) ||
+        log.performedByEmail?.toLowerCase().includes(term)
       );
     }
 
@@ -165,7 +169,7 @@ export default function Logs() {
                 <div>
                   <p className="text-sm text-muted-foreground">{t('logsPage.activityTypes.callPlural')}</p>
                   <p className="text-2xl font-bold">
-                    {logs?.filter((l: any) => l.activityType === 'CALL').length || 0}
+                    {logs?.filter((l: any) => l.activityType === 'LLAMADA').length || 0}
                   </p>
                 </div>
               </div>
@@ -181,7 +185,7 @@ export default function Logs() {
                 <div>
                   <p className="text-sm text-muted-foreground">{t('logsPage.activityTypes.meetingPlural')}</p>
                   <p className="text-2xl font-bold">
-                    {logs?.filter((l: any) => l.activityType === 'MEETING').length || 0}
+                    {logs?.filter((l: any) => l.activityType === 'VISITA').length || 0}
                   </p>
                 </div>
               </div>
@@ -197,7 +201,7 @@ export default function Logs() {
                 <div>
                   <p className="text-sm text-muted-foreground">{t('logsPage.activityTypes.emailPlural')}</p>
                   <p className="text-2xl font-bold">
-                    {logs?.filter((l: any) => l.activityType === 'EMAIL').length || 0}
+                    {logs?.filter((l: any) => l.activityType === 'CORREO').length || 0}
                   </p>
                 </div>
               </div>
@@ -242,11 +246,12 @@ export default function Logs() {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">{t('logsPage.filters.allTypes')}</SelectItem>
-                <SelectItem value="CALL">{t('logsPage.activityTypes.callPlural')}</SelectItem>
-                <SelectItem value="EMAIL">{t('logsPage.activityTypes.emailPlural')}</SelectItem>
-                <SelectItem value="MEETING">{t('logsPage.activityTypes.meetingPlural')}</SelectItem>
-                <SelectItem value="NOTE">{t('logsPage.activityTypes.notePlural')}</SelectItem>
-                <SelectItem value="UPDATE">{t('logsPage.activityTypes.updatePlural')}</SelectItem>
+                <SelectItem value="LLAMADA">{t('logsPage.activityTypes.callPlural')}</SelectItem>
+                <SelectItem value="CORREO">{t('logsPage.activityTypes.emailPlural')}</SelectItem>
+                <SelectItem value="VISITA">{t('logsPage.activityTypes.visitPlural')}</SelectItem>
+                <SelectItem value="NOTA">{t('logsPage.activityTypes.notePlural')}</SelectItem>
+                <SelectItem value="DOCUMENTO">{t('logsPage.activityTypes.documentPlural')}</SelectItem>
+                <SelectItem value="CAMBIO_ESTADO">{t('logsPage.activityTypes.statusChangePlural')}</SelectItem>
               </SelectContent>
             </Select>
             </div>
