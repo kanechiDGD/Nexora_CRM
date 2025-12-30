@@ -67,45 +67,77 @@ export function NewEventDialog() {
     notes: "",
   });
   const addressInputRef = useRef<HTMLInputElement | null>(null);
+  const autocompleteRef = useRef<any>(null);
+  const listenerRef = useRef<any>(null);
 
   const { data: clients } = trpc.clients.list.useQuery();
   const { data: organizationMembers = [] } = trpc.organizations.getMembers.useQuery();
   const utils = trpc.useUtils();
 
   useEffect(() => {
+    const w = window as any;
     const apiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY as string | undefined;
+    if (!open) {
+      if (listenerRef.current) {
+        listenerRef.current.remove();
+        listenerRef.current = null;
+      }
+      if (autocompleteRef.current) {
+        w.google?.maps?.event?.clearInstanceListeners(autocompleteRef.current);
+        autocompleteRef.current = null;
+      }
+      return;
+    }
     if (!apiKey) return;
 
-    let autocomplete: any = null;
-    let listener: any = null;
-    const w = window as any;
+    let cancelled = false;
+    let tries = 0;
+    const maxTries = 5;
+
+    const setupAutocomplete = () => {
+      if (cancelled || autocompleteRef.current) return;
+      const input = addressInputRef.current;
+      if (!input) {
+        if (tries < maxTries) {
+          tries += 1;
+          requestAnimationFrame(setupAutocomplete);
+        }
+        return;
+      }
+      if (!w.google?.maps?.places) return;
+      autocompleteRef.current = new w.google.maps.places.Autocomplete(input, {
+        types: ["address"],
+        fields: ["formatted_address"],
+      });
+      listenerRef.current = autocompleteRef.current.addListener("place_changed", () => {
+        const place = autocompleteRef.current?.getPlace();
+        if (!place?.formatted_address) return;
+        setFormData((prev) => ({
+          ...prev,
+          address: place.formatted_address,
+        }));
+      });
+    };
 
     loadGoogleMapsScript(apiKey)
       .then(() => {
-        const input = addressInputRef.current;
-        if (!input || !w.google?.maps?.places) return;
-        autocomplete = new w.google.maps.places.Autocomplete(input, {
-          types: ["address"],
-          fields: ["formatted_address"],
-        });
-        listener = autocomplete.addListener("place_changed", () => {
-          const place = autocomplete?.getPlace();
-          if (!place?.formatted_address) return;
-          setFormData((prev) => ({
-            ...prev,
-            address: place.formatted_address,
-          }));
-        });
+        if (cancelled) return;
+        setupAutocomplete();
       })
       .catch(() => {});
 
     return () => {
-      if (listener) listener.remove();
-      if (autocomplete) {
-        w.google?.maps?.event?.clearInstanceListeners(autocomplete);
+      cancelled = true;
+      if (listenerRef.current) {
+        listenerRef.current.remove();
+        listenerRef.current = null;
+      }
+      if (autocompleteRef.current) {
+        w.google?.maps?.event?.clearInstanceListeners(autocompleteRef.current);
+        autocompleteRef.current = null;
       }
     };
-  }, []);
+  }, [open]);
   
   const createEvent = trpc.events.create.useMutation({
     onSuccess: () => {
@@ -170,7 +202,16 @@ export function NewEventDialog() {
   };
 
   const handleClientSelect = (clientId: string, clientName: string) => {
-    setFormData({ ...formData, clientId, clientName });
+    const selectedClient = clients?.find((client: any) => client.id === clientId);
+    const addressParts = [
+      selectedClient?.propertyAddress,
+      selectedClient?.city,
+      selectedClient?.state,
+      selectedClient?.zipCode,
+    ].filter(Boolean);
+    const address = addressParts.length ? addressParts.join(", ") : formData.address;
+
+    setFormData({ ...formData, clientId, clientName, address });
     setClientSearchOpen(false);
   };
 

@@ -26,7 +26,7 @@ import { Badge } from "@/components/ui/badge";
 import { trpc } from "@/lib/trpc";
 import { LayoutDashboard, LogOut, PanelLeft, Users, FileText, Building2, ArrowLeft, UserCircle, FileSignature, Calendar, CheckSquare, Sun, Moon, Settings, Bell } from "lucide-react";
 import { useTheme } from "@/contexts/ThemeContext";
-import { CSSProperties, useEffect, useRef, useState } from "react";
+import { CSSProperties, useEffect, useMemo, useRef, useState } from "react";
 import { useLocation } from "wouter";
 import { DashboardLayoutSkeleton } from './DashboardLayoutSkeleton';
 import { Button } from "./ui/button";
@@ -144,6 +144,10 @@ function DashboardLayoutContent({
   const { data: organization } = trpc.organizations.getMyOrganization.useQuery(undefined, {
     enabled: !!user,
   });
+  const { data: notifications = [] } = trpc.notifications.list.useQuery(
+    { limit: 200 },
+    { enabled: !!user }
+  );
   const menuItems = getMenuItems(canManageUsers, t);
   const [location, setLocation] = useLocation();
   const { state, toggleSidebar } = useSidebar();
@@ -153,6 +157,10 @@ function DashboardLayoutContent({
   const activeMenuItem = menuItems.find(item => item.path === location);
   const isMobile = useIsMobile();
   const { theme, toggleTheme } = useTheme();
+  const unreadCount = useMemo(
+    () => notifications.filter((notification: any) => !notification.readAt).length,
+    [notifications]
+  );
 
   useEffect(() => {
     if (isCollapsed) {
@@ -241,6 +249,7 @@ function DashboardLayoutContent({
             <SidebarMenu className="px-2 py-1">
               {menuItems.map(item => {
                 const isActive = location === item.path;
+                const showUnreadDot = item.path === "/notifications" && unreadCount > 0;
                 return (
                   <SidebarMenuItem key={item.path}>
                     <SidebarMenuButton
@@ -249,9 +258,18 @@ function DashboardLayoutContent({
                       tooltip={item.label}
                       className={`h-10 transition-all font-normal`}
                     >
-                      <item.icon
-                        className={`h-4 w-4 ${isActive ? "text-primary" : ""}`}
-                      />
+                      {showUnreadDot ? (
+                        <span className="relative inline-flex">
+                          <item.icon
+                            className={`h-4 w-4 ${isActive ? "text-primary" : ""}`}
+                          />
+                          <span className="absolute -top-1 -right-1 h-2 w-2 rounded-full bg-red-500" />
+                        </span>
+                      ) : (
+                        <item.icon
+                          className={`h-4 w-4 ${isActive ? "text-primary" : ""}`}
+                        />
+                      )}
                       <span>{item.label}</span>
                     </SidebarMenuButton>
                   </SidebarMenuItem>
