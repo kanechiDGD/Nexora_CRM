@@ -9,6 +9,8 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
 import { Loader2, Building2, Users, CheckCircle2, Copy, Download } from "lucide-react";
+import { useAuth } from "@/_core/hooks/useAuth";
+import { getGoogleLoginUrl } from "@/const";
 
 const BUSINESS_TYPES = [
   { value: "Public Adjusters", labelKey: "onboarding.businessTypes.publicAdjusters" },
@@ -29,6 +31,7 @@ interface GeneratedUser {
 export default function OnboardingWizard() {
   const { t } = useTranslation();
   const [, setLocation] = useLocation();
+  const { user, loading } = useAuth();
   const [step, setStep] = useState(2); // Empezar en paso 2 (usuario ya está logueado)
 
   // Step 2: Organization Info
@@ -99,6 +102,37 @@ export default function OnboardingWizard() {
     // Redirigir al login para que el usuario inicie sesión con sus credenciales
     setLocation("/login");
   };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:to-gray-800 p-4">
+        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  if (!user || user.loginMethod !== "google") {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:to-gray-800 p-4">
+        <Card className="w-full max-w-lg">
+          <CardHeader>
+            <CardTitle className="text-2xl">{t("onboarding.authRequired.title")}</CardTitle>
+            <CardDescription>{t("onboarding.authRequired.description")}</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Button
+              className="w-full"
+              onClick={() => {
+                window.location.href = getGoogleLoginUrl("/onboarding");
+              }}
+            >
+              {t("onboarding.authRequired.cta")}
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:to-gray-800 p-4">

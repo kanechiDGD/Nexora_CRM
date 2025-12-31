@@ -1046,6 +1046,11 @@
     "creating": "Creando...",
     "title": "Configuraci?n Inicial",
     "stepDescription": "Paso {{step}} de 3 - Configura tu organizaci?n",
+    "authRequired": {
+      "title": "Verifica tu cuenta primero",
+      "description": "Inicia sesion con Google antes de crear tu organizacion.",
+      "cta": "Continuar con Google"
+    },
     "orgInfo": {
       "title": "Informaci?n de la Organizaci?n",
       "subtitle": "Cu?ntanos sobre tu empresa",

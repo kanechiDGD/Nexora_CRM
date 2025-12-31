@@ -960,7 +960,7 @@ export const appRouter = router({
     }),
 
     // Crear organización (onboarding paso 2) - PUBLIC para permitir onboarding sin autenticación
-    create: publicProcedure
+    create: protectedProcedure
       .input(z.object({
         name: z.string().min(1),
         businessType: z.string(),
@@ -972,6 +972,13 @@ export const appRouter = router({
           throw new TRPCError({
             code: 'BAD_REQUEST',
             message: 'Ya tienes una organizacion asociada',
+          });
+        }
+
+        if (ctx.user?.loginMethod !== 'google') {
+          throw new TRPCError({
+            code: 'FORBIDDEN',
+            message: 'Debes iniciar sesion con Google para crear una organizacion',
           });
         }
 

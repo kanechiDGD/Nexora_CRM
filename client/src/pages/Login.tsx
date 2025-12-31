@@ -51,8 +51,7 @@ export default function Login() {
   };
 
   const handleCreateOrganization = () => {
-    // Redirigir directamente a la pA?gina de onboarding
-    setLocation("/onboarding");
+    window.location.href = getGoogleLoginUrl("/onboarding");
   };
 
   const handleShowLoginForm = () => {

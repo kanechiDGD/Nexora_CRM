@@ -1046,6 +1046,11 @@
     "creating": "Creating...",
     "title": "Initial Setup",
     "stepDescription": "Step {{step}} of 3 - Set up your organization",
+    "authRequired": {
+      "title": "Verify your account first",
+      "description": "Please sign in with Google before creating your organization.",
+      "cta": "Continue with Google"
+    },
     "orgInfo": {
       "title": "Organization Information",
       "subtitle": "Tell us about your company",
