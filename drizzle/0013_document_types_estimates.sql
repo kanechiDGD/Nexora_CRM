@@ -1,0 +1,11 @@
+ALTER TABLE `documents` MODIFY COLUMN `documentType` enum(
+  'POLIZA',
+  'CONTRATO',
+  'FOTO',
+  'ESTIMADO',
+  'ESTIMADO_ASEGURANZA',
+  'ESTIMADO_NUESTRO',
+  'FACTURA',
+  'PERMISO',
+  'OTRO'
+) NOT NULL;

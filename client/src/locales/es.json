@@ -55,11 +55,12 @@
       "notifications": "Notifications",
       "construction": "Construcción",
       "calendar": "Calendario",
-      "tasks": "Tareas",
-      "profile": "Perfil",
-      "contracts": "Contratos",
-      "users": "Usuarios"
-    },
+        "tasks": "Tareas",
+        "profile": "Perfil",
+        "contracts": "Contratos",
+        "users": "Usuarios",
+        "workflow": "Workflow"
+      },
     "theme": {
       "dayMode": "Modo Día",
       "nightMode": "Modo Noche"
@@ -178,6 +179,9 @@
       "manyClients": "{{count}} clientes en este estado",
       "status": {
         "NO_SOMETIDA": "No Sometida",
+        "SOMETIDA": "Sometida",
+        "AJUSTACION_PROGRAMADA": "Ajustacion programada",
+        "AJUSTACION_TERMINADA": "Ajustacion terminada",
         "EN_PROCESO": "En Proceso",
         "APROVADA": "Aprobada",
         "RECHAZADA": "Rechazada",
@@ -185,7 +189,34 @@
         "APROBADA": "Aprobada"
       }
     },
-    "kpis": {
+      "workflowKpis": {
+        "title": "Alertas de workflow",
+        "subtitle": "Seguimientos por actividad que necesitan accion",
+        "scopePending": "Scope pendiente",
+        "scopeSendPending": "Nuestro scope pendiente",
+        "missingInsuranceScope": "Scope de aseguradora pendiente",
+        "responsePending": "Respuesta pendiente",
+        "appraisalPending": "Appraisal pendiente",
+        "nextActionsTitle": "Proximas acciones",
+        "nextActionsSubtitle": "Prioridades segun reglas de actividad",
+        "noNextActions": "No hay acciones pendientes",
+        "actions": {
+          "completeAdjustment": "Registrar ajustacion concluida y cambiar estado a En proceso",
+          "requestScope": "Solicitar scope al ajustador",
+          "sendScope": "Enviar nuestro scope",
+          "followUpAdjuster": "Dar seguimiento al ajustador",
+          "startAppraisal": "Iniciar appraisal",
+          "sendAppraisalLetter": "Enviar carta de appraisal",
+          "uploadInsuranceScope": "Subir scope de aseguradora",
+          "followUpAppraisalLetter": "Confirmar recepcion de carta de appraisal"
+        },
+        "priority": {
+          "high": "Alta",
+          "medium": "Media",
+          "low": "Baja"
+        }
+      },
+      "kpis": {
       "totalClients": {
         "title": "Total de Clientes",
         "subtitle": "Todos los clientes en el sistema"
@@ -456,7 +487,7 @@
     "languageSpanish": "Espanol",
     "forgotPassword": "Olvidaste tu contrasena?"
   },
-  "clientContactDialog": {
+    "clientContactDialog": {
     "saveSuccess": "Contacto registrado y cliente actualizado",
     "createActivityError": "Error al registrar actividad: {{message}}",
     "updateClientError": "Error al actualizar cliente: {{message}}",
@@ -479,7 +510,25 @@
       "userLabel": "Usuario #{{id}}"
     },
     "noActivities": "No hay actividades registradas para este cliente",
-    "claimInfoTitle": "Informaci?n del Reclamo",
+      "claimInfoTitle": "Informaci?n del Reclamo",
+      "caseSummaryTitle": "Resumen del caso",
+      "callReportTitle": "Informe de llamada",
+      "callReportSubtitle": "Actualizaciones clave para compartir hoy",
+      "callReport": {
+        "missingDocuments": "Documentos faltantes",
+        "noneMissing": "Todos los documentos criticos estan cargados",
+        "teamReminder": "Si no hay actualizaciones nuevas, confirma con el equipo antes de llamar al cliente."
+      },
+      "caseSummary": {
+        "claimStatus": "Estado del reclamo",
+        "lastStatusChange": "Ultimo cambio de estado",
+        "adjustmentDate": "Fecha de ajustacion",
+        "scopeReceived": "Scope recibido",
+        "scopeSent": "Scope enviado",
+        "response": "Respuesta recibida",
+        "appraisal": "Appraisal iniciado",
+        "appraisalLetter": "Carta de appraisal enviada"
+      },
     "claimLabels": {
       "insurance": "Aseguradora",
       "claimNumber": "N?mero de Reclamo",
@@ -624,14 +673,25 @@
       "performedByHelp": "Se detecta autom?ticamente el usuario actual",
       "typeLabel": "Tipo de Actividad *",
       "typePlaceholder": "Selecciona el tipo",
-      "types": {
-        "call": "Llamada",
-        "email": "Email",
-        "visit": "Visita/Reuni?n",
-        "note": "Nota",
-        "document": "Documento",
-        "statusChange": "Cambio de Estado"
-      },
+        "types": {
+          "call": "Llamada",
+          "email": "Email",
+          "visit": "Visita/Reuni?n",
+          "note": "Nota",
+          "document": "Documento",
+          "statusChange": "Cambio de Estado",
+          "adjustmentCompleted": "Ajustacion realizada",
+          "scopeRequested": "Scope solicitado",
+          "scopeReceived": "Scope recibido",
+          "scopeSent": "Scope enviado",
+          "responseFavorable": "Respuesta favorable",
+          "responseNegative": "Respuesta negativa",
+          "appraisalStarted": "Inicio de appraisal",
+          "appraisalLetterSent": "Carta de appraisal enviada",
+          "releaseLetterRequired": "Release letter requerida",
+          "itelRequested": "ITEL solicitado",
+          "reinspectionRequested": "Reinspeccion solicitada"
+        },
       "clientLabel": "Cliente (opcional)",
       "clientPlaceholder": "Buscar cliente...",
       "clientSearchPlaceholder": "Escribe el nombre del cliente...",
@@ -649,10 +709,13 @@
   "documents": {
     "title": "Documentos",
     "uploadButton": "Subir Documentos",
+    "typeLabel": "Tipo de documento",
+    "otherPlaceholder": "Describe el documento",
     "noDocuments": "No hay documentos subidos para este cliente",
     "unknownSize": "Tama?o desconocido",
     "uploading": "Subiendo {{count}} archivo(s)...",
     "uploadSuccess": "{{count}} archivo(s) subido(s) correctamente",
+    "updateSuccess": "Documento actualizado correctamente",
     "deleteConfirm": "?Est?s seguro de que deseas eliminar \"{{name}}\"? Esta acci?n no se puede deshacer.",
     "deleting": "Eliminando documento...",
     "deleteSuccess": "Documento eliminado correctamente",
@@ -660,19 +723,50 @@
       "fileTooLarge": "El archivo \"{{fileName}}\" excede el l?mite de {{maxMb}}MB (tama?o: {{sizeMb}}MB)",
       "invalidType": "El tipo de archivo \"{{fileType}}\" no est? permitido para \"{{fileName}}\"",
       "invalidExtension": "La extensi?n \"{{extension}}\" no est? permitida para \"{{fileName}}\"",
+      "typeRequired": "Selecciona un tipo de documento",
       "uploadFailed": "Error al subir archivos",
       "uploadError": "Error al subir archivos. Por favor intenta de nuevo.",
+      "updateFailed": "Error al actualizar documento",
       "deleteFailed": "Error al eliminar documento",
       "deleteError": "Error al eliminar documento"
     },
     "types": {
-      "policy": "P?liza",
+      "policy": "Poliza",
       "contract": "Contrato",
       "photo": "Foto",
       "estimate": "Estimado",
+      "insuranceEstimate": "Estimado de aseguradora",
+      "ourEstimate": "Estimado nuestro",
       "invoice": "Factura",
       "permit": "Permiso",
       "other": "Otro"
+    }
+  },
+  "emails": {
+    "title": "Correos",
+    "connect": "Conectar Gmail",
+    "connectHint": "Conecta Gmail para enviar y dar seguimiento a correos del reclamo.",
+    "composeTitle": "Enviar correo",
+    "historyTitle": "Historial de correos",
+    "fields": {
+      "to": "Correo del destinatario",
+      "subject": "Asunto",
+      "body": "Escribe tu mensaje"
+    },
+    "send": "Enviar",
+    "sending": "Enviando...",
+    "sync": "Sincronizar bandeja",
+    "syncing": "Sincronizando...",
+    "syncingNotice": "Sincronizando bandeja...",
+    "sentSuccess": "Correo enviado",
+    "sendFailed": "No se pudo enviar el correo",
+    "syncSuccess": "Se sincronizaron {{count}} correos",
+    "syncFailed": "No se pudo sincronizar la bandeja",
+    "empty": "No hay correos vinculados a este reclamo",
+    "noSubject": "Sin asunto",
+    "openInGmail": "Abrir en Gmail",
+    "validation": {
+      "required": "Completa todos los campos"
     }
   },
   "calendarPage": {
@@ -744,6 +838,53 @@
     "emptyCustomStatuses": "No hay estados personalizados. Agrega uno arriba.",
     "defaultStatusesTitle": "Estados Predeterminados (No se pueden eliminar)",
     "defaultLabel": "Predeterminado"
+  },
+  "workflowSettings": {
+    "title": "Configuracion de workflow",
+    "subtitle": "Asigna responsables y reglas automaticas por actividad",
+    "noAccess": "Solo administradores y co-admins pueden gestionar workflow.",
+    "roles": {
+      "title": "Roles operativos",
+      "subtitle": "Define responsables por cada rol.",
+      "createSuccess": "Rol creado",
+      "createError": "Error al crear rol",
+      "updateSuccess": "Rol actualizado",
+      "updateError": "Error al actualizar rol",
+      "createButton": "Crear rol",
+      "active": "Activo",
+      "unassigned": "Sin asignar",
+      "primaryLabel": "Principal",
+      "secondaryLabel": "Secundarios",
+      "fields": {
+        "name": "Nombre del rol",
+        "description": "Descripcion",
+        "primary": "Responsable principal",
+        "primaryPlaceholder": "Selecciona responsable",
+        "secondary": "Responsables secundarios"
+      }
+    },
+    "rules": {
+      "title": "Reglas automaticas",
+      "subtitle": "Genera tareas desde actividades con fechas limite.",
+      "createSuccess": "Regla creada",
+      "createError": "Error al crear regla",
+      "updateError": "Error al actualizar regla",
+      "createButton": "Crear regla",
+      "active": "Activa",
+      "roleLabel": "Rol",
+      "dueLabel": "Vence en dias",
+      "unknownActivity": "Actividad desconocida",
+      "fields": {
+        "activityType": "Tipo de actividad",
+        "role": "Asignar rol",
+        "rolePlaceholder": "Selecciona rol",
+        "taskTitle": "Titulo de tarea",
+        "taskDescription": "Descripcion de tarea",
+        "category": "Categoria",
+        "priority": "Prioridad",
+        "dueInDays": "Vence en (dias)"
+      }
+    }
   },
   "clientEdit": {
     "deleteSuccess": "Cliente eliminado correctamente",
@@ -956,6 +1097,12 @@
       "nextContactDate": "Pr?ximo Contacto",
       "propertyType": "Tipo de Propiedad"
     },
+    "kpis": {
+      "clientContact": "Seguimiento cliente",
+      "adjusterContact": "Seguimiento ajustador",
+      "statusUpdate": "Actualizacion de estado",
+      "daysSince": "Dias desde la ultima actualizacion"
+    },
     "actions": {
       "edit": "Editar Cliente"
     },
@@ -973,6 +1120,7 @@
       "property": "Propiedad",
       "dates": "Fechas",
       "documents": "Documentos",
+      "emails": "Correos",
       "activity": "Actividad"
     },
     "sections": {
@@ -1356,6 +1504,16 @@
       "description": "Actualiza tu imagen de perfil",
       "hint": "JPG, PNG o GIF. Tama?o m?ximo 2MB.",
       "change": "Cambiar Foto"
+    },
+    "gmail": {
+      "title": "Conexion Gmail",
+      "description": "Envia y da seguimiento a correos por reclamo",
+      "connected": "Gmail conectado",
+      "notConnected": "Gmail no conectado",
+      "connect": "Conectar Gmail",
+      "disconnect": "Desconectar",
+      "disconnected": "Gmail desconectado",
+      "disconnectFailed": "No se pudo desconectar Gmail"
     },
     "personal": {
       "title": "Informaci?n Personal",

@@ -34,7 +34,7 @@ import LanguageSelector from "./LanguageSelector";
 import { useTranslation } from "react-i18next";
 
 
-const getMenuItems = (canManageUsers: boolean, t: any) => {
+const getMenuItems = (canManageUsers: boolean, canManageWorkflow: boolean, t: any) => {
   const items = [
     { icon: LayoutDashboard, label: t('dashboard.menu.dashboard'), path: "/dashboard" },
     { icon: Users, label: t('dashboard.menu.clients'), path: "/clients" },
@@ -46,6 +46,10 @@ const getMenuItems = (canManageUsers: boolean, t: any) => {
     { icon: UserCircle, label: t('dashboard.menu.profile'), path: "/profile" },
     { icon: FileSignature, label: t('dashboard.menu.contracts'), path: "/contracts" },
   ];
+
+  if (canManageWorkflow) {
+    items.push({ icon: Settings, label: t('dashboard.menu.workflow'), path: "/workflow" });
+  }
 
   if (canManageUsers) {
     items.push({ icon: Settings, label: t('dashboard.menu.users'), path: "/users" });
@@ -139,7 +143,7 @@ function DashboardLayoutContent({
   setSidebarWidth,
 }: DashboardLayoutContentProps) {
   const { user, loading, logout } = useAuth();
-  const { role, canManageUsers } = usePermissions();
+  const { role, canManageUsers, canEdit } = usePermissions();
   const { t } = useTranslation();
   const { data: organization } = trpc.organizations.getMyOrganization.useQuery(undefined, {
     enabled: !!user,
@@ -148,7 +152,7 @@ function DashboardLayoutContent({
     { limit: 200 },
     { enabled: !!user }
   );
-  const menuItems = getMenuItems(canManageUsers, t);
+  const menuItems = getMenuItems(canManageUsers, canEdit, t);
   const [location, setLocation] = useLocation();
   const { state, toggleSidebar } = useSidebar();
   const isCollapsed = state === "collapsed";

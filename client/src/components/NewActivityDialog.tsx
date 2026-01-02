@@ -43,19 +43,42 @@ type NewActivityDialogProps = {
   clientId?: string | null;
   clientName?: string;
   hideClientSelect?: boolean;
+  defaultActivityType?: string;
+  openOnMount?: boolean;
+  hideTrigger?: boolean;
 };
 
 export function NewActivityDialog({
   clientId = null,
   clientName = "",
   hideClientSelect = false,
+  defaultActivityType,
+  openOnMount = false,
+  hideTrigger = false,
 }: NewActivityDialogProps) {
   const { t } = useTranslation();
   const { user } = useAuth();
   const [open, setOpen] = useState(false);
   const [clientSearchOpen, setClientSearchOpen] = useState(false);
   const [formData, setFormData] = useState({
-    activityType: "LLAMADA" as "LLAMADA" | "CORREO" | "VISITA" | "NOTA" | "DOCUMENTO" | "CAMBIO_ESTADO",
+    activityType: (defaultActivityType || "LLAMADA") as
+      | "LLAMADA"
+      | "CORREO"
+      | "VISITA"
+      | "NOTA"
+      | "DOCUMENTO"
+      | "CAMBIO_ESTADO"
+      | "AJUSTACION_REALIZADA"
+      | "SCOPE_SOLICITADO"
+      | "SCOPE_RECIBIDO"
+      | "SCOPE_ENVIADO"
+      | "RESPUESTA_FAVORABLE"
+      | "RESPUESTA_NEGATIVA"
+      | "INICIO_APPRAISAL"
+      | "CARTA_APPRAISAL_ENVIADA"
+      | "RELEASE_LETTER_REQUERIDA"
+      | "ITEL_SOLICITADO"
+      | "REINSPECCION_SOLICITADA",
     subject: "",
     description: "",
     clientId: clientId as string | null,
@@ -73,7 +96,7 @@ export function NewActivityDialog({
       }
       setOpen(false);
       setFormData({
-        activityType: "LLAMADA",
+        activityType: (defaultActivityType || "LLAMADA") as typeof formData.activityType,
         subject: "",
         description: "",
         clientId,
@@ -115,6 +138,22 @@ export function NewActivityDialog({
     }));
   }, [clientId, clientName]);
 
+  useEffect(() => {
+    if (!defaultActivityType) {
+      return;
+    }
+    setFormData((prev) => ({
+      ...prev,
+      activityType: defaultActivityType as typeof prev.activityType,
+    }));
+  }, [defaultActivityType]);
+
+  useEffect(() => {
+    if (openOnMount) {
+      setOpen(true);
+    }
+  }, [openOnMount]);
+
   const handleClientSelect = (clientId: string, clientName: string) => {
     setFormData({ ...formData, clientId, clientName });
     setClientSearchOpen(false);
@@ -122,12 +161,14 @@ export function NewActivityDialog({
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
-        <Button>
-          <Plus className="mr-2 h-4 w-4" />
-          {t('activityDialog.new.trigger')}
-        </Button>
-      </DialogTrigger>
+      {!hideTrigger && (
+        <DialogTrigger asChild>
+          <Button>
+            <Plus className="mr-2 h-4 w-4" />
+            {t('activityDialog.new.trigger')}
+          </Button>
+        </DialogTrigger>
+      )}
       <DialogContent className="sm:max-w-[525px]">
         <form onSubmit={handleSubmit}>
           <DialogHeader>
@@ -168,6 +209,17 @@ export function NewActivityDialog({
                   <SelectItem value="NOTA">{t('activityDialog.new.types.note')}</SelectItem>
                   <SelectItem value="DOCUMENTO">{t('activityDialog.new.types.document')}</SelectItem>
                   <SelectItem value="CAMBIO_ESTADO">{t('activityDialog.new.types.statusChange')}</SelectItem>
+                  <SelectItem value="AJUSTACION_REALIZADA">{t('activityDialog.new.types.adjustmentCompleted')}</SelectItem>
+                  <SelectItem value="SCOPE_SOLICITADO">{t('activityDialog.new.types.scopeRequested')}</SelectItem>
+                  <SelectItem value="SCOPE_RECIBIDO">{t('activityDialog.new.types.scopeReceived')}</SelectItem>
+                  <SelectItem value="SCOPE_ENVIADO">{t('activityDialog.new.types.scopeSent')}</SelectItem>
+                  <SelectItem value="RESPUESTA_FAVORABLE">{t('activityDialog.new.types.responseFavorable')}</SelectItem>
+                  <SelectItem value="RESPUESTA_NEGATIVA">{t('activityDialog.new.types.responseNegative')}</SelectItem>
+                  <SelectItem value="INICIO_APPRAISAL">{t('activityDialog.new.types.appraisalStarted')}</SelectItem>
+                  <SelectItem value="CARTA_APPRAISAL_ENVIADA">{t('activityDialog.new.types.appraisalLetterSent')}</SelectItem>
+                  <SelectItem value="RELEASE_LETTER_REQUERIDA">{t('activityDialog.new.types.releaseLetterRequired')}</SelectItem>
+                  <SelectItem value="ITEL_SOLICITADO">{t('activityDialog.new.types.itelRequested')}</SelectItem>
+                  <SelectItem value="REINSPECCION_SOLICITADA">{t('activityDialog.new.types.reinspectionRequested')}</SelectItem>
                 </SelectContent>
               </Select>
             </div>

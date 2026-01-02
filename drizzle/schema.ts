@@ -1,4 +1,4 @@
-import { int, mysqlEnum, mysqlTable, text, timestamp, varchar } from "drizzle-orm/mysql-core";
+import { int, mysqlEnum, mysqlTable, text, timestamp, varchar, uniqueIndex } from "drizzle-orm/mysql-core";
 
 /**
  * Core user table backing auth flow.
@@ -178,7 +178,25 @@ export const activityLogs = mysqlTable("activityLogs", {
   clientId: varchar("clientId", { length: 50 }).references(() => clients.id, { onDelete: "cascade" }),
 
   // Tipo de actividad
-  activityType: mysqlEnum("activityType", ["LLAMADA", "CORREO", "VISITA", "NOTA", "DOCUMENTO", "CAMBIO_ESTADO"]).notNull(),
+  activityType: mysqlEnum("activityType", [
+    "LLAMADA",
+    "CORREO",
+    "VISITA",
+    "NOTA",
+    "DOCUMENTO",
+    "CAMBIO_ESTADO",
+    "AJUSTACION_REALIZADA",
+    "SCOPE_SOLICITADO",
+    "SCOPE_RECIBIDO",
+    "SCOPE_ENVIADO",
+    "RESPUESTA_FAVORABLE",
+    "RESPUESTA_NEGATIVA",
+    "INICIO_APPRAISAL",
+    "CARTA_APPRAISAL_ENVIADA",
+    "RELEASE_LETTER_REQUERIDA",
+    "ITEL_SOLICITADO",
+    "REINSPECCION_SOLICITADA",
+  ]).notNull(),
 
   // Detalles de la actividad
   subject: varchar("subject", { length: 200 }),
@@ -265,7 +283,17 @@ export const documents = mysqlTable("documents", {
   constructionProjectId: int("constructionProjectId").references(() => constructionProjects.id, { onDelete: "cascade" }),
 
   // Información del documento
-  documentType: mysqlEnum("documentType", ["POLIZA", "CONTRATO", "FOTO", "ESTIMADO", "FACTURA", "PERMISO", "OTRO"]).notNull(),
+  documentType: mysqlEnum("documentType", [
+    "POLIZA",
+    "CONTRATO",
+    "FOTO",
+    "ESTIMADO",
+    "ESTIMADO_ASEGURANZA",
+    "ESTIMADO_NUESTRO",
+    "FACTURA",
+    "PERMISO",
+    "OTRO",
+  ]).notNull(),
   fileName: varchar("fileName", { length: 255 }).notNull(),
   fileUrl: text("fileUrl").notNull(),
   fileKey: varchar("fileKey", { length: 500 }),
@@ -443,3 +471,146 @@ export const customClaimStatuses = mysqlTable("customClaimStatuses", {
 
 export type CustomClaimStatus = typeof customClaimStatuses.$inferSelect;
 export type InsertCustomClaimStatus = typeof customClaimStatuses.$inferInsert;
+
+/**
+ * Roles operativos y reglas de automatizaciA3n de actividades.
+ */
+export const workflowRoles = mysqlTable("workflowRoles", {
+  id: int("id").autoincrement().primaryKey(),
+  name: varchar("name", { length: 100 }).notNull(),
+  description: text("description"),
+  isActive: int("isActive").default(1).notNull(),
+
+  organizationId: int("organizationId").notNull(),
+
+  createdBy: int("createdBy").notNull().references(() => users.id),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type WorkflowRole = typeof workflowRoles.$inferSelect;
+export type InsertWorkflowRole = typeof workflowRoles.$inferInsert;
+
+export const workflowRoleMembers = mysqlTable("workflowRoleMembers", {
+  id: int("id").autoincrement().primaryKey(),
+  roleId: int("roleId").notNull().references(() => workflowRoles.id, { onDelete: "cascade" }),
+  userId: int("userId").notNull().references(() => users.id),
+  isPrimary: int("isPrimary").default(0).notNull(),
+
+  organizationId: int("organizationId").notNull(),
+
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+export type WorkflowRoleMember = typeof workflowRoleMembers.$inferSelect;
+export type InsertWorkflowRoleMember = typeof workflowRoleMembers.$inferInsert;
+
+export const activityAutomationRules = mysqlTable("activityAutomationRules", {
+  id: int("id").autoincrement().primaryKey(),
+  activityType: mysqlEnum("activityType", [
+    "LLAMADA",
+    "CORREO",
+    "VISITA",
+    "NOTA",
+    "DOCUMENTO",
+    "CAMBIO_ESTADO",
+    "AJUSTACION_REALIZADA",
+    "SCOPE_SOLICITADO",
+    "SCOPE_RECIBIDO",
+    "SCOPE_ENVIADO",
+    "RESPUESTA_FAVORABLE",
+    "RESPUESTA_NEGATIVA",
+    "INICIO_APPRAISAL",
+    "CARTA_APPRAISAL_ENVIADA",
+    "RELEASE_LETTER_REQUERIDA",
+    "ITEL_SOLICITADO",
+    "REINSPECCION_SOLICITADA",
+  ]).notNull(),
+  taskTitle: varchar("taskTitle", { length: 200 }).notNull(),
+  taskDescription: text("taskDescription"),
+  roleId: int("roleId").references(() => workflowRoles.id, { onDelete: "set null" }),
+  category: mysqlEnum("category", ["DOCUMENTACION", "SEGUIMIENTO", "ESTIMADO", "REUNION", "REVISION", "OTRO"])
+    .default("OTRO")
+    .notNull(),
+  priority: mysqlEnum("priority", ["ALTA", "MEDIA", "BAJA"]).default("MEDIA").notNull(),
+  dueInDays: int("dueInDays"),
+  isActive: int("isActive").default(1).notNull(),
+
+  organizationId: int("organizationId").notNull(),
+
+  createdBy: int("createdBy").notNull().references(() => users.id),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type ActivityAutomationRule = typeof activityAutomationRules.$inferSelect;
+export type InsertActivityAutomationRule = typeof activityAutomationRules.$inferInsert;
+
+/**
+ * Gmail accounts linked by users for claim email tracking
+ */
+export const gmailAccounts = mysqlTable("gmailAccounts", {
+  id: int("id").autoincrement().primaryKey(),
+  userId: int("userId").notNull().references(() => users.id),
+  organizationId: int("organizationId").notNull(),
+  email: varchar("email", { length: 255 }).notNull(),
+  accessToken: text("accessToken"),
+  refreshToken: text("refreshToken"),
+  tokenExpiresAt: timestamp("tokenExpiresAt"),
+  scope: text("scope"),
+  historyId: varchar("historyId", { length: 128 }),
+  watchExpiration: timestamp("watchExpiration"),
+  isActive: int("isActive").notNull().default(1),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type GmailAccount = typeof gmailAccounts.$inferSelect;
+export type InsertGmailAccount = typeof gmailAccounts.$inferInsert;
+
+/**
+ * Gmail threads linked to claims (clients)
+ */
+export const gmailThreads = mysqlTable("gmailThreads", {
+  id: int("id").autoincrement().primaryKey(),
+  threadId: varchar("threadId", { length: 255 }).notNull(),
+  clientId: varchar("clientId", { length: 50 }).references(() => clients.id, { onDelete: "cascade" }),
+  organizationId: int("organizationId").notNull(),
+  subject: varchar("subject", { length: 500 }),
+  lastMessageAt: timestamp("lastMessageAt"),
+  lastSnippet: text("lastSnippet"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+}, (table) => ({
+  threadOrgUnique: uniqueIndex("gmailThreads_thread_org_unique").on(table.threadId, table.organizationId, table.clientId),
+}));
+
+export type GmailThread = typeof gmailThreads.$inferSelect;
+export type InsertGmailThread = typeof gmailThreads.$inferInsert;
+
+/**
+ * Gmail messages linked to claims (clients)
+ */
+export const gmailMessages = mysqlTable("gmailMessages", {
+  id: int("id").autoincrement().primaryKey(),
+  messageId: varchar("messageId", { length: 255 }).notNull(),
+  threadId: int("threadId").references(() => gmailThreads.id, { onDelete: "cascade" }),
+  clientId: varchar("clientId", { length: 50 }).references(() => clients.id, { onDelete: "cascade" }),
+  organizationId: int("organizationId").notNull(),
+  direction: mysqlEnum("direction", ["INBOUND", "OUTBOUND"]).notNull(),
+  fromEmail: varchar("fromEmail", { length: 255 }),
+  toEmails: text("toEmails"),
+  ccEmails: text("ccEmails"),
+  subject: varchar("subject", { length: 500 }),
+  snippet: text("snippet"),
+  bodyText: text("bodyText"),
+  bodyHtml: text("bodyHtml"),
+  sentAt: timestamp("sentAt"),
+  gmailLink: text("gmailLink"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+}, (table) => ({
+  messageOrgUnique: uniqueIndex("gmailMessages_message_org_unique").on(table.messageId, table.organizationId),
+}));
+
+export type GmailMessage = typeof gmailMessages.$inferSelect;
+export type InsertGmailMessage = typeof gmailMessages.$inferInsert;

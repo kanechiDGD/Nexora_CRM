@@ -187,6 +187,9 @@ export function ManageClaimStatusesDialog({ trigger }: ManageClaimStatusesDialog
             <div className="space-y-2">
               {[
                 { name: "NO_SOMETIDA", displayName: t('dashboard.claimStatus.status.NO_SOMETIDA') },
+                { name: "SOMETIDA", displayName: t('dashboard.claimStatus.status.SOMETIDA') },
+                { name: "AJUSTACION_PROGRAMADA", displayName: t('dashboard.claimStatus.status.AJUSTACION_PROGRAMADA') },
+                { name: "AJUSTACION_TERMINADA", displayName: t('dashboard.claimStatus.status.AJUSTACION_TERMINADA') },
                 { name: "EN_PROCESO", displayName: t('dashboard.claimStatus.status.EN_PROCESO') },
                 { name: "APROVADA", displayName: t('dashboard.claimStatus.status.APROVADA') },
                 { name: "RECHAZADA", displayName: t('dashboard.claimStatus.status.RECHAZADA') },

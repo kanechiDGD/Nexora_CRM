@@ -27,6 +27,16 @@ export default function Profile() {
   });
 
   const utils = trpc.useUtils();
+  const { data: gmailStatus } = trpc.gmail.status.useQuery();
+  const disconnectGmail = trpc.gmail.disconnect.useMutation({
+    onSuccess: () => {
+      toast.success(t("profile.gmail.disconnected"));
+      utils.gmail.status.invalidate();
+    },
+    onError: (error) => {
+      toast.error(error.message || t("profile.gmail.disconnectFailed"));
+    },
+  });
 
   const changePasswordMutation = trpc.auth.changePassword.useMutation({
     onSuccess: () => {
@@ -128,6 +138,11 @@ export default function Profile() {
     toast.info(t("profile.toasts.photoComingSoon"));
   };
 
+  const handleGmailConnect = () => {
+    const returnTo = window.location.pathname + window.location.search;
+    window.location.href = `/api/gmail/connect?returnTo=${encodeURIComponent(returnTo)}`;
+  };
+
   return (
     <DashboardLayout>
       <div className="space-y-6">
@@ -182,6 +197,35 @@ export default function Profile() {
                 </Button>
               </div>
             </div>
+          </CardContent>
+        </Card>
+
+        {/* Gmail Connection */}
+        <Card className="border-border">
+          <CardHeader>
+            <CardTitle>{t("profile.gmail.title")}</CardTitle>
+            <CardDescription>{t("profile.gmail.description")}</CardDescription>
+          </CardHeader>
+          <CardContent className="flex items-center justify-between">
+            <div className="space-y-1">
+              <p className="text-sm font-medium">
+                {gmailStatus?.connected ? t("profile.gmail.connected") : t("profile.gmail.notConnected")}
+              </p>
+              {gmailStatus?.email && (
+                <p className="text-sm text-muted-foreground">{gmailStatus.email}</p>
+              )}
+            </div>
+            {gmailStatus?.connected ? (
+              <Button
+                variant="outline"
+                onClick={() => disconnectGmail.mutate()}
+                disabled={disconnectGmail.isLoading}
+              >
+                {t("profile.gmail.disconnect")}
+              </Button>
+            ) : (
+              <Button onClick={handleGmailConnect}>{t("profile.gmail.connect")}</Button>
+            )}
           </CardContent>
         </Card>
 

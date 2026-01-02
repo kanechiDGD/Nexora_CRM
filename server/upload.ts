@@ -128,7 +128,16 @@ router.post('/documents', upload.array('files', 10), async (req: Request, res: R
                 console.log('[Upload] File uploaded successfully -  url:', url);
 
                 // Determinar tipo de documento
-                let docType: "POLIZA" | "CONTRATO" | "FOTO" | "ESTIMADO" | "FACTURA" | "PERMISO" | "OTRO" = "OTRO";
+                let docType:
+                    | "POLIZA"
+                    | "CONTRATO"
+                    | "FOTO"
+                    | "ESTIMADO"
+                    | "ESTIMADO_ASEGURANZA"
+                    | "ESTIMADO_NUESTRO"
+                    | "FACTURA"
+                    | "PERMISO"
+                    | "OTRO" = "OTRO";
 
                 if (documentType) {
                     docType = documentType as typeof docType;

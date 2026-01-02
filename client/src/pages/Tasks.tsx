@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -27,6 +27,7 @@ export default function Tasks() {
 
   // Obtener tareas de la base de datos
   const { data: tasks, isLoading } = trpc.tasks.list.useQuery();
+  const { data: members = [] } = trpc.organizations.getMembers.useQuery();
   const utils = trpc.useUtils();
 
   // Mutación para cambiar estado de tarea
@@ -127,6 +128,16 @@ export default function Tasks() {
     return true;
   }) || [];
 
+  const membersById = useMemo(() => {
+    const map = new Map<number, string>();
+    members.forEach((member: any) => {
+      const label = member.username || member.name || member.email || `ID ${member.id}`;
+      const userId = member.userId || member.id;
+      map.set(userId, label);
+    });
+    return map;
+  }, [members]);
+
   // Calcular estadísticas
   const stats = {
     total: tasks?.length || 0,
@@ -220,7 +231,11 @@ export default function Tasks() {
                   <SelectContent>
                     <SelectItem value="todos">{t('tasksPage.filters.allUsers')}</SelectItem>
                     <SelectItem value="sin_asignar">{t('tasksPage.filters.unassigned')}</SelectItem>
-                    {/* TODO: Listar usuarios del equipo */}
+                    {members.map((member: any) => (
+                      <SelectItem key={member.id} value={(member.userId || member.id).toString()}>
+                        {member.username || member.name || member.email || `ID ${member.id}`}
+                      </SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </div>
@@ -301,7 +316,12 @@ export default function Tasks() {
                     </div>
                     <div className="flex items-center gap-2 text-muted-foreground">
                       <User className="h-4 w-4" />
-                      <span>{t('tasksPage.assignedTo')}: {task.assignedTo || t('tasksPage.filters.unassigned')}</span>
+                      <span>
+                        {t('tasksPage.assignedTo')}:{" "}
+                        {task.assignedTo
+                          ? membersById.get(task.assignedTo) || `ID ${task.assignedTo}`
+                          : t('tasksPage.filters.unassigned')}
+                      </span>
                     </div>
                     <div className="flex items-center gap-2 text-muted-foreground">
                       <Clock className="h-4 w-4" />

@@ -23,6 +23,7 @@ import ResetPassword from "./pages/ResetPassword";
 import AcceptInvite from "./pages/AcceptInvite";
 import Users from "./pages/Users";
 import Notifications from "./pages/Notifications";
+import WorkflowSettings from "./pages/WorkflowSettings";
 import AuthGuard from "./components/AuthGuard";
 
 function Router() {
@@ -75,6 +76,9 @@ function Router() {
       </Route>
       <Route path={"/users"}>
         <AuthGuard><Users /></AuthGuard>
+      </Route>
+      <Route path={"/workflow"}>
+        <AuthGuard><WorkflowSettings /></AuthGuard>
       </Route>
       <Route path={"/404"} component={NotFound} />
       {/* Final fallback route */}

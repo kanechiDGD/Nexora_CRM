@@ -5,7 +5,7 @@ import { Separator } from "@/components/ui/separator";
 import { Phone, Mail, MapPin, Calendar, User, FileText, CheckCircle } from "lucide-react";
 import { trpc } from "@/lib/trpc";
 import { toast } from "sonner";
-import { format } from "date-fns";
+import { format, differenceInDays } from "date-fns";
 import { es, enUS } from "date-fns/locale";
 import { useState } from "react";
 import { Label } from "@/components/ui/label";
@@ -24,6 +24,29 @@ export function ClientContactDialog({ open, onOpenChange, clientId, clientName }
   const { t, i18n } = useTranslation();
   const dateLocale = i18n.language === "es" ? es : enUS;
   const dateFormat = i18n.language === "es" ? "PPP 'a las' p" : "PPP 'at' p";
+  const getActivityTypeLabel = (type: string) => {
+    const labels: Record<string, string> = {
+      LLAMADA: t("activityDialog.new.types.call"),
+      CORREO: t("activityDialog.new.types.email"),
+      VISITA: t("activityDialog.new.types.visit"),
+      NOTA: t("activityDialog.new.types.note"),
+      DOCUMENTO: t("activityDialog.new.types.document"),
+      CAMBIO_ESTADO: t("activityDialog.new.types.statusChange"),
+      AJUSTACION_REALIZADA: t("activityDialog.new.types.adjustmentCompleted"),
+      SCOPE_SOLICITADO: t("activityDialog.new.types.scopeRequested"),
+      SCOPE_RECIBIDO: t("activityDialog.new.types.scopeReceived"),
+      SCOPE_ENVIADO: t("activityDialog.new.types.scopeSent"),
+      RESPUESTA_FAVORABLE: t("activityDialog.new.types.responseFavorable"),
+      RESPUESTA_NEGATIVA: t("activityDialog.new.types.responseNegative"),
+      INICIO_APPRAISAL: t("activityDialog.new.types.appraisalStarted"),
+      CARTA_APPRAISAL_ENVIADA: t("activityDialog.new.types.appraisalLetterSent"),
+      RELEASE_LETTER_REQUERIDA: t("activityDialog.new.types.releaseLetterRequired"),
+      ITEL_SOLICITADO: t("activityDialog.new.types.itelRequested"),
+      REINSPECCION_SOLICITADA: t("activityDialog.new.types.reinspectionRequested"),
+    };
+
+    return labels[type] || type;
+  };
   const utils = trpc.useUtils();
   const [contactMethod, setContactMethod] = useState<string>("LLAMADA");
   const [description, setDescription] = useState("");
@@ -40,8 +63,33 @@ export function ClientContactDialog({ open, onOpenChange, clientId, clientName }
     { clientId },
     { enabled: open && !!clientId }
   );
+  const { data: documents } = trpc.documents.getByClientId.useQuery(
+    { clientId },
+    { enabled: open && !!clientId }
+  );
+  const { data: workflowSummary } = trpc.clients.getWorkflowSummary.useQuery(
+    { id: clientId },
+    { enabled: open && !!clientId }
+  );
   
   const lastActivity = activities && activities.length > 0 ? activities[0] : null;
+  const isCallDue = (() => {
+    if (!client) return false;
+    const nextContact = client.nextContactDate
+      ? new Date(client.nextContactDate)
+      : client.lastContactDate
+        ? new Date(new Date(client.lastContactDate).getTime() + 7 * 24 * 60 * 60 * 1000)
+        : null;
+    if (!nextContact) return false;
+    return differenceInDays(nextContact, new Date()) <= 0;
+  })();
+
+  const documentTypes = new Set((documents || []).map((doc: any) => doc.documentType));
+  const missingDocuments = [
+    { key: "POLIZA", label: t("documents.types.policy") },
+    { key: "ESTIMADO_ASEGURANZA", label: t("documents.types.insuranceEstimate") },
+    { key: "ESTIMADO_NUESTRO", label: t("documents.types.ourEstimate") },
+  ].filter((item) => !documentTypes.has(item.key));
   
   // Mutación para crear log de actividad
   const createActivity = trpc.activityLogs.create.useMutation({
@@ -129,6 +177,11 @@ export function ClientContactDialog({ open, onOpenChange, clientId, clientName }
     if (days >= 7) return <Badge variant="destructive">{t('clientContactDialog.priority.high')}</Badge>;
     if (days >= 5) return <Badge className="bg-orange-500">{t('clientContactDialog.priority.medium')}</Badge>;
     return <Badge className="bg-yellow-500">{t('clientContactDialog.priority.low')}</Badge>;
+  };
+
+  const formatWorkflowDate = (value?: string | Date | null) => {
+    if (!value) return "-";
+    return format(new Date(value), dateFormat, { locale: dateLocale });
   };
   
   return (
@@ -229,7 +282,7 @@ export function ClientContactDialog({ open, onOpenChange, clientId, clientName }
             {lastActivity ? (
               <div className="space-y-3 bg-card p-4 rounded-lg border">
                 <div className="flex items-center justify-between">
-                  <Badge>{lastActivity.activityType}</Badge>
+                  <Badge>{getActivityTypeLabel(lastActivity.activityType)}</Badge>
                   <div className="flex items-center gap-2 text-sm text-muted-foreground">
                     <Calendar className="h-4 w-4" />
                     {format(new Date(lastActivity.performedAt), dateFormat, { locale: dateLocale })}
@@ -305,6 +358,70 @@ export function ClientContactDialog({ open, onOpenChange, clientId, clientName }
                       <p className="font-semibold">{client.assignedAdjuster}</p>
                     </div>
                   )}
+                </div>
+              </div>
+            </>
+          )}
+
+          {workflowSummary && isCallDue && (
+            <>
+              <Separator />
+              <div>
+                <h3 className="font-semibold text-lg mb-1">{t('clientContactDialog.callReportTitle')}</h3>
+                <p className="text-sm text-muted-foreground mb-3">{t('clientContactDialog.callReportSubtitle')}</p>
+                <div className="grid grid-cols-2 gap-4 bg-card p-4 rounded-lg border">
+                  <div>
+                    <p className="text-sm text-muted-foreground">{t('clientContactDialog.caseSummary.claimStatus')}</p>
+                    <p className="font-semibold">{workflowSummary.client?.claimStatus || "-"}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-muted-foreground">{t('clientContactDialog.caseSummary.lastStatusChange')}</p>
+                    <p className="font-semibold">{formatWorkflowDate(workflowSummary.lastStatusChange?.performedAt)}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-muted-foreground">{t('clientContactDialog.caseSummary.adjustmentDate')}</p>
+                    <p className="font-semibold">{formatWorkflowDate(workflowSummary.client?.adjustmentDate)}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-muted-foreground">{t('clientContactDialog.caseSummary.scopeReceived')}</p>
+                    <p className="font-semibold">{formatWorkflowDate(workflowSummary.lastCoreActivities?.SCOPE_RECIBIDO?.performedAt)}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-muted-foreground">{t('clientContactDialog.caseSummary.scopeSent')}</p>
+                    <p className="font-semibold">{formatWorkflowDate(workflowSummary.lastCoreActivities?.SCOPE_ENVIADO?.performedAt)}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-muted-foreground">{t('clientContactDialog.caseSummary.response')}</p>
+                    <p className="font-semibold">
+                      {formatWorkflowDate(
+                        workflowSummary.lastCoreActivities?.RESPUESTA_FAVORABLE?.performedAt ||
+                          workflowSummary.lastCoreActivities?.RESPUESTA_NEGATIVA?.performedAt
+                      )}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-muted-foreground">{t('clientContactDialog.caseSummary.appraisal')}</p>
+                    <p className="font-semibold">{formatWorkflowDate(workflowSummary.lastCoreActivities?.INICIO_APPRAISAL?.performedAt)}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-muted-foreground">{t('clientContactDialog.caseSummary.appraisalLetter')}</p>
+                    <p className="font-semibold">{formatWorkflowDate(workflowSummary.lastCoreActivities?.CARTA_APPRAISAL_ENVIADA?.performedAt)}</p>
+                  </div>
+                </div>
+                <div className="mt-4 bg-muted/40 p-4 rounded-lg border">
+                  <p className="text-sm font-semibold mb-2">{t('clientContactDialog.callReport.missingDocuments')}</p>
+                  {missingDocuments.length === 0 ? (
+                    <p className="text-sm text-muted-foreground">{t('clientContactDialog.callReport.noneMissing')}</p>
+                  ) : (
+                    <div className="flex flex-wrap gap-2">
+                      {missingDocuments.map((doc) => (
+                        <Badge key={doc.key} variant="outline">{doc.label}</Badge>
+                      ))}
+                    </div>
+                  )}
+                  <p className="text-xs text-muted-foreground mt-3">
+                    {t('clientContactDialog.callReport.teamReminder')}
+                  </p>
                 </div>
               </div>
             </>

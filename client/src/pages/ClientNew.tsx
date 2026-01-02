@@ -483,6 +483,9 @@ export default function ClientNew() {
                   <SelectContent>
                     {/* Estados predeterminados */}
                     <SelectItem value="NO_SOMETIDA">{t("dashboard.claimStatus.status.NO_SOMETIDA")}</SelectItem>
+                    <SelectItem value="SOMETIDA">{t("dashboard.claimStatus.status.SOMETIDA")}</SelectItem>
+                    <SelectItem value="AJUSTACION_PROGRAMADA">{t("dashboard.claimStatus.status.AJUSTACION_PROGRAMADA")}</SelectItem>
+                    <SelectItem value="AJUSTACION_TERMINADA">{t("dashboard.claimStatus.status.AJUSTACION_TERMINADA")}</SelectItem>
                     <SelectItem value="EN_PROCESO">{t("dashboard.claimStatus.status.EN_PROCESO")}</SelectItem>
                     <SelectItem value="APROBADA">{t("dashboard.claimStatus.status.APROBADA")}</SelectItem>
                     <SelectItem value="RECHAZADA">{t("dashboard.claimStatus.status.RECHAZADA")}</SelectItem>

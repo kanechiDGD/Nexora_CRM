@@ -58,7 +58,8 @@
       "tasks": "Tasks",
       "profile": "Profile",
       "contracts": "Contracts",
-      "users": "Users"
+      "users": "Users",
+      "workflow": "Workflow"
     },
     "theme": {
       "dayMode": "Day Mode",
@@ -178,11 +179,41 @@
       "manyClients": "{{count}} clients in this status",
       "status": {
         "NO_SOMETIDA": "Not Submitted",
+        "SOMETIDA": "Submitted",
+        "AJUSTACION_PROGRAMADA": "Adjustment scheduled",
+        "AJUSTACION_TERMINADA": "Adjustment completed",
         "EN_PROCESO": "In Progress",
         "APROVADA": "Approved",
         "RECHAZADA": "Denied",
         "CERRADA": "Closed",
         "APROBADA": "Approved"
+      }
+    },
+    "workflowKpis": {
+      "title": "Workflow alerts",
+      "subtitle": "Activity-driven follow-ups that need action",
+      "scopePending": "Scope pending",
+      "scopeSendPending": "Our scope pending",
+      "missingInsuranceScope": "Missing insurance scope",
+      "responsePending": "Response pending",
+      "appraisalPending": "Appraisal pending",
+      "nextActionsTitle": "Next actions",
+      "nextActionsSubtitle": "Top priorities based on activity rules",
+      "noNextActions": "No pending actions right now",
+      "actions": {
+        "completeAdjustment": "Log adjustment completed and set status to In Progress",
+        "requestScope": "Request scope from adjuster",
+        "sendScope": "Send our scope",
+        "followUpAdjuster": "Follow up with adjuster",
+        "startAppraisal": "Start appraisal",
+        "sendAppraisalLetter": "Send appraisal letter",
+        "uploadInsuranceScope": "Upload insurance scope",
+        "followUpAppraisalLetter": "Confirm appraisal letter received"
+      },
+      "priority": {
+        "high": "High",
+        "medium": "Medium",
+        "low": "Low"
       }
     },
     "kpis": {
@@ -456,7 +487,7 @@
     "languageSpanish": "Espanol",
     "forgotPassword": "Forgot password?"
   },
-  "clientContactDialog": {
+    "clientContactDialog": {
     "saveSuccess": "Contact saved and client updated",
     "createActivityError": "Error saving activity: {{message}}",
     "updateClientError": "Error updating client: {{message}}",
@@ -479,13 +510,31 @@
       "userLabel": "User #{{id}}"
     },
     "noActivities": "No activities recorded for this client",
-    "claimInfoTitle": "Claim information",
-    "claimLabels": {
-      "insurance": "Insurance",
-      "claimNumber": "Claim number",
-      "status": "Status",
-      "assignedAdjuster": "Assigned adjuster"
-    },
+      "claimInfoTitle": "Claim information",
+      "caseSummaryTitle": "Case summary",
+      "callReportTitle": "Call report",
+      "callReportSubtitle": "Key updates to share with the client today",
+      "callReport": {
+        "missingDocuments": "Missing documents",
+        "noneMissing": "All critical documents are on file",
+        "teamReminder": "If there are no new updates, check with the team before calling the client."
+      },
+      "caseSummary": {
+        "claimStatus": "Claim status",
+        "lastStatusChange": "Last status change",
+        "adjustmentDate": "Adjustment date",
+        "scopeReceived": "Scope received",
+        "scopeSent": "Scope sent",
+        "response": "Response received",
+        "appraisal": "Appraisal started",
+        "appraisalLetter": "Appraisal letter sent"
+      },
+      "claimLabels": {
+        "insurance": "Insurance",
+        "claimNumber": "Claim number",
+        "status": "Status",
+        "assignedAdjuster": "Assigned adjuster"
+      },
     "registerContactTitle": "Log new contact",
     "contactMethodLabel": "Contact method",
     "contactMethods": {
@@ -624,14 +673,25 @@
       "performedByHelp": "The current user is detected automatically",
       "typeLabel": "Activity type *",
       "typePlaceholder": "Select type",
-      "types": {
-        "call": "Call",
-        "email": "Email",
-        "visit": "Visit/Meeting",
-        "note": "Note",
-        "document": "Document",
-        "statusChange": "Status change"
-      },
+        "types": {
+          "call": "Call",
+          "email": "Email",
+          "visit": "Visit/Meeting",
+          "note": "Note",
+          "document": "Document",
+          "statusChange": "Status change",
+          "adjustmentCompleted": "Adjustment completed",
+          "scopeRequested": "Scope requested",
+          "scopeReceived": "Scope received",
+          "scopeSent": "Scope sent",
+          "responseFavorable": "Favorable response",
+          "responseNegative": "Negative response",
+          "appraisalStarted": "Appraisal started",
+          "appraisalLetterSent": "Appraisal letter sent",
+          "releaseLetterRequired": "Release letter required",
+          "itelRequested": "ITEL requested",
+          "reinspectionRequested": "Reinspection requested"
+        },
       "clientLabel": "Client (optional)",
       "clientPlaceholder": "Search client...",
       "clientSearchPlaceholder": "Type client name...",
@@ -649,10 +709,13 @@
   "documents": {
     "title": "Documents",
     "uploadButton": "Upload Documents",
+    "typeLabel": "Document type",
+    "otherPlaceholder": "Describe the document",
     "noDocuments": "No documents uploaded for this client",
     "unknownSize": "Unknown size",
     "uploading": "Uploading {{count}} file(s)...",
     "uploadSuccess": "{{count}} file(s) uploaded successfully",
+    "updateSuccess": "Document updated successfully",
     "deleteConfirm": "Are you sure you want to delete \"{{name}}\"? This action cannot be undone.",
     "deleting": "Deleting document...",
     "deleteSuccess": "Document deleted successfully",
@@ -660,8 +723,10 @@
       "fileTooLarge": "File \"{{fileName}}\" exceeds the {{maxMb}}MB limit (size: {{sizeMb}}MB)",
       "invalidType": "File type \"{{fileType}}\" is not allowed for \"{{fileName}}\"",
       "invalidExtension": "Extension \"{{extension}}\" is not allowed for \"{{fileName}}\"",
+      "typeRequired": "Please select a document type",
       "uploadFailed": "Error uploading files",
       "uploadError": "Error uploading files. Please try again.",
+      "updateFailed": "Error updating document",
       "deleteFailed": "Error deleting document",
       "deleteError": "Error deleting document"
     },
@@ -670,9 +735,38 @@
       "contract": "Contract",
       "photo": "Photo",
       "estimate": "Estimate",
+      "insuranceEstimate": "Insurance scope",
+      "ourEstimate": "Our estimate",
       "invoice": "Invoice",
       "permit": "Permit",
       "other": "Other"
+    }
+  },
+  "emails": {
+    "title": "Emails",
+    "connect": "Connect Gmail",
+    "connectHint": "Connect Gmail to send and track emails for this claim.",
+    "composeTitle": "Send email",
+    "historyTitle": "Email history",
+    "fields": {
+      "to": "Recipient email",
+      "subject": "Subject",
+      "body": "Write your message"
+    },
+    "send": "Send",
+    "sending": "Sending...",
+    "sync": "Sync inbox",
+    "syncing": "Syncing...",
+    "syncingNotice": "Syncing inbox...",
+    "sentSuccess": "Email sent",
+    "sendFailed": "Failed to send email",
+    "syncSuccess": "Synced {{count}} emails",
+    "syncFailed": "Failed to sync inbox",
+    "empty": "No emails linked to this claim yet",
+    "noSubject": "No subject",
+    "openInGmail": "Open in Gmail",
+    "validation": {
+      "required": "Please complete all fields"
     }
   },
   "calendarPage": {
@@ -744,6 +838,53 @@
     "emptyCustomStatuses": "No custom statuses. Add one above.",
     "defaultStatusesTitle": "Default statuses (cannot be deleted)",
     "defaultLabel": "Default"
+  },
+  "workflowSettings": {
+    "title": "Workflow settings",
+    "subtitle": "Assign team owners and automation rules for activities",
+    "noAccess": "Only administrators and co-admins can manage workflow settings.",
+    "roles": {
+      "title": "Workflow roles",
+      "subtitle": "Define owners for each operational role.",
+      "createSuccess": "Role created",
+      "createError": "Error creating role",
+      "updateSuccess": "Role updated",
+      "updateError": "Error updating role",
+      "createButton": "Create role",
+      "active": "Active",
+      "unassigned": "Unassigned",
+      "primaryLabel": "Primary",
+      "secondaryLabel": "Secondary",
+      "fields": {
+        "name": "Role name",
+        "description": "Description",
+        "primary": "Primary owner",
+        "primaryPlaceholder": "Select primary owner",
+        "secondary": "Secondary owners"
+      }
+    },
+    "rules": {
+      "title": "Automation rules",
+      "subtitle": "Generate tasks from activities with deadlines.",
+      "createSuccess": "Rule created",
+      "createError": "Error creating rule",
+      "updateError": "Error updating rule",
+      "createButton": "Create rule",
+      "active": "Active",
+      "roleLabel": "Role",
+      "dueLabel": "Due in days",
+      "unknownActivity": "Unknown activity",
+      "fields": {
+        "activityType": "Activity type",
+        "role": "Assign role",
+        "rolePlaceholder": "Select role",
+        "taskTitle": "Task title",
+        "taskDescription": "Task description",
+        "category": "Category",
+        "priority": "Priority",
+        "dueInDays": "Due in (days)"
+      }
+    }
   },
   "clientEdit": {
     "deleteSuccess": "Client deleted successfully",
@@ -951,14 +1092,20 @@
       "constructionStatus": "Status",
       "dateOfLoss": "Date of Loss",
       "claimSubmittedDate": "Claim Submission Date",
-      "adjustmentDate": "Adjustment Date",
-      "lastContactDate": "Last Contact",
-      "nextContactDate": "Next Contact",
-      "propertyType": "Property Type"
-    },
-    "actions": {
-      "edit": "Edit Client"
-    },
+        "adjustmentDate": "Adjustment Date",
+        "lastContactDate": "Last Contact",
+        "nextContactDate": "Next Contact",
+        "propertyType": "Property Type"
+      },
+      "kpis": {
+        "clientContact": "Client follow-up",
+        "adjusterContact": "Adjuster follow-up",
+        "statusUpdate": "Status update",
+        "daysSince": "Days since last update"
+      },
+      "actions": {
+        "edit": "Edit Client"
+      },
     "quick": {
       "status": "Status",
       "insurance": "Insurance",
@@ -973,6 +1120,7 @@
       "property": "Property",
       "dates": "Dates",
       "documents": "Documents",
+      "emails": "Emails",
       "activity": "Activity"
     },
     "sections": {
@@ -1356,6 +1504,16 @@
       "description": "Update your profile image",
       "hint": "JPG, PNG, or GIF. Max size 2MB.",
       "change": "Change Photo"
+    },
+    "gmail": {
+      "title": "Gmail Connection",
+      "description": "Send and track emails per claim",
+      "connected": "Gmail connected",
+      "notConnected": "Gmail not connected",
+      "connect": "Connect Gmail",
+      "disconnect": "Disconnect",
+      "disconnected": "Gmail disconnected",
+      "disconnectFailed": "Failed to disconnect Gmail"
     },
     "personal": {
       "title": "Personal Information",

@@ -12,6 +12,8 @@ import bcrypt from "bcryptjs";
 import { ENV } from "./_core/env";
 import { buildInviteEmail, buildPasswordResetEmail, sendEmail } from "./_core/email";
 import { sdk } from "./_core/sdk";
+import { getGmailAccessToken, sendGmailMessage } from "./services/gmail";
+import { backfillGmailMessages } from "./services/gmailSync";
 
 // Helper para verificar roles
 const adminProcedure = protectedProcedure.use(({ ctx, next }) => {
@@ -159,8 +161,15 @@ export const appRouter = router({
       .mutation(async ({ input }) => {
         const member = await db.getOrganizationMemberByUsername(input.email);
         if (!member) {
-          return { success: true };
-        }
+  return { success: true };
+}
+
+async function selectRoleAssignee(roleId: number, organizationId: number) {
+  const members = await db.getWorkflowRoleMembers(roleId, organizationId);
+  if (!members.length) return null;
+  const primary = members.find((member: any) => member.isPrimary === 1);
+  return primary?.userId ?? members[0].userId ?? null;
+}
 
         const user = await db.getUserById(member.userId);
         if (!user) {
@@ -427,28 +436,70 @@ export const appRouter = router({
         return updated;
       }),
 
-    delete: coAdminOrgProcedure
-      .input(z.object({ id: z.string() }))
-      .mutation(async ({ input, ctx }) => {
-        await db.deleteClient(input.id, ctx.organizationId);
+      delete: coAdminOrgProcedure
+        .input(z.object({ id: z.string() }))
+        .mutation(async ({ input, ctx }) => {
+          await db.deleteClient(input.id, ctx.organizationId);
 
-        await db.createAuditLog({
-          entityType: "CLIENT",
-          entityId: 0,
-          action: "DELETE",
-          performedBy: ctx.user.id,
-        });
+          await db.createAuditLog({
+            entityType: "CLIENT",
+            entityId: 0,
+            action: "DELETE",
+            performedBy: ctx.user.id,
+          });
 
-        return { success: true };
-      }),
-  }),
-  // ============ DASHBOARD / KPIs ROUTER ============
-  dashboard: router({
-    // Total de clientes
-    totalClients: orgProcedure.query(async ({ ctx }) => {
-      const clients = await db.getAllClients(ctx.organizationId);
-      return { count: clients.length, clients };
+          return { success: true };
+        }),
+
+      getWorkflowSummary: orgProcedure
+        .input(z.object({ id: z.string() }))
+        .query(async ({ input, ctx }) => {
+          const client = await db.getClientById(input.id, ctx.organizationId);
+          if (!client) {
+            throw new TRPCError({ code: "NOT_FOUND", message: "Client not found" });
+          }
+
+          const logs = await db.getActivityLogsByClientId(input.id, ctx.organizationId);
+          const lastByType: Record<string, any> = {};
+          for (const log of logs) {
+            if (!lastByType[log.activityType]) {
+              lastByType[log.activityType] = log;
+            }
+          }
+
+          return {
+            client: {
+              id: client.id,
+              claimStatus: client.claimStatus,
+              adjustmentDate: client.adjustmentDate,
+              lastContactDate: client.lastContactDate,
+              nextContactDate: client.nextContactDate,
+            },
+            lastActivity: logs[0] || null,
+            lastStatusChange: lastByType["CAMBIO_ESTADO"] || null,
+            lastCoreActivities: {
+              AJUSTACION_REALIZADA: lastByType["AJUSTACION_REALIZADA"] || null,
+              SCOPE_SOLICITADO: lastByType["SCOPE_SOLICITADO"] || null,
+              SCOPE_RECIBIDO: lastByType["SCOPE_RECIBIDO"] || null,
+              SCOPE_ENVIADO: lastByType["SCOPE_ENVIADO"] || null,
+              RESPUESTA_FAVORABLE: lastByType["RESPUESTA_FAVORABLE"] || null,
+              RESPUESTA_NEGATIVA: lastByType["RESPUESTA_NEGATIVA"] || null,
+              INICIO_APPRAISAL: lastByType["INICIO_APPRAISAL"] || null,
+              CARTA_APPRAISAL_ENVIADA: lastByType["CARTA_APPRAISAL_ENVIADA"] || null,
+              RELEASE_LETTER_REQUERIDA: lastByType["RELEASE_LETTER_REQUERIDA"] || null,
+              ITEL_SOLICITADO: lastByType["ITEL_SOLICITADO"] || null,
+              REINSPECCION_SOLICITADA: lastByType["REINSPECCION_SOLICITADA"] || null,
+            },
+          };
+        }),
     }),
+  // ============ DASHBOARD / KPIs ROUTER ============
+    dashboard: router({
+      // Total de clientes
+      totalClients: orgProcedure.query(async ({ ctx }) => {
+        const clients = await db.getAllClients(ctx.organizationId);
+        return { count: clients.length, clients };
+      }),
 
     // Contacto atrasado (>7 días)
     lateContact: orgProcedure.query(async ({ ctx }) => {
@@ -480,11 +531,217 @@ export const appRouter = router({
       return { count: clients.length, clients };
     }),
 
-    // Conteo de clientes por estado de reclamo (predeterminados + personalizados)
-    clientsByClaimStatus: orgProcedure.query(async ({ ctx }) => {
-      return await db.getClientCountByClaimStatus(ctx.organizationId);
+      // Conteo de clientes por estado de reclamo (predeterminados + personalizados)
+      clientsByClaimStatus: orgProcedure.query(async ({ ctx }) => {
+        return await db.getClientCountByClaimStatus(ctx.organizationId);
+      }),
+
+      workflowKpis: orgProcedure.query(async ({ ctx }) => {
+        const clients = await db.getAllClients(ctx.organizationId);
+        const coreTypes = [
+          "AJUSTACION_REALIZADA",
+          "SCOPE_SOLICITADO",
+          "SCOPE_RECIBIDO",
+          "SCOPE_ENVIADO",
+          "RESPUESTA_FAVORABLE",
+          "RESPUESTA_NEGATIVA",
+          "INICIO_APPRAISAL",
+          "CARTA_APPRAISAL_ENVIADA",
+          "CAMBIO_ESTADO",
+        ];
+        const logs = await db.getActivityLogsByOrganization(ctx.organizationId, coreTypes);
+        const insuranceScopeDocs = await db.getDocumentsByOrganization(ctx.organizationId, [
+          "ESTIMADO_ASEGURANZA",
+          "ESTIMADO",
+        ]);
+        const latestByClient: Record<string, Record<string, any>> = {};
+        const insuranceScopeByClient = new Set<string>();
+
+        for (const log of logs) {
+          if (!log.clientId) continue;
+          if (!latestByClient[log.clientId]) {
+            latestByClient[log.clientId] = {};
+          }
+          if (!latestByClient[log.clientId][log.activityType]) {
+            latestByClient[log.clientId][log.activityType] = log;
+          }
+        }
+        for (const doc of insuranceScopeDocs) {
+          if (doc.clientId) {
+            insuranceScopeByClient.add(doc.clientId);
+          }
+        }
+
+        const now = Date.now();
+        const addDays = (date: Date | string, days: number) =>
+          new Date(new Date(date).getTime() + days * 24 * 60 * 60 * 1000);
+        const addHours = (date: Date | string, hours: number) =>
+          new Date(new Date(date).getTime() + hours * 60 * 60 * 1000);
+        const daysSince = (date?: Date | string | null) =>
+          date ? Math.floor((now - new Date(date).getTime()) / (1000 * 60 * 60 * 24)) : null;
+        const daysUntil = (date?: Date | string | null) =>
+          date ? Math.floor((new Date(date).getTime() - now) / (1000 * 60 * 60 * 24)) : null;
+        const getPriorityFromDue = (date?: Date | string | null): "high" | "medium" | "low" => {
+          const remaining = daysUntil(date);
+          if (remaining === null) return "low";
+          if (remaining <= 0) return "high";
+          if (remaining <= 2) return "medium";
+          return "low";
+        };
+
+        let scopePending = 0;
+        let scopeSendPending = 0;
+        let responsePending = 0;
+        let appraisalPending = 0;
+        let missingInsuranceScope = 0;
+        const nextActions: Array<{
+          clientId: string;
+          clientName: string;
+          actionKey: string;
+          dueDate: Date | null;
+          priority: "high" | "medium" | "low";
+        }> = [];
+
+        for (const client of clients) {
+          const activity = latestByClient[client.id] || {};
+          const adjustmentDate = client.adjustmentDate || activity["AJUSTACION_REALIZADA"]?.performedAt || null;
+          const scopeReceivedAt = activity["SCOPE_RECIBIDO"]?.performedAt || null;
+          const scopeSentAt = activity["SCOPE_ENVIADO"]?.performedAt || null;
+          const hasNegativeResponse = !!activity["RESPUESTA_NEGATIVA"];
+          const responseAt =
+            activity["RESPUESTA_FAVORABLE"]?.performedAt ||
+            activity["RESPUESTA_NEGATIVA"]?.performedAt ||
+            null;
+          const appraisalStartedAt = activity["INICIO_APPRAISAL"]?.performedAt || null;
+          const appraisalLetterSentAt = activity["CARTA_APPRAISAL_ENVIADA"]?.performedAt || null;
+          const adjustmentLogged = !!activity["AJUSTACION_REALIZADA"];
+
+          const clientName = `${client.firstName} ${client.lastName}`;
+          const hasAdjustment = !!adjustmentDate;
+          const isInProcess = client.claimStatus === "EN_PROCESO";
+          const hasScopePhase = !!(
+            scopeReceivedAt ||
+            scopeSentAt ||
+            activity["RESPUESTA_FAVORABLE"] ||
+            appraisalStartedAt
+          );
+          const hasInsuranceScopeDoc = insuranceScopeByClient.has(client.id);
+          let hasPrimaryAction = false;
+
+          if (
+            !hasPrimaryAction &&
+            adjustmentDate &&
+            !adjustmentLogged &&
+            client.claimStatus !== "EN_PROCESO" &&
+            now > addHours(adjustmentDate, 2).getTime()
+          ) {
+            const dueDate = addHours(adjustmentDate, 2);
+            nextActions.push({
+              clientId: client.id,
+              clientName,
+              actionKey: "completeAdjustment",
+              dueDate,
+              priority: getPriorityFromDue(dueDate),
+            });
+            hasPrimaryAction = true;
+          }
+
+          if (hasNegativeResponse && !appraisalStartedAt) {
+            appraisalPending += 1;
+            if (!appraisalLetterSentAt) {
+              nextActions.push({
+                clientId: client.id,
+                clientName,
+                actionKey: "sendAppraisalLetter",
+                dueDate: null,
+                priority: "high",
+              });
+              hasPrimaryAction = true;
+            }
+          }
+
+          if (!hasPrimaryAction && !hasNegativeResponse && adjustmentDate && !scopeReceivedAt) {
+            const dueDate = addDays(adjustmentDate, 5);
+            scopePending += 1;
+            nextActions.push({
+              clientId: client.id,
+              clientName,
+              actionKey: "requestScope",
+              dueDate,
+              priority: getPriorityFromDue(dueDate),
+            });
+            hasPrimaryAction = true;
+          }
+
+          if (!hasPrimaryAction && !hasNegativeResponse && scopeReceivedAt && !scopeSentAt) {
+            const dueDate = addDays(scopeReceivedAt, 2);
+            scopeSendPending += 1;
+            nextActions.push({
+              clientId: client.id,
+              clientName,
+              actionKey: "sendScope",
+              dueDate,
+              priority: getPriorityFromDue(dueDate),
+            });
+            hasPrimaryAction = true;
+          }
+
+          if (!hasPrimaryAction && !hasNegativeResponse && scopeSentAt && !responseAt) {
+            const dueDate = addDays(scopeSentAt, 10);
+            responsePending += 1;
+            nextActions.push({
+              clientId: client.id,
+              clientName,
+              actionKey: "followUpAdjuster",
+              dueDate,
+              priority: getPriorityFromDue(dueDate),
+            });
+            hasPrimaryAction = true;
+          }
+
+          const needsInsuranceScope = !hasNegativeResponse && !hasInsuranceScopeDoc && (isInProcess || (hasAdjustment && hasScopePhase));
+          if (needsInsuranceScope) {
+            missingInsuranceScope += 1;
+            if (!hasPrimaryAction) {
+              nextActions.push({
+                clientId: client.id,
+                clientName,
+                actionKey: "uploadInsuranceScope",
+                dueDate: null,
+                priority: "high",
+              });
+            }
+          }
+
+          if (!hasPrimaryAction && appraisalLetterSentAt && !appraisalStartedAt) {
+            const dueDate = addDays(appraisalLetterSentAt, 5);
+            nextActions.push({
+              clientId: client.id,
+              clientName,
+              actionKey: "followUpAppraisalLetter",
+              dueDate,
+              priority: getPriorityFromDue(dueDate),
+            });
+          }
+        }
+
+        nextActions.sort((a, b) => {
+          if (!a.dueDate && !b.dueDate) return 0;
+          if (!a.dueDate) return 1;
+          if (!b.dueDate) return -1;
+          return a.dueDate.getTime() - b.dueDate.getTime();
+        });
+
+        return {
+          scopePending,
+          scopeSendPending,
+          responsePending,
+          appraisalPending,
+          missingInsuranceScope,
+          nextActions: nextActions.slice(0, 10),
+        };
+      }),
     }),
-  }),
 
   // ============ ACTIVITY LOGS ROUTER ============
   activityLogs: router({
@@ -503,26 +760,77 @@ export const appRouter = router({
       }),
 
     // Crear nuevo log
-    create: orgProcedure
-      .input(z.object({
-        clientId: z.string().optional().nullable(),
-        activityType: z.enum(["LLAMADA", "CORREO", "VISITA", "NOTA", "DOCUMENTO", "CAMBIO_ESTADO"]),
-        subject: z.string().optional().nullable(),
-        description: z.string().optional().nullable(),
-        outcome: z.string().optional().nullable(),
-        contactMethod: z.string().optional().nullable(),
-        duration: z.number().optional().nullable(),
+      create: orgProcedure
+        .input(z.object({
+          clientId: z.string().optional().nullable(),
+          activityType: z.enum([
+            "LLAMADA",
+            "CORREO",
+            "VISITA",
+            "NOTA",
+            "DOCUMENTO",
+            "CAMBIO_ESTADO",
+            "AJUSTACION_REALIZADA",
+            "SCOPE_SOLICITADO",
+            "SCOPE_RECIBIDO",
+            "SCOPE_ENVIADO",
+            "RESPUESTA_FAVORABLE",
+            "RESPUESTA_NEGATIVA",
+            "INICIO_APPRAISAL",
+            "CARTA_APPRAISAL_ENVIADA",
+            "RELEASE_LETTER_REQUERIDA",
+            "ITEL_SOLICITADO",
+            "REINSPECCION_SOLICITADA",
+          ]),
+          subject: z.string().optional().nullable(),
+          description: z.string().optional().nullable(),
+          outcome: z.string().optional().nullable(),
+          contactMethod: z.string().optional().nullable(),
+          duration: z.number().optional().nullable(),
       }))
-      .mutation(async ({ input, ctx }) => {
-        const result = await db.createActivityLog({
-          ...input,
-          organizationId: ctx.organizationId,
-          performedBy: ctx.user.id,
-        });
+        .mutation(async ({ input, ctx }) => {
+          const result = await db.createActivityLog({
+            ...input,
+            organizationId: ctx.organizationId,
+            performedBy: ctx.user.id,
+          });
+  
+          if (input.clientId) {
+            const rules = await db.getActiveAutomationRulesByActivityType(
+              ctx.organizationId,
+              input.activityType
+            );
+            if (rules.length > 0) {
+              for (const rule of rules) {
+                const assignedTo = rule.roleId
+                  ? await selectRoleAssignee(rule.roleId, ctx.organizationId)
+                  : null;
+                const dueDate = rule.dueInDays !== null && rule.dueInDays !== undefined
+                  ? new Date(Date.now() + rule.dueInDays * 24 * 60 * 60 * 1000)
+                  : null;
+  
+                await db.createTask({
+                  clientId: input.clientId,
+                  title: rule.taskTitle,
+                  description: rule.taskDescription || null,
+                  category: rule.category,
+                  priority: rule.priority,
+                  status: "PENDIENTE",
+                  assignedTo,
+                  dueDate,
+                  completedAt: null,
+                  attachments: null,
+                  organizationId: ctx.organizationId,
+                  createdBy: ctx.user.id,
+                  updatedBy: ctx.user.id,
+                });
+              }
+            }
+          }
 
-        const client = input.clientId
-          ? await db.getClientById(input.clientId, ctx.organizationId)
-          : null;
+          const client = input.clientId
+            ? await db.getClientById(input.clientId, ctx.organizationId)
+            : null;
         const clientName = client ? `${client.firstName} ${client.lastName}` : "Client";
         const subject = input.subject || "Activity logged";
 
@@ -657,7 +965,17 @@ export const appRouter = router({
       .input(z.object({
         clientId: z.string().optional().nullable(),
         constructionProjectId: z.number().optional().nullable(),
-        documentType: z.enum(["POLIZA", "CONTRATO", "FOTO", "ESTIMADO", "FACTURA", "PERMISO", "OTRO"]),
+        documentType: z.enum([
+          "POLIZA",
+          "CONTRATO",
+          "FOTO",
+          "ESTIMADO",
+          "ESTIMADO_ASEGURANZA",
+          "ESTIMADO_NUESTRO",
+          "FACTURA",
+          "PERMISO",
+          "OTRO",
+        ]),
         fileName: z.string(),
         fileUrl: z.string(),
         fileKey: z.string().optional().nullable(),
@@ -674,6 +992,157 @@ export const appRouter = router({
           uploadedBy: ctx.user.id,
         });
       }),
+
+    update: orgProcedure
+      .input(z.object({
+        id: z.number(),
+        documentType: z.enum([
+          "POLIZA",
+          "CONTRATO",
+          "FOTO",
+          "ESTIMADO",
+          "ESTIMADO_ASEGURANZA",
+          "ESTIMADO_NUESTRO",
+          "FACTURA",
+          "PERMISO",
+          "OTRO",
+        ]),
+        description: z.string().optional().nullable(),
+      }))
+      .mutation(async ({ input, ctx }) => {
+        return await db.updateDocument(input.id, ctx.organizationId, {
+          documentType: input.documentType,
+          description: input.description ?? null,
+        });
+      }),
+  }),
+
+  // ============ GMAIL ROUTER ============
+  gmail: router({
+    status: orgProcedure.query(async ({ ctx }) => {
+      const account = await db.getGmailAccountByUserId(ctx.user.id, ctx.organizationId);
+      return {
+        connected: !!account && account.isActive === 1,
+        email: account?.email || null,
+      };
+    }),
+
+    listByClient: orgProcedure
+      .input(z.object({ clientId: z.string() }))
+      .query(async ({ input, ctx }) => {
+        return await db.getGmailMessagesByClientId(input.clientId, ctx.organizationId);
+      }),
+
+    send: orgProcedure
+      .input(z.object({
+        clientId: z.string(),
+        to: z.string(),
+        subject: z.string(),
+        bodyHtml: z.string().optional().nullable(),
+        bodyText: z.string().optional().nullable(),
+      }))
+      .mutation(async ({ input, ctx }) => {
+        const account = await db.getGmailAccountByUserId(ctx.user.id, ctx.organizationId);
+        if (!account || account.isActive !== 1) {
+          throw new TRPCError({ code: "BAD_REQUEST", message: "Gmail not connected" });
+        }
+
+        const accessToken = await getGmailAccessToken(account);
+        const sendResult = await sendGmailMessage({
+          accessToken,
+          fromEmail: account.email,
+          to: input.to,
+          subject: input.subject,
+          bodyHtml: input.bodyHtml || null,
+          bodyText: input.bodyText || null,
+        });
+
+        const threadId = sendResult.threadId || null;
+          let threadRecordId: number | null = null;
+          if (threadId) {
+            const existingThread = await db.getGmailThreadByThreadId(threadId, ctx.organizationId, input.clientId);
+            if (existingThread) {
+              threadRecordId = existingThread.id;
+            } else {
+              await db.createGmailThread({
+                threadId,
+                clientId: input.clientId,
+                organizationId: ctx.organizationId,
+                subject: input.subject,
+                lastMessageAt: new Date(),
+                lastSnippet: input.bodyText || input.bodyHtml || null,
+              });
+              const createdThread = await db.getGmailThreadByThreadId(threadId, ctx.organizationId, input.clientId);
+              threadRecordId = createdThread?.id || null;
+            }
+          }
+
+        await db.createGmailMessage({
+          messageId: sendResult.id,
+          threadId: threadRecordId,
+          clientId: input.clientId,
+          organizationId: ctx.organizationId,
+          direction: "OUTBOUND",
+          fromEmail: account.email,
+          toEmails: input.to,
+          ccEmails: null,
+          subject: input.subject,
+          snippet: input.bodyText || input.bodyHtml || null,
+          bodyText: input.bodyText || null,
+          bodyHtml: input.bodyHtml || null,
+          sentAt: new Date(),
+          gmailLink: `https://mail.google.com/mail/u/0/#all/${sendResult.id}`,
+        });
+
+        await db.createActivityLog({
+          clientId: input.clientId,
+          activityType: "CORREO",
+          subject: input.subject,
+          description: input.bodyText || input.bodyHtml || "Email sent",
+          organizationId: ctx.organizationId,
+          performedBy: ctx.user.id,
+        });
+
+        return { success: true, messageId: sendResult.id };
+      }),
+
+    syncNow: orgProcedure
+      .input(z.object({
+        query: z.string().optional().nullable(),
+        days: z.number().optional().nullable(),
+      }))
+      .mutation(async ({ input, ctx }) => {
+        const account = await db.getGmailAccountByUserId(ctx.user.id, ctx.organizationId);
+        if (!account || account.isActive !== 1) {
+          throw new TRPCError({ code: "BAD_REQUEST", message: "Gmail not connected" });
+        }
+
+        const accessToken = await getGmailAccessToken(account);
+        const days = input.days || 180;
+        const query = input.query || `newer_than:${days}d`;
+        const processed = await backfillGmailMessages({
+          account: {
+            id: account.id,
+            userId: account.userId,
+            email: account.email,
+            organizationId: ctx.organizationId,
+          },
+          accessToken,
+          query,
+          maxResults: 200,
+        });
+
+        return { success: true, processed };
+      }),
+
+    disconnect: orgProcedure.mutation(async ({ ctx }) => {
+      const account = await db.getGmailAccountByUserId(ctx.user.id, ctx.organizationId);
+      if (!account) {
+        return { success: true };
+      }
+      await db.deactivateGmailAccount(account.id, ctx.organizationId);
+      return { success: true };
+    }),
   }),
 
   // ============ AUDIT LOGS ROUTER ============
@@ -828,7 +1297,7 @@ export const appRouter = router({
   }),
 
   // ============ TASKS ROUTER ============
-  tasks: router({
+    tasks: router({
     // Listar todas las tareas
     list: orgProcedure.query(async ({ ctx }) => {
       return await db.getAllTasks(ctx.organizationId);
@@ -925,14 +1394,232 @@ export const appRouter = router({
       }),
 
     // Eliminar tarea (solo admin y co-admin)
-    delete: coAdminOrgProcedure
-      .input(z.object({ id: z.number() }))
-      .mutation(async ({ input, ctx }) => {
-        return await db.deleteTask(input.id, ctx.organizationId);
-      }),
-  }),
+      delete: coAdminOrgProcedure
+        .input(z.object({ id: z.number() }))
+        .mutation(async ({ input, ctx }) => {
+          return await db.deleteTask(input.id, ctx.organizationId);
+        }),
+    }),
 
-  // ============ NOTIFICATIONS ROUTER ============
+    // ============ WORKFLOW ROLES ROUTER ============
+    workflowRoles: router({
+      list: orgProcedure.query(async ({ ctx }) => {
+        return await db.getWorkflowRoles(ctx.organizationId);
+      }),
+
+      getById: orgProcedure
+        .input(z.object({ id: z.number() }))
+        .query(async ({ input, ctx }) => {
+          return await db.getWorkflowRoleById(input.id, ctx.organizationId);
+        }),
+
+      listMembers: orgProcedure
+        .input(z.object({ roleId: z.number() }))
+        .query(async ({ input, ctx }) => {
+          return await db.getWorkflowRoleMembers(input.roleId, ctx.organizationId);
+        }),
+
+      listAllMembers: orgProcedure.query(async ({ ctx }) => {
+        return await db.getWorkflowRoleMembersByOrg(ctx.organizationId);
+      }),
+
+      create: coAdminOrgProcedure
+        .input(z.object({
+          name: z.string().min(1).max(100),
+          description: z.string().optional().nullable(),
+          isActive: z.number().optional(),
+          primaryUserId: z.number().optional().nullable(),
+          secondaryUserIds: z.array(z.number()).optional(),
+        }))
+        .mutation(async ({ input, ctx }) => {
+          const result = await db.createWorkflowRole({
+            name: input.name,
+            description: input.description || null,
+            isActive: input.isActive ?? 1,
+            organizationId: ctx.organizationId,
+            createdBy: ctx.user.id,
+          });
+
+          const roleId = (result as any)?.insertId;
+          if (roleId) {
+            const members: Array<{ userId: number; isPrimary: number }> = [];
+            if (input.primaryUserId) {
+              members.push({ userId: input.primaryUserId, isPrimary: 1 });
+            }
+            (input.secondaryUserIds || []).forEach((userId) => {
+              if (userId !== input.primaryUserId) {
+                members.push({ userId, isPrimary: 0 });
+              }
+            });
+
+            for (const member of members) {
+              await db.createWorkflowRoleMember({
+                roleId,
+                userId: member.userId,
+                isPrimary: member.isPrimary,
+                organizationId: ctx.organizationId,
+                createdAt: new Date(),
+              });
+            }
+          }
+
+          return { success: true, id: result };
+        }),
+
+      update: coAdminOrgProcedure
+        .input(z.object({
+          id: z.number(),
+          name: z.string().min(1).max(100).optional(),
+          description: z.string().optional().nullable(),
+          isActive: z.number().optional(),
+          primaryUserId: z.number().optional().nullable(),
+          secondaryUserIds: z.array(z.number()).optional(),
+        }))
+        .mutation(async ({ input, ctx }) => {
+          await db.updateWorkflowRole(input.id, ctx.organizationId, {
+            name: input.name,
+            description: input.description ?? undefined,
+            isActive: input.isActive,
+          });
+
+          if (input.primaryUserId !== undefined || input.secondaryUserIds !== undefined) {
+            await db.deleteWorkflowRoleMembers(input.id, ctx.organizationId);
+            const members: Array<{ userId: number; isPrimary: number }> = [];
+            if (input.primaryUserId) {
+              members.push({ userId: input.primaryUserId, isPrimary: 1 });
+            }
+            (input.secondaryUserIds || []).forEach((userId) => {
+              if (userId !== input.primaryUserId) {
+                members.push({ userId, isPrimary: 0 });
+              }
+            });
+
+            for (const member of members) {
+              await db.createWorkflowRoleMember({
+                roleId: input.id,
+                userId: member.userId,
+                isPrimary: member.isPrimary,
+                organizationId: ctx.organizationId,
+                createdAt: new Date(),
+              });
+            }
+          }
+
+          return { success: true };
+        }),
+
+      delete: coAdminOrgProcedure
+        .input(z.object({ id: z.number() }))
+        .mutation(async ({ input, ctx }) => {
+          await db.deleteWorkflowRole(input.id, ctx.organizationId);
+          return { success: true };
+        }),
+    }),
+
+    // ============ ACTIVITY AUTOMATION RULES ROUTER ============
+    activityAutomationRules: router({
+      list: orgProcedure.query(async ({ ctx }) => {
+        return await db.getActivityAutomationRules(ctx.organizationId);
+      }),
+
+      create: coAdminOrgProcedure
+        .input(z.object({
+          activityType: z.enum([
+            "LLAMADA",
+            "CORREO",
+            "VISITA",
+            "NOTA",
+            "DOCUMENTO",
+            "CAMBIO_ESTADO",
+            "AJUSTACION_REALIZADA",
+            "SCOPE_SOLICITADO",
+            "SCOPE_RECIBIDO",
+            "SCOPE_ENVIADO",
+            "RESPUESTA_FAVORABLE",
+            "RESPUESTA_NEGATIVA",
+            "INICIO_APPRAISAL",
+            "CARTA_APPRAISAL_ENVIADA",
+            "RELEASE_LETTER_REQUERIDA",
+            "ITEL_SOLICITADO",
+            "REINSPECCION_SOLICITADA",
+          ]),
+          taskTitle: z.string().min(1).max(200),
+          taskDescription: z.string().optional().nullable(),
+          roleId: z.number().optional().nullable(),
+          category: z.enum(["DOCUMENTACION", "SEGUIMIENTO", "ESTIMADO", "REUNION", "REVISION", "OTRO"]).optional(),
+          priority: z.enum(["ALTA", "MEDIA", "BAJA"]).optional(),
+          dueInDays: z.number().optional().nullable(),
+          isActive: z.number().optional(),
+        }))
+        .mutation(async ({ input, ctx }) => {
+          const result = await db.createActivityAutomationRule({
+            activityType: input.activityType,
+            taskTitle: input.taskTitle,
+            taskDescription: input.taskDescription || null,
+            roleId: input.roleId || null,
+            category: input.category || "OTRO",
+            priority: input.priority || "MEDIA",
+            dueInDays: input.dueInDays ?? null,
+            isActive: input.isActive ?? 1,
+            organizationId: ctx.organizationId,
+            createdBy: ctx.user.id,
+          });
+          return { success: true, id: result };
+        }),
+
+      update: coAdminOrgProcedure
+        .input(z.object({
+          id: z.number(),
+          activityType: z.enum([
+            "LLAMADA",
+            "CORREO",
+            "VISITA",
+            "NOTA",
+            "DOCUMENTO",
+            "CAMBIO_ESTADO",
+            "AJUSTACION_REALIZADA",
+            "SCOPE_SOLICITADO",
+            "SCOPE_RECIBIDO",
+            "SCOPE_ENVIADO",
+            "RESPUESTA_FAVORABLE",
+            "RESPUESTA_NEGATIVA",
+            "INICIO_APPRAISAL",
+            "CARTA_APPRAISAL_ENVIADA",
+            "RELEASE_LETTER_REQUERIDA",
+            "ITEL_SOLICITADO",
+            "REINSPECCION_SOLICITADA",
+          ]).optional(),
+          taskTitle: z.string().min(1).max(200).optional(),
+          taskDescription: z.string().optional().nullable(),
+          roleId: z.number().optional().nullable(),
+          category: z.enum(["DOCUMENTACION", "SEGUIMIENTO", "ESTIMADO", "REUNION", "REVISION", "OTRO"]).optional(),
+          priority: z.enum(["ALTA", "MEDIA", "BAJA"]).optional(),
+          dueInDays: z.number().optional().nullable(),
+          isActive: z.number().optional(),
+        }))
+        .mutation(async ({ input, ctx }) => {
+          await db.updateActivityAutomationRule(input.id, ctx.organizationId, {
+            activityType: input.activityType,
+            taskTitle: input.taskTitle,
+            taskDescription: input.taskDescription ?? undefined,
+            roleId: input.roleId ?? undefined,
+            category: input.category,
+            priority: input.priority,
+            dueInDays: input.dueInDays ?? undefined,
+            isActive: input.isActive,
+          });
+          return { success: true };
+        }),
+
+      delete: coAdminOrgProcedure
+        .input(z.object({ id: z.number() }))
+        .mutation(async ({ input, ctx }) => {
+          await db.deleteActivityAutomationRule(input.id, ctx.organizationId);
+          return { success: true };
+        }),
+    }),
+
+    // ============ NOTIFICATIONS ROUTER ============
   notifications: router({
     list: orgProcedure
       .input(z.object({ limit: z.number().optional() }))

@@ -43,6 +43,18 @@ export default function Dashboard() {
   const { data: pendingSubmission, isLoading: loadingPending } = trpc.dashboard.pendingSubmission.useQuery();
   const { data: readyForConstruction, isLoading: loadingReady } = trpc.dashboard.readyForConstruction.useQuery();
   const { data: upcomingContacts, isLoading: loadingUpcoming } = trpc.dashboard.upcomingContacts.useQuery();
+  const { data: workflowKpis, isLoading: loadingWorkflow } = trpc.dashboard.workflowKpis.useQuery();
+
+  const actionTargets: Record<string, { tab: string; activityType?: string }> = {
+    completeAdjustment: { tab: "activity", activityType: "AJUSTACION_REALIZADA" },
+    requestScope: { tab: "activity", activityType: "SCOPE_SOLICITADO" },
+    sendScope: { tab: "activity", activityType: "SCOPE_ENVIADO" },
+    followUpAdjuster: { tab: "activity", activityType: "CORREO" },
+    sendAppraisalLetter: { tab: "activity", activityType: "CARTA_APPRAISAL_ENVIADA" },
+    followUpAppraisalLetter: { tab: "activity", activityType: "LLAMADA" },
+    startAppraisal: { tab: "activity", activityType: "INICIO_APPRAISAL" },
+    uploadInsuranceScope: { tab: "documents" },
+  };
 
   // Obtener clientes que necesitan contacto (últimos 7 días)
   const { data: clientsNeedingContact } = trpc.clients.list.useQuery();
@@ -131,6 +143,126 @@ export default function Dashboard() {
             {t('dashboard.claimStatus.subtitle')}
           </p>
           <ClaimStatusCards />
+        </div>
+
+        <div>
+          <h2 className="text-2xl font-bold text-foreground mb-4">{t('dashboard.workflowKpis.title')}</h2>
+          <p className="text-muted-foreground mb-6">
+            {t('dashboard.workflowKpis.subtitle')}
+          </p>
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
+            <Card className="border-border">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">{t('dashboard.workflowKpis.scopePending')}</CardTitle>
+                <AlertCircle className="h-4 w-4 text-orange-500" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">
+                  {loadingWorkflow ? "..." : workflowKpis?.scopePending || 0}
+                </div>
+              </CardContent>
+            </Card>
+            <Card className="border-border">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">{t('dashboard.workflowKpis.scopeSendPending')}</CardTitle>
+                <AlertCircle className="h-4 w-4 text-yellow-500" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">
+                  {loadingWorkflow ? "..." : workflowKpis?.scopeSendPending || 0}
+                </div>
+              </CardContent>
+            </Card>
+            <Card className="border-border">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">{t('dashboard.workflowKpis.missingInsuranceScope')}</CardTitle>
+                <AlertCircle className="h-4 w-4 text-emerald-500" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">
+                  {loadingWorkflow ? "..." : workflowKpis?.missingInsuranceScope || 0}
+                </div>
+              </CardContent>
+            </Card>
+            <Card className="border-border">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">{t('dashboard.workflowKpis.responsePending')}</CardTitle>
+                <AlertCircle className="h-4 w-4 text-blue-500" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">
+                  {loadingWorkflow ? "..." : workflowKpis?.responsePending || 0}
+                </div>
+              </CardContent>
+            </Card>
+            <Card className="border-border">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">{t('dashboard.workflowKpis.appraisalPending')}</CardTitle>
+                <AlertCircle className="h-4 w-4 text-destructive" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">
+                  {loadingWorkflow ? "..." : workflowKpis?.appraisalPending || 0}
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
+          <Card className="border-border mt-6">
+            <CardHeader>
+              <CardTitle>{t('dashboard.workflowKpis.nextActionsTitle')}</CardTitle>
+              <CardDescription>{t('dashboard.workflowKpis.nextActionsSubtitle')}</CardDescription>
+            </CardHeader>
+            <CardContent>
+              {!workflowKpis || workflowKpis.nextActions.length === 0 ? (
+                <p className="text-sm text-muted-foreground">{t('dashboard.workflowKpis.noNextActions')}</p>
+              ) : (
+                <div className="space-y-3">
+                  {workflowKpis.nextActions.map((item: any) => (
+                    <div
+                      key={`${item.clientId}-${item.actionKey}`}
+                      className="flex items-center justify-between rounded-lg border border-border p-3 hover:bg-accent/40 transition-colors cursor-pointer"
+                      onClick={() => {
+                        const target = actionTargets[item.actionKey];
+                        if (!target) {
+                          setLocation(`/clients/${item.clientId}`);
+                          return;
+                        }
+                        const params = new URLSearchParams();
+                        params.set("tab", target.tab);
+                        if (target.activityType) {
+                          params.set("activityType", target.activityType);
+                        }
+                        setLocation(`/clients/${item.clientId}?${params.toString()}`);
+                      }}
+                    >
+                      <div>
+                        <p className="text-sm font-medium">{item.clientName}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {t(`dashboard.workflowKpis.actions.${item.actionKey}`)}
+                        </p>
+                      </div>
+                      <div className="text-right">
+                        <Badge
+                          variant={item.priority === "high" ? "destructive" : item.priority === "medium" ? "default" : "secondary"}
+                        >
+                          {t(`dashboard.workflowKpis.priority.${item.priority}`)}
+                        </Badge>
+                        {item.dueDate && (
+                          <div className="text-xs text-muted-foreground mt-1">
+                            {new Date(item.dueDate).toLocaleDateString(i18n.language, {
+                              day: "2-digit",
+                              month: "short",
+                            })}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
         </div>
 
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">

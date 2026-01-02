@@ -1,10 +1,13 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Upload, Download, Trash2, File, FileText } from "lucide-react";
+import { Upload, Download, Trash2, File, FileText, Pencil, Check, X } from "lucide-react";
 import { toast } from "sonner";
 import { useTranslation } from "react-i18next";
 import { trpc } from "@/lib/trpc";
+import { useState } from "react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Input } from "@/components/ui/input";
 
 interface DocumentsTabProps {
     clientId: string;
@@ -30,11 +33,29 @@ const ALLOWED_EXTENSIONS = ['.pdf', '.jpg', '.jpeg', '.png', '.gif', '.webp', '.
 
 export default function DocumentsTab({ clientId }: DocumentsTabProps) {
     const { t } = useTranslation();
+    const [documentType, setDocumentType] = useState("");
+    const [customDescription, setCustomDescription] = useState("");
+    const [showTypePicker, setShowTypePicker] = useState(false);
+    const [editingDocId, setEditingDocId] = useState<number | null>(null);
+    const [editType, setEditType] = useState("");
+    const [editDescription, setEditDescription] = useState("");
     const { data: documents } = trpc.documents.getByClientId.useQuery(
         { clientId },
         { enabled: !!clientId }
     );
     const utils = trpc.useUtils();
+    const updateDocument = trpc.documents.update.useMutation({
+        onSuccess: () => {
+            toast.success(t('documents.updateSuccess'));
+            utils.documents.getByClientId.invalidate({ clientId });
+            setEditingDocId(null);
+            setEditType("");
+            setEditDescription("");
+        },
+        onError: (error) => {
+            toast.error(error.message || t('documents.errors.updateFailed'));
+        },
+    });
 
     const validateFile = (file: File): { valid: boolean; error?: string } => {
         // Validar tamaño
@@ -67,6 +88,10 @@ export default function DocumentsTab({ clientId }: DocumentsTabProps) {
 
     const handleFileUpload = async (files: FileList) => {
         if (!files || files.length === 0) return;
+        if (!documentType) {
+            toast.error(t('documents.errors.typeRequired'));
+            return;
+        }
 
         // Validar todos los archivos antes de subir
         const validationErrors: string[] = [];
@@ -97,6 +122,10 @@ export default function DocumentsTab({ clientId }: DocumentsTabProps) {
             });
 
             formData.append('clientId', clientId);
+            formData.append('documentType', documentType);
+            if (documentType === 'OTRO' && customDescription.trim()) {
+                formData.append('description', customDescription.trim());
+            }
 
             toast.info(t('documents.uploading', { count: validFiles.length }));
 
@@ -152,6 +181,25 @@ export default function DocumentsTab({ clientId }: DocumentsTabProps) {
         }
     };
 
+    const handleStartEdit = (doc: any) => {
+        setEditingDocId(doc.id);
+        setEditType(doc.documentType || "");
+        setEditDescription(doc.documentType === "OTRO" ? doc.description || "" : "");
+    };
+
+    const handleSaveEdit = () => {
+        if (!editingDocId) return;
+        if (!editType) {
+            toast.error(t('documents.errors.typeRequired'));
+            return;
+        }
+        updateDocument.mutate({
+            id: editingDocId,
+            documentType: editType as any,
+            description: editType === "OTRO" ? (editDescription.trim() || null) : null,
+        });
+    };
+
     const getDocumentIcon = (mimeType: string | null) => {
         if (!mimeType) return <File className="h-4 w-4" />;
         
@@ -169,6 +217,8 @@ export default function DocumentsTab({ clientId }: DocumentsTabProps) {
             CONTRATO: { label: t('documents.types.contract'), variant: "secondary" },
             FOTO: { label: t('documents.types.photo'), variant: "outline" },
             ESTIMADO: { label: t('documents.types.estimate'), variant: "default" },
+            ESTIMADO_ASEGURANZA: { label: t('documents.types.insuranceEstimate'), variant: "default" },
+            ESTIMADO_NUESTRO: { label: t('documents.types.ourEstimate'), variant: "secondary" },
             FACTURA: { label: t('documents.types.invoice'), variant: "secondary" },
             PERMISO: { label: t('documents.types.permit'), variant: "outline" },
             OTRO: { label: t('documents.types.other'), variant: "outline" },
@@ -183,13 +233,60 @@ export default function DocumentsTab({ clientId }: DocumentsTabProps) {
             <CardHeader>
                 <CardTitle className="flex items-center justify-between">
                     <span>{t('documents.title')}</span>
-                    <Button
-                        size="sm"
-                        onClick={() => document.getElementById('file-upload')?.click()}
-                    >
-                        <Upload className="mr-2 h-4 w-4" />
-                        {t('documents.uploadButton')}
-                    </Button>
+                    <div className="flex flex-wrap items-center gap-2">
+                        {showTypePicker && (
+                            <>
+                                <Select
+                                    value={documentType}
+                                    onValueChange={(value) => {
+                                        setDocumentType(value);
+                                        if (value !== "OTRO") {
+                                            setCustomDescription("");
+                                        }
+                                    }}
+                                >
+                                    <SelectTrigger className="h-9 w-[220px]">
+                                        <SelectValue placeholder={t('documents.typeLabel')} />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="POLIZA">{t('documents.types.policy')}</SelectItem>
+                                        <SelectItem value="ESTIMADO_ASEGURANZA">{t('documents.types.insuranceEstimate')}</SelectItem>
+                                        <SelectItem value="ESTIMADO_NUESTRO">{t('documents.types.ourEstimate')}</SelectItem>
+                                        <SelectItem value="CONTRATO">{t('documents.types.contract')}</SelectItem>
+                                        <SelectItem value="FOTO">{t('documents.types.photo')}</SelectItem>
+                                        <SelectItem value="FACTURA">{t('documents.types.invoice')}</SelectItem>
+                                        <SelectItem value="PERMISO">{t('documents.types.permit')}</SelectItem>
+                                        <SelectItem value="OTRO">{t('documents.types.other')}</SelectItem>
+                                    </SelectContent>
+                                </Select>
+                                {documentType === "OTRO" && (
+                                    <Input
+                                        value={customDescription}
+                                        onChange={(e) => setCustomDescription(e.target.value)}
+                                        placeholder={t('documents.otherPlaceholder')}
+                                        className="h-9 w-[220px]"
+                                    />
+                                )}
+                            </>
+                        )}
+                        <Button
+                            size="sm"
+                            onClick={() => {
+                                if (!showTypePicker) {
+                                    setShowTypePicker(true);
+                                    return;
+                                }
+                                if (!documentType) {
+                                    toast.error(t('documents.errors.typeRequired'));
+                                    return;
+                                }
+                                document.getElementById('file-upload')?.click();
+                            }}
+                        >
+                            <Upload className="mr-2 h-4 w-4" />
+                            {t('documents.uploadButton')}
+                        </Button>
+                    </div>
                 </CardTitle>
                 <input
                     id="file-upload"
@@ -212,7 +309,9 @@ export default function DocumentsTab({ clientId }: DocumentsTabProps) {
                     </p>
                 ) : (
                     <div className="space-y-2">
-                        {documents.map((doc: any) => (
+                        {documents.map((doc: any) => {
+                            const isEditing = editingDocId === doc.id;
+                            return (
                             <div
                                 key={doc.id}
                                 className="flex items-center justify-between p-3 border rounded-lg hover:bg-accent/50 transition-colors"
@@ -225,26 +324,102 @@ export default function DocumentsTab({ clientId }: DocumentsTabProps) {
                                             {doc.fileSize ? `${(doc.fileSize / 1024).toFixed(2)} KB` : t('documents.unknownSize')}
                                         </p>
                                     </div>
-                                    {getDocumentTypeBadge(doc.documentType)}
+                                    {isEditing ? (
+                                        <div className="flex items-center gap-2">
+                                            <Select
+                                                value={editType}
+                                                onValueChange={(value) => {
+                                                    setEditType(value);
+                                                    if (value !== "OTRO") {
+                                                        setEditDescription("");
+                                                    }
+                                                }}
+                                            >
+                                                <SelectTrigger className="h-8 w-[200px]">
+                                                    <SelectValue placeholder={t('documents.typeLabel')} />
+                                                </SelectTrigger>
+                                                <SelectContent>
+                                                    <SelectItem value="POLIZA">{t('documents.types.policy')}</SelectItem>
+                                                    <SelectItem value="ESTIMADO_ASEGURANZA">{t('documents.types.insuranceEstimate')}</SelectItem>
+                                                    <SelectItem value="ESTIMADO_NUESTRO">{t('documents.types.ourEstimate')}</SelectItem>
+                                                    <SelectItem value="CONTRATO">{t('documents.types.contract')}</SelectItem>
+                                                    <SelectItem value="FOTO">{t('documents.types.photo')}</SelectItem>
+                                                    <SelectItem value="FACTURA">{t('documents.types.invoice')}</SelectItem>
+                                                    <SelectItem value="PERMISO">{t('documents.types.permit')}</SelectItem>
+                                                    <SelectItem value="OTRO">{t('documents.types.other')}</SelectItem>
+                                                </SelectContent>
+                                            </Select>
+                                            {editType === "OTRO" && (
+                                                <Input
+                                                    value={editDescription}
+                                                    onChange={(e) => setEditDescription(e.target.value)}
+                                                    placeholder={t('documents.otherPlaceholder')}
+                                                    className="h-8 w-[200px]"
+                                                />
+                                            )}
+                                        </div>
+                                    ) : (
+                                        <>
+                                            {getDocumentTypeBadge(doc.documentType)}
+                                            {doc.documentType === "OTRO" && doc.description ? (
+                                                <span className="text-xs text-muted-foreground">
+                                                    {doc.description}
+                                                </span>
+                                            ) : null}
+                                        </>
+                                    )}
                                 </div>
                                 <div className="flex items-center gap-2">
-                                    <Button
-                                        size="sm"
-                                        variant="outline"
-                                        onClick={() => window.open(doc.fileUrl, '_blank')}
-                                    >
-                                        <Download className="h-4 w-4" />
-                                    </Button>
-                                    <Button
-                                        size="sm"
-                                        variant="destructive"
-                                        onClick={() => handleDeleteDocument(doc.id, doc.fileName)}
-                                    >
-                                        <Trash2 className="h-4 w-4" />
-                                    </Button>
+                                    {isEditing ? (
+                                        <>
+                                            <Button
+                                                size="sm"
+                                                variant="outline"
+                                                onClick={handleSaveEdit}
+                                                disabled={updateDocument.isLoading}
+                                            >
+                                                <Check className="h-4 w-4" />
+                                            </Button>
+                                            <Button
+                                                size="sm"
+                                                variant="ghost"
+                                                onClick={() => {
+                                                    setEditingDocId(null);
+                                                    setEditType("");
+                                                    setEditDescription("");
+                                                }}
+                                            >
+                                                <X className="h-4 w-4" />
+                                            </Button>
+                                        </>
+                                    ) : (
+                                        <>
+                                            <Button
+                                                size="sm"
+                                                variant="outline"
+                                                onClick={() => handleStartEdit(doc)}
+                                            >
+                                                <Pencil className="h-4 w-4" />
+                                            </Button>
+                                            <Button
+                                                size="sm"
+                                                variant="outline"
+                                                onClick={() => window.open(doc.fileUrl, '_blank')}
+                                            >
+                                                <Download className="h-4 w-4" />
+                                            </Button>
+                                            <Button
+                                                size="sm"
+                                                variant="destructive"
+                                                onClick={() => handleDeleteDocument(doc.id, doc.fileName)}
+                                            >
+                                                <Trash2 className="h-4 w-4" />
+                                            </Button>
+                                        </>
+                                    )}
                                 </div>
                             </div>
-                        ))}
+                        )})}
                     </div>
                 )}
             </CardContent>

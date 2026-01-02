@@ -88,7 +88,16 @@ export default function Clients() {
   }, [allClients, filterParam, searchTerm]);
 
   const getStatusDisplayName = (status: string) => {
-    const defaultStatuses = ["NO_SOMETIDA", "EN_PROCESO", "APROVADA", "RECHAZADA", "CERRADA"];
+    const defaultStatuses = [
+      "NO_SOMETIDA",
+      "SOMETIDA",
+      "AJUSTACION_PROGRAMADA",
+      "AJUSTACION_TERMINADA",
+      "EN_PROCESO",
+      "APROVADA",
+      "RECHAZADA",
+      "CERRADA",
+    ];
     if (defaultStatuses.includes(status)) {
       return t(`dashboard.claimStatus.status.${status}`);
     }
@@ -109,6 +118,9 @@ export default function Clients() {
   const getStatusBadge = (status: string) => {
     const variants: Record<string, { variant: "default" | "secondary" | "destructive" | "outline" }> = {
       'NO_SOMETIDA': { variant: 'outline' },
+      'SOMETIDA': { variant: 'outline' },
+      'AJUSTACION_PROGRAMADA': { variant: 'outline' },
+      'AJUSTACION_TERMINADA': { variant: 'secondary' },
       'EN_PROCESO': { variant: 'secondary' },
       'APROVADA': { variant: 'default' },
       'RECHAZADA': { variant: 'destructive' },

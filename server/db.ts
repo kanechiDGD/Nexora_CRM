@@ -1,4 +1,4 @@
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
 import mysql from "mysql2/promise";
 import {
@@ -31,7 +31,19 @@ import {
   passwordResetTokens,
   InsertPasswordResetToken,
   customClaimStatuses,
-  InsertCustomClaimStatus
+  InsertCustomClaimStatus,
+  workflowRoles,
+  InsertWorkflowRole,
+  workflowRoleMembers,
+  InsertWorkflowRoleMember,
+  activityAutomationRules,
+  InsertActivityAutomationRule,
+  gmailAccounts,
+  InsertGmailAccount,
+  gmailThreads,
+  InsertGmailThread,
+  gmailMessages,
+  InsertGmailMessage
 } from "../drizzle/schema";
 import { ENV } from './_core/env';
 
@@ -371,6 +383,21 @@ export async function getRecentActivityLogs(organizationId: number, limit: numbe
     .limit(limit);
 }
 
+export async function getActivityLogsByOrganization(
+  organizationId: number,
+  activityTypes?: string[]
+) {
+  const db = await getDb();
+  if (!db) return [];
+  const { desc, inArray } = await import('drizzle-orm');
+  const where = activityTypes && activityTypes.length > 0
+    ? and(eq(activityLogs.organizationId, organizationId), inArray(activityLogs.activityType, activityTypes as any))
+    : eq(activityLogs.organizationId, organizationId);
+  return await db.select().from(activityLogs)
+    .where(where)
+    .orderBy(desc(activityLogs.performedAt));
+}
+
 export async function createActivityLog(data: InsertActivityLog) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
@@ -456,10 +483,38 @@ export async function getDocumentsByConstructionProjectId(projectId: number, org
     .orderBy(desc(documents.uploadedAt));
 }
 
+export async function getDocumentsByOrganization(
+  organizationId: number,
+  documentTypes?: string[]
+) {
+  const db = await getDb();
+  if (!db) return [];
+  const { desc, and, inArray } = await import('drizzle-orm');
+  const where = documentTypes && documentTypes.length > 0
+    ? and(eq(documents.organizationId, organizationId), inArray(documents.documentType, documentTypes as any))
+    : eq(documents.organizationId, organizationId);
+  return await db.select().from(documents)
+    .where(where)
+    .orderBy(desc(documents.uploadedAt));
+}
+
 export async function createDocument(data: InsertDocument) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
   const result = await db.insert(documents).values(data);
+  return result;
+}
+
+export async function updateDocument(
+  id: number,
+  organizationId: number,
+  data: Partial<Pick<InsertDocument, "documentType" | "description">>
+) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  const result = await db.update(documents)
+    .set(data)
+    .where(and(eq(documents.id, id), eq(documents.organizationId, organizationId)));
   return result;
 }
 
@@ -475,6 +530,117 @@ export async function deleteDocument(id: number) {
   if (!db) throw new Error("Database not available");
   const result = await db.delete(documents).where(eq(documents.id, id));
   return result;
+}
+
+// ============ GMAIL ============ 
+
+export async function getGmailAccountByUserId(userId: number, organizationId: number) {
+  const db = await getDb();
+  if (!db) return null;
+  const result = await db.select().from(gmailAccounts)
+    .where(and(eq(gmailAccounts.userId, userId), eq(gmailAccounts.organizationId, organizationId)))
+    .limit(1);
+  return result[0] || null;
+}
+
+export async function getGmailAccountByEmail(email: string, organizationId: number) {
+  const db = await getDb();
+  if (!db) return null;
+  const result = await db.select().from(gmailAccounts)
+    .where(and(eq(gmailAccounts.email, email), eq(gmailAccounts.organizationId, organizationId)))
+    .limit(1);
+  return result[0] || null;
+}
+
+export async function upsertGmailAccount(data: InsertGmailAccount) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  const existing = await db.select().from(gmailAccounts)
+    .where(and(eq(gmailAccounts.userId, data.userId), eq(gmailAccounts.organizationId, data.organizationId)))
+    .limit(1);
+  if (existing[0]) {
+    await db.update(gmailAccounts)
+      .set({ ...data, updatedAt: new Date() })
+      .where(eq(gmailAccounts.id, existing[0].id));
+    return existing[0].id;
+  }
+  const result = await db.insert(gmailAccounts).values(data);
+  return result;
+}
+
+export async function updateGmailAccount(id: number, organizationId: number, data: Partial<InsertGmailAccount>) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  const result = await db.update(gmailAccounts)
+    .set({ ...data, updatedAt: new Date() })
+    .where(and(eq(gmailAccounts.id, id), eq(gmailAccounts.organizationId, organizationId)));
+  return result;
+}
+
+export async function deactivateGmailAccount(id: number, organizationId: number) {
+  return updateGmailAccount(id, organizationId, { isActive: 0 });
+}
+
+export async function getGmailThreadByThreadId(
+  threadId: string,
+  organizationId: number,
+  clientId: string | null
+) {
+  const db = await getDb();
+  if (!db) return null;
+  const conditions = [
+    eq(gmailThreads.threadId, threadId),
+    eq(gmailThreads.organizationId, organizationId),
+  ];
+  if (clientId) {
+    conditions.push(eq(gmailThreads.clientId, clientId));
+  }
+  const result = await db.select().from(gmailThreads)
+    .where(and(...conditions))
+    .limit(1);
+  return result[0] || null;
+}
+
+export async function createGmailThread(data: InsertGmailThread) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  return await db.insert(gmailThreads).values(data);
+}
+
+export async function createGmailMessage(data: InsertGmailMessage) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  return await db.insert(gmailMessages).values(data);
+}
+
+export async function getGmailMessagesByClientId(clientId: string, organizationId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  const { desc } = await import("drizzle-orm");
+  return await db.select().from(gmailMessages)
+    .where(and(eq(gmailMessages.clientId, clientId), eq(gmailMessages.organizationId, organizationId)))
+    .orderBy(desc(gmailMessages.sentAt));
+}
+
+export async function getGmailMessageByMessageId(messageId: string, organizationId: number) {
+  const db = await getDb();
+  if (!db) return null;
+  const result = await db.select().from(gmailMessages)
+    .where(and(eq(gmailMessages.messageId, messageId), eq(gmailMessages.organizationId, organizationId)))
+    .limit(1);
+  return result[0] || null;
+}
+
+export async function updateGmailThread(
+  id: number,
+  organizationId: number,
+  data: Partial<InsertGmailThread>
+) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  return await db.update(gmailThreads)
+    .set({ ...data, updatedAt: new Date() })
+    .where(and(eq(gmailThreads.id, id), eq(gmailThreads.organizationId, organizationId)));
 }
 
 // ============ AUDIT LOGS ============
@@ -967,6 +1133,127 @@ export async function getCustomClaimStatusById(id: number) {
   const result = await db.select().from(customClaimStatuses)
     .where(eq(customClaimStatuses.id, id)).limit(1);
   return result.length > 0 ? result[0] : undefined;
+}
+
+// ==================== Workflow Roles ====================
+
+export async function getWorkflowRoles(organizationId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  return await db.select().from(workflowRoles)
+    .where(eq(workflowRoles.organizationId, organizationId));
+}
+
+export async function getWorkflowRoleById(id: number, organizationId: number) {
+  const db = await getDb();
+  if (!db) return undefined;
+  const result = await db.select().from(workflowRoles)
+    .where(and(eq(workflowRoles.id, id), eq(workflowRoles.organizationId, organizationId)))
+    .limit(1);
+  return result.length > 0 ? result[0] : undefined;
+}
+
+export async function createWorkflowRole(data: InsertWorkflowRole) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  return await db.insert(workflowRoles).values(data);
+}
+
+export async function updateWorkflowRole(id: number, organizationId: number, data: Partial<InsertWorkflowRole>) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  await db.update(workflowRoles).set(data)
+    .where(and(eq(workflowRoles.id, id), eq(workflowRoles.organizationId, organizationId)));
+}
+
+export async function deleteWorkflowRole(id: number, organizationId: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  await db.delete(workflowRoles)
+    .where(and(eq(workflowRoles.id, id), eq(workflowRoles.organizationId, organizationId)));
+}
+
+export async function getWorkflowRoleMembers(roleId: number, organizationId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  return await db.select().from(workflowRoleMembers)
+    .where(and(eq(workflowRoleMembers.roleId, roleId), eq(workflowRoleMembers.organizationId, organizationId)));
+}
+
+export async function getWorkflowRoleMembersByOrg(organizationId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  return await db.select().from(workflowRoleMembers)
+    .where(eq(workflowRoleMembers.organizationId, organizationId));
+}
+
+export async function deleteWorkflowRoleMembers(roleId: number, organizationId: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  await db.delete(workflowRoleMembers)
+    .where(and(eq(workflowRoleMembers.roleId, roleId), eq(workflowRoleMembers.organizationId, organizationId)));
+}
+
+export async function createWorkflowRoleMember(data: InsertWorkflowRoleMember) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  return await db.insert(workflowRoleMembers).values(data);
+}
+
+// ==================== Activity Automation Rules ====================
+
+export async function getActivityAutomationRules(organizationId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  return await db.select().from(activityAutomationRules)
+    .where(eq(activityAutomationRules.organizationId, organizationId));
+}
+
+export async function getActiveAutomationRulesByActivityType(
+  organizationId: number,
+  activityType: string
+) {
+  const db = await getDb();
+  if (!db) return [];
+  return await db.select().from(activityAutomationRules)
+    .where(and(
+      eq(activityAutomationRules.organizationId, organizationId),
+      eq(activityAutomationRules.activityType, activityType),
+      eq(activityAutomationRules.isActive, 1)
+    ));
+}
+
+export async function getActivityAutomationRuleById(id: number, organizationId: number) {
+  const db = await getDb();
+  if (!db) return undefined;
+  const result = await db.select().from(activityAutomationRules)
+    .where(and(eq(activityAutomationRules.id, id), eq(activityAutomationRules.organizationId, organizationId)))
+    .limit(1);
+  return result.length > 0 ? result[0] : undefined;
+}
+
+export async function createActivityAutomationRule(data: InsertActivityAutomationRule) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  return await db.insert(activityAutomationRules).values(data);
+}
+
+export async function updateActivityAutomationRule(
+  id: number,
+  organizationId: number,
+  data: Partial<InsertActivityAutomationRule>
+) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  await db.update(activityAutomationRules).set(data)
+    .where(and(eq(activityAutomationRules.id, id), eq(activityAutomationRules.organizationId, organizationId)));
+}
+
+export async function deleteActivityAutomationRule(id: number, organizationId: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  await db.delete(activityAutomationRules)
+    .where(and(eq(activityAutomationRules.id, id), eq(activityAutomationRules.organizationId, organizationId)));
 }
 
 // ==================== Claim Status Statistics ====================
