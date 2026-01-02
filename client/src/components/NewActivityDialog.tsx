@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import {
@@ -39,7 +39,17 @@ import { toast } from "sonner";
 import { useTranslation } from "react-i18next";
 import { cn } from "@/lib/utils";
 
-export function NewActivityDialog() {
+type NewActivityDialogProps = {
+  clientId?: string | null;
+  clientName?: string;
+  hideClientSelect?: boolean;
+};
+
+export function NewActivityDialog({
+  clientId = null,
+  clientName = "",
+  hideClientSelect = false,
+}: NewActivityDialogProps) {
   const { t } = useTranslation();
   const { user } = useAuth();
   const [open, setOpen] = useState(false);
@@ -48,8 +58,8 @@ export function NewActivityDialog() {
     activityType: "LLAMADA" as "LLAMADA" | "CORREO" | "VISITA" | "NOTA" | "DOCUMENTO" | "CAMBIO_ESTADO",
     subject: "",
     description: "",
-    clientId: null as string | null,
-    clientName: "",
+    clientId: clientId as string | null,
+    clientName,
   });
 
   const { data: clients } = trpc.clients.list.useQuery();
@@ -58,13 +68,16 @@ export function NewActivityDialog() {
     onSuccess: () => {
       toast.success(t('activityDialog.new.success'));
       utils.activityLogs.getRecent.invalidate();
+      if (formData.clientId) {
+        utils.activityLogs.getByClientId.invalidate({ clientId: formData.clientId });
+      }
       setOpen(false);
       setFormData({
         activityType: "LLAMADA",
         subject: "",
         description: "",
-        clientId: null,
-        clientName: "",
+        clientId,
+        clientName,
       });
     },
     onError: (error) => {
@@ -90,6 +103,17 @@ export function NewActivityDialog() {
       duration: null,
     });
   };
+
+  useEffect(() => {
+    if (!clientId) {
+      return;
+    }
+    setFormData((prev) => ({
+      ...prev,
+      clientId,
+      clientName: clientName || prev.clientName,
+    }));
+  }, [clientId, clientName]);
 
   const handleClientSelect = (clientId: string, clientName: string) => {
     setFormData({ ...formData, clientId, clientName });
@@ -148,64 +172,66 @@ export function NewActivityDialog() {
               </Select>
             </div>
 
-            <div className="grid gap-2">
-              <Label>{t('activityDialog.new.clientLabel')}</Label>
-              <Popover open={clientSearchOpen} onOpenChange={setClientSearchOpen}>
-                <PopoverTrigger asChild>
-                  <Button
-                    variant="outline"
-                    role="combobox"
-                    aria-expanded={clientSearchOpen}
-                    className="justify-between"
-                  >
-                    {formData.clientName || t('activityDialog.new.clientPlaceholder')}
-                    <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-[400px] p-0">
-                  <Command>
-                    <CommandInput placeholder={t('activityDialog.new.clientSearchPlaceholder')} />
-                    <CommandList>
-                      <CommandEmpty>{t('activityDialog.new.noClients')}</CommandEmpty>
-                      <CommandGroup>
-                        {clients?.map((client: any) => (
-                          <CommandItem
-                            key={client.id}
-                            value={`${client.firstName} ${client.lastName}`}
-                            onSelect={() =>
-                              handleClientSelect(
-                                client.id,
-                                `${client.firstName} ${client.lastName}`
-                              )
-                            }
-                          >
-                            <Check
-                              className={cn(
-                                "mr-2 h-4 w-4",
-                                formData.clientId === client.id
-                                  ? "opacity-100"
-                                  : "opacity-0"
-                              )}
-                            />
-                            <div className="flex flex-col">
-                              <span className="font-medium">
-                                {client.firstName} {client.lastName}
-                              </span>
-                              <span className="text-xs text-muted-foreground">
-                                {client.phone || client.email || `ID: ${client.id}`}
-                              </span>
-                            </div>
-                          </CommandItem>
-                        ))}
-                      </CommandGroup>
-                    </CommandList>
-                  </Command>
-                </PopoverContent>
-              </Popover>
-              <p className="text-xs text-muted-foreground">
-                {t("activityDialog.new.clientHelp")}
-              </p>
-            </div>
+            {!hideClientSelect && (
+              <div className="grid gap-2">
+                <Label>{t('activityDialog.new.clientLabel')}</Label>
+                <Popover open={clientSearchOpen} onOpenChange={setClientSearchOpen}>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      role="combobox"
+                      aria-expanded={clientSearchOpen}
+                      className="justify-between"
+                    >
+                      {formData.clientName || t('activityDialog.new.clientPlaceholder')}
+                      <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-[400px] p-0">
+                    <Command>
+                      <CommandInput placeholder={t('activityDialog.new.clientSearchPlaceholder')} />
+                      <CommandList>
+                        <CommandEmpty>{t('activityDialog.new.noClients')}</CommandEmpty>
+                        <CommandGroup>
+                          {clients?.map((client: any) => (
+                            <CommandItem
+                              key={client.id}
+                              value={`${client.firstName} ${client.lastName}`}
+                              onSelect={() =>
+                                handleClientSelect(
+                                  client.id,
+                                  `${client.firstName} ${client.lastName}`
+                                )
+                              }
+                            >
+                              <Check
+                                className={cn(
+                                  "mr-2 h-4 w-4",
+                                  formData.clientId === client.id
+                                    ? "opacity-100"
+                                    : "opacity-0"
+                                )}
+                              />
+                              <div className="flex flex-col">
+                                <span className="font-medium">
+                                  {client.firstName} {client.lastName}
+                                </span>
+                                <span className="text-xs text-muted-foreground">
+                                  {client.phone || client.email || `ID: ${client.id}`}
+                                </span>
+                              </div>
+                            </CommandItem>
+                          ))}
+                        </CommandGroup>
+                      </CommandList>
+                    </Command>
+                  </PopoverContent>
+                </Popover>
+                <p className="text-xs text-muted-foreground">
+                  {t("activityDialog.new.clientHelp")}
+                </p>
+              </div>
+            )}
 
             <div className="grid gap-2">
               <Label htmlFor="subject">{t('activityDialog.new.subjectLabel')}</Label>

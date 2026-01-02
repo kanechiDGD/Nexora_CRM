@@ -26,6 +26,7 @@ import { toast } from "sonner";
 import { trpc } from "@/lib/trpc";
 import DashboardLayout from "@/components/DashboardLayout";
 import DocumentsTab from "@/components/DocumentsTab";
+import { NewActivityDialog } from "@/components/NewActivityDialog";
 import { useTranslation } from "react-i18next";
 
 type ActivityLog = {
@@ -55,6 +56,7 @@ export default function ClientProfile() {
     { clientId },
     { enabled: !!clientId }
   );
+  const { data: customClaimStatuses = [] } = trpc.customClaimStatuses.list.useQuery();
 
   const utils = trpc.useUtils();
 
@@ -70,7 +72,11 @@ export default function ClientProfile() {
       RECHAZADA: { variant: "destructive", label: t("dashboard.claimStatus.status.RECHAZADA") },
       CERRADA: { variant: "outline", label: t("dashboard.claimStatus.status.CERRADA") },
     };
-    const config = variants[status] || { variant: "outline", label: status };
+    const customStatus = customClaimStatuses.find((cs: any) => cs.name === status);
+    const config = variants[status] || {
+      variant: "outline",
+      label: customStatus?.displayName || status,
+    };
     return <Badge variant={config.variant}>{config.label}</Badge>;
   };
 
@@ -488,18 +494,25 @@ export default function ClientProfile() {
               <CardHeader>
                 <div className="flex items-center justify-between">
                   <CardTitle>Historial de Contactos</CardTitle>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => {
-                      const showAll = document.getElementById("all-contacts");
-                      if (showAll) {
-                        showAll.style.display = showAll.style.display === "none" ? "block" : "none";
-                      }
-                    }}
-                  >
-                    Ver Todos
-                  </Button>
+                  <div className="flex items-center gap-2">
+                    <NewActivityDialog
+                      clientId={client.id}
+                      clientName={`${client.firstName} ${client.lastName}`}
+                      hideClientSelect
+                    />
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        const showAll = document.getElementById("all-contacts");
+                        if (showAll) {
+                          showAll.style.display = showAll.style.display === "none" ? "block" : "none";
+                        }
+                      }}
+                    >
+                      Ver Todos
+                    </Button>
+                  </div>
                 </div>
               </CardHeader>
               <CardContent>

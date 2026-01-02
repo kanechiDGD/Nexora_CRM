@@ -28,6 +28,9 @@ export function ManageClaimStatusesDialog({ trigger }: ManageClaimStatusesDialog
   const [newStatusDisplayName, setNewStatusDisplayName] = useState("");
 
   const utils = trpc.useUtils();
+
+  const formatStatusName = (displayName: string) =>
+    displayName.trim().toUpperCase().replace(/\s+/g, "_");
   
   // Query para obtener estados personalizados
   const { data: customStatuses = [], isLoading } = trpc.customClaimStatuses.list.useQuery(
@@ -60,14 +63,15 @@ export function ManageClaimStatusesDialog({ trigger }: ManageClaimStatusesDialog
   });
 
   const handleCreate = () => {
-    if (!newStatusName.trim() || !newStatusDisplayName.trim()) {
+    const displayName = newStatusDisplayName.trim();
+    if (!displayName) {
       toast.error(t('claimStatusManager.missingFields'));
       return;
     }
 
     createMutation.mutate({
-      name: newStatusName.trim().toUpperCase().replace(/\s+/g, "_"),
-      displayName: newStatusDisplayName.trim(),
+      name: formatStatusName(displayName),
+      displayName,
     });
   };
 
@@ -107,7 +111,7 @@ export function ManageClaimStatusesDialog({ trigger }: ManageClaimStatusesDialog
                       id="statusName"
                       placeholder={t('claimStatusManager.fields.internalName.placeholder')}
                       value={newStatusName}
-                      onChange={(e) => setNewStatusName(e.target.value.toUpperCase().replace(/\s+/g, "_"))}
+                      readOnly
                     />
                     <p className="text-xs text-muted-foreground">
                       {t('claimStatusManager.fields.internalName.help')}
@@ -119,7 +123,11 @@ export function ManageClaimStatusesDialog({ trigger }: ManageClaimStatusesDialog
                       id="statusDisplayName"
                       placeholder={t('claimStatusManager.fields.displayName.placeholder')}
                       value={newStatusDisplayName}
-                      onChange={(e) => setNewStatusDisplayName(e.target.value)}
+                      onChange={(e) => {
+                        const displayName = e.target.value;
+                        setNewStatusDisplayName(displayName);
+                        setNewStatusName(formatStatusName(displayName));
+                      }}
                     />
                     <p className="text-xs text-muted-foreground">
                       {t('claimStatusManager.fields.displayName.help')}
@@ -129,7 +137,7 @@ export function ManageClaimStatusesDialog({ trigger }: ManageClaimStatusesDialog
                 <Button
                   type="button"
                   onClick={handleCreate}
-                  disabled={createMutation.isPending || !newStatusName.trim() || !newStatusDisplayName.trim()}
+                  disabled={createMutation.isPending || !newStatusDisplayName.trim()}
                   className="w-full"
                 >
                   <Plus className="h-4 w-4 mr-2" />
