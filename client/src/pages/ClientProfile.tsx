@@ -31,6 +31,8 @@ import DashboardLayout from "@/components/DashboardLayout";
 import DocumentsTab from "@/components/DocumentsTab";
 import EmailsTab from "@/components/EmailsTab";
 import { NewActivityDialog } from "@/components/NewActivityDialog";
+import { EditActivityDialog } from "@/components/EditActivityDialog";
+import { DeleteActivityDialog } from "@/components/DeleteActivityDialog";
 import { useTranslation } from "react-i18next";
 import { usePermissions } from "@/hooks/usePermissions";
 
@@ -59,7 +61,7 @@ export default function ClientProfile() {
   const { id } = useParams();
   const [location, setLocation] = useLocation();
   const clientId = id || "";
-  const { canEdit } = usePermissions();
+  const { canEdit, isAdmin } = usePermissions();
   const [activeTab, setActiveTab] = useState("general");
   const [defaultActivityType, setDefaultActivityType] = useState<string | null>(null);
   const [openActivityOnLoad, setOpenActivityOnLoad] = useState(false);
@@ -219,6 +221,43 @@ export default function ClientProfile() {
 
   const getPerformedByLabel = (log: ActivityLog) =>
     log.performedByName || log.performedByEmail || `Usuario #${log.performedBy}`;
+
+
+
+  const renderActivityLog = (log: ActivityLog) => (
+    <div
+      key={log.id}
+      className="flex gap-4 p-4 border border-border rounded-lg hover:bg-accent/50 transition-colors"
+    >
+      <div className="flex-1">
+        <div className="flex items-center gap-3 mb-2">
+          <Badge variant="outline">{getActivityTypeLabel(log.activityType)}</Badge>
+          <span className="text-sm font-medium">
+            {new Date(log.performedAt).toLocaleDateString("es-ES", {
+              year: "numeric",
+              month: "short",
+              day: "numeric",
+              hour: "2-digit",
+              minute: "2-digit",
+            })}
+          </span>
+          <span className="text-sm text-muted-foreground">por {getPerformedByLabel(log)}</span>
+        </div>
+        {log.subject && <p className="font-medium mb-1">{log.subject}</p>}
+        {log.description && <p className="text-sm text-muted-foreground">{log.description}</p>}
+      </div>
+      {(canEdit || isAdmin) && (
+        <div className="flex items-start gap-2">
+          {canEdit && (
+            <EditActivityDialog log={log} clientId={clientId} />
+          )}
+          {isAdmin && (
+            <DeleteActivityDialog logId={log.id} subject={log.subject} clientId={clientId} />
+          )}
+        </div>
+      )}
+    </div>
+  );
 
   const getDaysSince = (date?: Date | string | null) => {
     if (!date) return null;
@@ -1415,30 +1454,7 @@ export default function ClientProfile() {
                     {/* Últimos 4 contactos */}
                     <div className="space-y-4">
                       {(activityLogs as ActivityLog[]).slice(0, 4).map((log) => (
-                        <div
-                          key={log.id}
-                          className="flex gap-4 p-4 border border-border rounded-lg hover:bg-accent/50 transition-colors"
-                        >
-                          <div className="flex-1">
-                            <div className="flex items-center gap-3 mb-2">
-                              <Badge variant="outline">{getActivityTypeLabel(log.activityType)}</Badge>
-                              <span className="text-sm font-medium">
-                                {new Date(log.performedAt).toLocaleDateString("es-ES", {
-                                  year: "numeric",
-                                  month: "short",
-                                  day: "numeric",
-                                  hour: "2-digit",
-                                  minute: "2-digit",
-                                })}
-                              </span>
-                              <span className="text-sm text-muted-foreground">
-                                por {getPerformedByLabel(log)}
-                              </span>
-                            </div>
-                            {log.subject && <p className="font-medium mb-1">{log.subject}</p>}
-                            {log.description && <p className="text-sm text-muted-foreground">{log.description}</p>}
-                          </div>
-                        </div>
+                        renderActivityLog(log)
                       ))}
                     </div>
 
@@ -1450,30 +1466,7 @@ export default function ClientProfile() {
                     >
                       <h4 className="font-semibold mb-3">Historial Completo</h4>
                       {(activityLogs as ActivityLog[]).slice(4).map((log) => (
-                        <div
-                          key={log.id}
-                          className="flex gap-4 p-4 border border-border rounded-lg hover:bg-accent/50 transition-colors"
-                        >
-                          <div className="flex-1">
-                            <div className="flex items-center gap-3 mb-2">
-                              <Badge variant="outline">{getActivityTypeLabel(log.activityType)}</Badge>
-                              <span className="text-sm font-medium">
-                                {new Date(log.performedAt).toLocaleDateString("es-ES", {
-                                  year: "numeric",
-                                  month: "short",
-                                  day: "numeric",
-                                  hour: "2-digit",
-                                  minute: "2-digit",
-                                })}
-                              </span>
-                              <span className="text-sm text-muted-foreground">
-                                por {getPerformedByLabel(log)}
-                              </span>
-                            </div>
-                            {log.subject && <p className="font-medium mb-1">{log.subject}</p>}
-                            {log.description && <p className="text-sm text-muted-foreground">{log.description}</p>}
-                          </div>
-                        </div>
+                        renderActivityLog(log)
                       ))}
                     </div>
                   </>

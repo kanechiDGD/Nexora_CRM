@@ -846,6 +846,51 @@ export const appRouter = router({
 
         return result;
       }),
+
+    // Actualizar log
+    update: coAdminOrgProcedure
+      .input(z.object({
+        id: z.number(),
+        activityType: z.enum([
+          "LLAMADA",
+          "CORREO",
+          "VISITA",
+          "NOTA",
+          "DOCUMENTO",
+          "CAMBIO_ESTADO",
+          "AJUSTACION_REALIZADA",
+          "SCOPE_SOLICITADO",
+          "SCOPE_RECIBIDO",
+          "SCOPE_ENVIADO",
+          "RESPUESTA_FAVORABLE",
+          "RESPUESTA_NEGATIVA",
+          "INICIO_APPRAISAL",
+          "CARTA_APPRAISAL_ENVIADA",
+          "RELEASE_LETTER_REQUERIDA",
+          "ITEL_SOLICITADO",
+          "REINSPECCION_SOLICITADA",
+        ]).optional(),
+        subject: z.string().optional().nullable(),
+        description: z.string().optional().nullable(),
+      }))
+      .mutation(async ({ input, ctx }) => {
+        const { id, ...data } = input;
+        await db.updateActivityLog(id, ctx.organizationId, {
+          activityType: data.activityType,
+          subject: data.subject ?? null,
+          description: data.description ?? null,
+        });
+        return { success: true };
+      }),
+
+    // Eliminar log (solo admin)
+    delete: adminOrgProcedure
+      .input(z.object({ id: z.number() }))
+      .mutation(async ({ input, ctx }) => {
+        await db.deleteActivityLog(input.id, ctx.organizationId);
+        return { success: true };
+      }),
+
   }),
 
   // ============ CONSTRUCTION PROJECTS ROUTER ============

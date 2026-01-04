@@ -405,6 +405,27 @@ export async function createActivityLog(data: InsertActivityLog) {
   return result;
 }
 
+
+export async function updateActivityLog(id: number, organizationId: number, data: Partial<InsertActivityLog>) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  const { and } = await import('drizzle-orm');
+  await db.update(activityLogs).set(data).where(and(
+    eq(activityLogs.id, id),
+    eq(activityLogs.organizationId, organizationId)
+  ));
+}
+
+export async function deleteActivityLog(id: number, organizationId: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  const { and } = await import('drizzle-orm');
+  await db.delete(activityLogs).where(and(
+    eq(activityLogs.id, id),
+    eq(activityLogs.organizationId, organizationId)
+  ));
+}
+
 // ============ CONSTRUCTION PROJECTS ============
 
 export async function getAllConstructionProjects(organizationId: number) {
