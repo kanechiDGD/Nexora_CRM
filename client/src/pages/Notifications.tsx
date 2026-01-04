@@ -48,6 +48,7 @@ export default function Notifications() {
       EVENT: { variant: "default", label: t("notifications.types.event") },
       TASK: { variant: "secondary", label: t("notifications.types.task") },
       ACTIVITY: { variant: "outline", label: t("notifications.types.activity") },
+      EMAIL: { variant: "secondary", label: t("notifications.types.email") },
     };
     const config = variants[type] || { variant: "outline", label: type };
     return <Badge variant={config.variant}>{config.label}</Badge>;

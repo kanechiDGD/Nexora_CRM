@@ -13,13 +13,14 @@ const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
       // Datos se consideran frescos por 5 minutos
-      staleTime: 1000 * 60 * 5,
+      staleTime: 0,
       // Datos permanecen en caché por 30 minutos
       gcTime: 1000 * 60 * 30,
       // No refetch automático al cambiar de pestaña
-      refetchOnWindowFocus: false,
+      refetchOnWindowFocus: true,
       // No refetch automático al montar componente
-      refetchOnMount: false,
+      refetchOnMount: "always",
+      refetchOnReconnect: true,
       // Reintentar 3 veces en caso de error
       retry: 3,
       retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),

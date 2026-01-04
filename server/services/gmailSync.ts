@@ -22,11 +22,29 @@ function isLikelyEmail(value?: string | null) {
   return /@/.test(value);
 }
 
+function normalizeAlnum(value: string) {
+  return value.toLowerCase().replace(/[^a-z0-9]/g, "");
+}
+
+function formatClientName(client?: { firstName?: string | null; lastName?: string | null }) {
+  if (!client) return "Client";
+  const parts = [client.firstName, client.lastName].filter(Boolean);
+  return parts.length ? parts.join(" ") : "Client";
+}
+
 function findMatchingClient(
   participants: string[],
-  clients: Array<{ id: string; email?: string | null; assignedAdjuster?: string | null; claimNumber?: string | null }>,
+  clients: Array<{
+    id: string;
+    email?: string | null;
+    assignedAdjuster?: string | null;
+    claimNumber?: string | null;
+    firstName?: string | null;
+    lastName?: string | null;
+  }>,
   haystack: string
 ) {
+  const normalizedHaystack = normalizeAlnum(haystack);
   for (const client of clients) {
     const clientEmail = (client.email || "").toLowerCase();
     const adjusterEmail = isLikelyEmail(client.assignedAdjuster) ? (client.assignedAdjuster || "").toLowerCase() : "";
@@ -37,7 +55,13 @@ function findMatchingClient(
       return client.id;
     }
     const claimNumber = (client.claimNumber || "").trim();
-    if (claimNumber && haystack.includes(claimNumber.toLowerCase())) {
+    const normalizedClaim = normalizeAlnum(claimNumber);
+    if (normalizedClaim && normalizedHaystack.includes(normalizedClaim)) {
+      return client.id;
+    }
+    const clientName = [client.firstName, client.lastName].filter(Boolean).join(" ").trim();
+    const normalizedName = normalizeAlnum(clientName);
+    if (normalizedName && normalizedHaystack.includes(normalizedName)) {
       return client.id;
     }
   }
@@ -61,6 +85,8 @@ export async function syncGmailHistory(params: {
     email: client.email,
     assignedAdjuster: client.assignedAdjuster,
     claimNumber: client.claimNumber,
+    firstName: client.firstName,
+    lastName: client.lastName,
   }));
 
   for (const entry of messageEntries) {
@@ -72,6 +98,7 @@ export async function syncGmailHistory(params: {
         messageId: msg.id,
         organizationId: params.account.organizationId,
         clientLookup,
+        notifyOnInbound: true,
       });
     }
   }
@@ -84,6 +111,7 @@ export async function backfillGmailMessages(params: {
   accessToken: string;
   query: string;
   maxResults?: number;
+  notifyOnInbound?: boolean;
 }) {
   const list = await listGmailMessages({
     accessToken: params.accessToken,
@@ -101,6 +129,8 @@ export async function backfillGmailMessages(params: {
     email: client.email,
     assignedAdjuster: client.assignedAdjuster,
     claimNumber: client.claimNumber,
+    firstName: client.firstName,
+    lastName: client.lastName,
   }));
 
   let processed = 0;
@@ -111,6 +141,7 @@ export async function backfillGmailMessages(params: {
       messageId: msg.id,
       organizationId: params.account.organizationId,
       clientLookup,
+      notifyOnInbound: params.notifyOnInbound ?? false,
     });
     if (wasProcessed) {
       processed += 1;
@@ -125,7 +156,15 @@ async function processGmailMessage(params: {
   accessToken: string;
   messageId: string;
   organizationId: number;
-  clientLookup: Array<{ id: string; email?: string | null; assignedAdjuster?: string | null; claimNumber?: string | null }>;
+  clientLookup: Array<{
+    id: string;
+    email?: string | null;
+    assignedAdjuster?: string | null;
+    claimNumber?: string | null;
+    firstName?: string | null;
+    lastName?: string | null;
+  }>;
+  notifyOnInbound: boolean;
 }) {
   const existing = await db.getGmailMessageByMessageId(params.messageId, params.organizationId);
   if (existing) {
@@ -135,6 +174,7 @@ async function processGmailMessage(params: {
   const fullMessage = await getGmailMessage(params.accessToken, params.messageId);
   const headers = extractGmailHeaders(fullMessage.payload);
   const { bodyText, bodyHtml } = extractGmailBody(fullMessage.payload);
+  const isRead = !fullMessage.labelIds?.includes("UNREAD");
 
   const fromEmail = extractEmailAddress(headers.from).toLowerCase();
   const toEmails = normalizeEmailList(headers.to).map((val) => val.toLowerCase());
@@ -153,6 +193,7 @@ async function processGmailMessage(params: {
   if (!clientId) {
     return false;
   }
+  const matchedClient = params.clientLookup.find((client) => client.id === clientId);
 
   let threadRecord = await db.getGmailThreadByThreadId(
     fullMessage.threadId,
@@ -197,6 +238,7 @@ async function processGmailMessage(params: {
       bodyHtml: bodyHtml || null,
       sentAt: fullMessage.internalDate ? new Date(Number(fullMessage.internalDate)) : new Date(),
       gmailLink: `https://mail.google.com/mail/u/0/#all/${params.messageId}`,
+      isRead: isRead ? 1 : 0,
     });
   } catch (error) {
     return false;
@@ -211,6 +253,23 @@ async function processGmailMessage(params: {
       organizationId: params.organizationId,
       performedBy: params.account.userId,
     });
+
+    if (!isRead && params.notifyOnInbound) {
+      const members = await db.getOrganizationMembers(params.organizationId);
+      if (members.length) {
+        const clientName = formatClientName(matchedClient);
+        const rows = members.map((member) => ({
+          organizationId: params.organizationId,
+          userId: member.userId,
+          type: "EMAIL" as const,
+          title: `New email for ${clientName}`,
+          body: headers.subject ? `Subject: ${headers.subject}` : "New inbound email",
+          entityType: "client",
+          entityId: clientId,
+        }));
+        await db.createNotifications(rows);
+      }
+    }
   }
 
   return true;

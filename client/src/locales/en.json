@@ -39,12 +39,13 @@
       "week": "This week",
       "month": "This month"
     },
-    "types": {
-      "event": "Event",
-      "task": "Task",
-      "activity": "Activity"
-    }
-  },
+      "types": {
+        "event": "Event",
+        "task": "Task",
+        "activity": "Activity",
+        "email": "Email"
+      }
+    },
   "dashboard": {
     "title": "Dashboard",
     "subtitle": "Overview of CRM metrics and KPIs",
@@ -762,9 +763,10 @@
     "sendFailed": "Failed to send email",
     "syncSuccess": "Synced {{count}} emails",
     "syncFailed": "Failed to sync inbox",
-    "empty": "No emails linked to this claim yet",
-    "noSubject": "No subject",
-    "openInGmail": "Open in Gmail",
+      "empty": "No emails linked to this claim yet",
+      "noSubject": "No subject",
+      "unread": "Unread",
+      "openInGmail": "Open in Gmail",
     "validation": {
       "required": "Please complete all fields"
     }

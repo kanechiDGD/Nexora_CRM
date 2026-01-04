@@ -42,7 +42,8 @@
     "types": {
       "event": "Event",
       "task": "Task",
-      "activity": "Activity"
+      "activity": "Activity",
+      "email": "Correo"
     }
   },
   "dashboard": {
@@ -762,9 +763,10 @@
     "sendFailed": "No se pudo enviar el correo",
     "syncSuccess": "Se sincronizaron {{count}} correos",
     "syncFailed": "No se pudo sincronizar la bandeja",
-    "empty": "No hay correos vinculados a este reclamo",
-    "noSubject": "Sin asunto",
-    "openInGmail": "Abrir en Gmail",
+      "empty": "No hay correos vinculados a este reclamo",
+      "noSubject": "Sin asunto",
+      "unread": "No leido",
+      "openInGmail": "Abrir en Gmail",
     "validation": {
       "required": "Completa todos los campos"
     }

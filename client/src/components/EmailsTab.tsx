@@ -129,7 +129,10 @@ export default function EmailsTab({ clientId, clientEmail }: EmailsTabProps) {
               ) : (
                 <div className="space-y-2">
                   {emails.map((email: any) => (
-                    <div key={email.id} className="border rounded-lg p-3">
+                    <div
+                      key={email.id}
+                      className={`border rounded-lg p-3 ${!email.isRead ? "bg-primary/5 border-primary/20" : ""}`}
+                    >
                       <div className="flex items-center justify-between">
                         <div>
                           <p className="text-sm font-medium">{email.subject || t("emails.noSubject")}</p>
@@ -137,16 +140,21 @@ export default function EmailsTab({ clientId, clientEmail }: EmailsTabProps) {
                             {email.fromEmail || "-"} → {email.toEmails || "-"}
                           </p>
                         </div>
-                        {email.gmailLink && (
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => window.open(email.gmailLink, "_blank")}
-                          >
-                            <ExternalLink className="h-4 w-4 mr-2" />
-                            {t("emails.openInGmail")}
-                          </Button>
-                        )}
+                        <div className="flex items-center gap-2">
+                          {!email.isRead && (
+                            <Badge variant="secondary">{t("emails.unread")}</Badge>
+                          )}
+                          {email.gmailLink && (
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => window.open(email.gmailLink, "_blank")}
+                            >
+                              <ExternalLink className="h-4 w-4 mr-2" />
+                              {t("emails.openInGmail")}
+                            </Button>
+                          )}
+                        </div>
                       </div>
                       {email.snippet && (
                         <p className="text-xs text-muted-foreground mt-2">{email.snippet}</p>

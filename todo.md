@@ -374,7 +374,7 @@
 - [x] Agregar query para obtener todos los usuarios de la organización
 - [x] Implementar dropdown de selección de usuario en NewTaskDialog
 - [x] Actualizar el campo assignedTo para guardar el userId seleccionado
-- [ ] Mostrar nombre del usuario asignado en lugar del ID en la lista de tareas
+- [x] Mostrar nombre del usuario asignado en lugar del ID en la lista de tareas
 
 ## Página de Calendario con Gestión de Eventos
 - [x] Crear página completa de Calendario en client/src/pages/Calendar.tsx

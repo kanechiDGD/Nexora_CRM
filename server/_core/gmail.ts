@@ -160,6 +160,7 @@ export function registerGmailRoutes(app: Express) {
           accessToken,
           query: "newer_than:180d",
           maxResults: 200,
+          notifyOnInbound: false,
         });
       } catch (error) {
         console.error("[Gmail] Backfill failed", error);

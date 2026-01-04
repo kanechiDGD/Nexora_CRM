@@ -77,7 +77,7 @@ const coAdminOrgProcedure = orgProcedure.use(({ ctx, next }) => {
 
 async function notifyOrganizationMembers(params: {
   organizationId: number;
-  type: "EVENT" | "TASK" | "ACTIVITY";
+  type: "EVENT" | "TASK" | "ACTIVITY" | "EMAIL";
   title: string;
   body?: string | null;
   entityType?: string | null;
@@ -1077,16 +1077,17 @@ async function selectRoleAssignee(roleId: number, organizationId: number) {
             }
           }
 
-        await db.createGmailMessage({
-          messageId: sendResult.id,
-          threadId: threadRecordId,
-          clientId: input.clientId,
-          organizationId: ctx.organizationId,
-          direction: "OUTBOUND",
-          fromEmail: account.email,
-          toEmails: input.to,
-          ccEmails: null,
-          subject: input.subject,
+          await db.createGmailMessage({
+            messageId: sendResult.id,
+            threadId: threadRecordId,
+            clientId: input.clientId,
+            organizationId: ctx.organizationId,
+            direction: "OUTBOUND",
+            isRead: 1,
+            fromEmail: account.email,
+            toEmails: input.to,
+            ccEmails: null,
+            subject: input.subject,
           snippet: input.bodyText || input.bodyHtml || null,
           bodyText: input.bodyText || null,
           bodyHtml: input.bodyHtml || null,
@@ -1120,17 +1121,18 @@ async function selectRoleAssignee(roleId: number, organizationId: number) {
         const accessToken = await getGmailAccessToken(account);
         const days = input.days || 180;
         const query = input.query || `newer_than:${days}d`;
-        const processed = await backfillGmailMessages({
-          account: {
-            id: account.id,
-            userId: account.userId,
-            email: account.email,
-            organizationId: ctx.organizationId,
-          },
-          accessToken,
-          query,
-          maxResults: 200,
-        });
+          const processed = await backfillGmailMessages({
+            account: {
+              id: account.id,
+              userId: account.userId,
+              email: account.email,
+              organizationId: ctx.organizationId,
+            },
+            accessToken,
+            query,
+            maxResults: 200,
+            notifyOnInbound: true,
+          });
 
         return { success: true, processed };
       }),
