@@ -97,6 +97,13 @@ async function notifyOrganizationMembers(params: {
   await db.createNotifications(rows);
 }
 
+async function selectRoleAssignee(roleId: number, organizationId: number) {
+  const members = await db.getWorkflowRoleMembers(roleId, organizationId);
+  if (!members.length) return null;
+  const primary = members.find((member: any) => member.isPrimary === 1);
+  return primary?.userId ?? members[0].userId ?? null;
+}
+
 export const appRouter = router({
   system: systemRouter,
 
@@ -161,15 +168,9 @@ export const appRouter = router({
       .mutation(async ({ input }) => {
         const member = await db.getOrganizationMemberByUsername(input.email);
         if (!member) {
-  return { success: true };
-}
+          return { success: true };
+        }
 
-async function selectRoleAssignee(roleId: number, organizationId: number) {
-  const members = await db.getWorkflowRoleMembers(roleId, organizationId);
-  if (!members.length) return null;
-  const primary = members.find((member: any) => member.isPrimary === 1);
-  return primary?.userId ?? members[0].userId ?? null;
-}
 
         const user = await db.getUserById(member.userId);
         if (!user) {
@@ -1290,8 +1291,8 @@ async function selectRoleAssignee(roleId: number, organizationId: number) {
         return updated;
       }),
 
-    // Eliminar evento (solo admin y co-admin)
-    delete: coAdminOrgProcedure
+    // Eliminar evento (solo admin)
+    delete: adminOrgProcedure
       .input(z.object({ id: z.number() }))
       .mutation(async ({ input, ctx }) => {
         return await db.deleteEvent(input.id, ctx.organizationId);
@@ -1395,8 +1396,8 @@ async function selectRoleAssignee(roleId: number, organizationId: number) {
         });
       }),
 
-    // Eliminar tarea (solo admin y co-admin)
-      delete: coAdminOrgProcedure
+    // Eliminar tarea (solo admin)
+      delete: adminOrgProcedure
         .input(z.object({ id: z.number() }))
         .mutation(async ({ input, ctx }) => {
           return await db.deleteTask(input.id, ctx.organizationId);

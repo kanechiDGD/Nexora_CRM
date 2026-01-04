@@ -19,7 +19,7 @@ export default function Calendar() {
   const [contactDialogOpen, setContactDialogOpen] = useState(false);
   const [selectedEvent, setSelectedEvent] = useState<any>(null);
   const [eventDetailsOpen, setEventDetailsOpen] = useState(false);
-  const { canEdit, canDelete } = usePermissions();
+  const { canEdit, isAdmin } = usePermissions();
 
   const { data: clients } = trpc.clients.list.useQuery();
   const { data: events } = trpc.events.list.useQuery();
@@ -301,13 +301,13 @@ export default function Calendar() {
                       )}
                     </div>
 
-                                        {canEdit || canDelete ? (
+                                        {canEdit || isAdmin ? (
                       <div
                         className="flex items-center gap-2 mt-3"
                         onClick={(e) => e.stopPropagation()}
                       >
                         {canEdit && <EditEventDialog event={event} />}
-                        {canDelete && <DeleteEventDialog event={event} />}
+                        {isAdmin && <DeleteEventDialog event={event} />}
                       </div>
                     ) : (
                       <div className="mt-3">

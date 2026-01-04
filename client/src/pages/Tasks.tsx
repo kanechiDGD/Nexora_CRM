@@ -18,12 +18,14 @@ import { EditTaskDialog } from "@/components/EditTaskDialog";
 import { DeleteTaskDialog } from "@/components/DeleteTaskDialog";
 import { trpc } from "@/lib/trpc";
 import { toast } from "sonner";
+import { usePermissions } from "@/hooks/usePermissions";
 
 export default function Tasks() {
   const { t, i18n } = useTranslation();
   const [searchTerm, setSearchTerm] = useState("");
   const [filterUser, setFilterUser] = useState<string>("todos");
   const [filterStatus, setFilterStatus] = useState<string>("todos");
+  const { isAdmin } = usePermissions();
 
   // Obtener tareas de la base de datos
   const { data: tasks, isLoading } = trpc.tasks.list.useQuery();
@@ -297,7 +299,7 @@ export default function Tasks() {
                         {task.status === "COMPLETADA" ? t('tasksPage.actions.completed') : t('tasksPage.actions.markComplete')}
                       </Button>
                       <EditTaskDialog task={task} />
-                      <DeleteTaskDialog task={task} />
+                      {isAdmin && <DeleteTaskDialog task={task} />}
                     </div>
                   </div>
                 </CardHeader>

@@ -27,7 +27,7 @@ interface EventDetailsDialogProps {
 export function EventDetailsDialog({ event, open, onOpenChange, onEdit }: EventDetailsDialogProps) {
   const { t, i18n } = useTranslation();
   const locale = i18n.language === 'es' ? es : enUS;
-  const { canEdit, canDelete } = usePermissions();
+  const { canEdit, isAdmin } = usePermissions();
   const { data: attendees = [] } = trpc.events.getAttendees.useQuery(
     { eventId: event?.id },
     { enabled: open && !!event?.id }
@@ -141,7 +141,7 @@ export function EventDetailsDialog({ event, open, onOpenChange, onEdit }: EventD
           ) : (
             <>
               {canEdit && <EditEventDialog event={event} />}
-              {canDelete && <DeleteEventDialog event={event} />}
+              {isAdmin && <DeleteEventDialog event={event} />}
             </>
           )}
           <Button onClick={() => onOpenChange(false)}>
