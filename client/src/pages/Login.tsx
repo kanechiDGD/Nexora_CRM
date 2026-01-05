@@ -17,7 +17,7 @@ import {
 } from "lucide-react";
 import { trpc } from "@/lib/trpc";
 import { useLocation } from "wouter";
-import { APP_LOGO, getGoogleLoginUrl } from "@/const";
+import { getGoogleLoginUrl } from "@/const";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -135,29 +135,20 @@ export default function Login() {
       <div className="relative mx-auto flex min-h-screen w-full max-w-6xl flex-col gap-8 px-4 py-12 lg:grid lg:grid-cols-[1.15fr_0.85fr] lg:items-center">
         <div className="order-2 lg:order-1 space-y-8">
           <div className="space-y-4">
-            <div className="flex items-center gap-4">
-              {APP_LOGO ? (
-                <img
-                  src={APP_LOGO}
-                  alt={t("login.appTitle")}
-                  className="h-12 w-12 rounded-xl bg-[#0f2233]/70 p-2"
-                />
-              ) : (
-                <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-[#0f2233]/70 text-lg font-semibold">
-                  N
-                </div>
-              )}
+            <div className="flex items-center gap-2">
               <div>
-                <p className="text-[10px] uppercase tracking-[0.35em] text-slate-400">
+                <p className="text-[10px] uppercase tracking-[0.25em] text-slate-400 mb-1">
                   {t("login.heroEyebrow")}
                 </p>
-                <h1
-                  className="text-3xl sm:text-4xl md:text-5xl font-semibold"
-                  style={{ fontFamily: "'Fraunces', 'Times New Roman', serif" }}
-                >
-                  {t("login.appTitle")}
-                </h1>
-                <p className="text-sm sm:text-base text-slate-300">
+                <div className="relative inline-flex">
+                  <div className="absolute inset-0 rounded-full bg-blue-500/35 blur-3xl" aria-hidden="true" />
+                  <img
+                    src="/val-kira-logo.png"
+                    alt={t("login.appTitle")}
+                    className="relative h-56 sm:h-64 md:h-80 w-auto drop-shadow-[0_0_28px_rgba(59,130,246,0.65)]"
+                  />
+                </div>
+                <p className="text-sm sm:text-base text-slate-300 mt-2">
                   {t("login.appSubtitle")}
                 </p>
               </div>

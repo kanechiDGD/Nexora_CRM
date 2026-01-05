@@ -29,16 +29,16 @@ export default function Home() {
       {/* Navigation */}
       <nav className="border-b border-border bg-card/80 backdrop-blur-md sticky top-0 z-50 shadow-sm">
         <div className="container mx-auto px-4 py-4">
-          <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-            <div className="flex items-center gap-3">
+          <div className="flex flex-col gap-4 md:grid md:grid-cols-[1fr_auto_1fr] md:items-center">
+            <div className="hidden md:block" />
+            <div className="flex justify-center">
               <img
                 src="/val-kira-logo.png"
                 alt="Val Kira CRM"
-                className="h-10 w-auto"
+                className="h-10 sm:h-12 w-auto"
               />
-              <p className="text-xs text-muted-foreground">{t('login.appSubtitle')}</p>
             </div>
-            <div className="flex flex-wrap items-center gap-2 md:gap-4">
+            <div className="flex flex-wrap items-center justify-end gap-2 md:gap-4">
               <Link href="#pricing">
                 <Button variant="ghost" className="h-9 px-3 text-sm">
                   {t('landing.nav.pricing')}
