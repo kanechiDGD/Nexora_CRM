@@ -10,7 +10,6 @@ import {
   Calendar,
   Clock,
   TrendingUp,
-  Shield,
   Smartphone,
   DollarSign,
   ChevronRight,
@@ -32,16 +31,12 @@ export default function Home() {
         <div className="container mx-auto px-4 py-4">
           <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
             <div className="flex items-center gap-3">
-              <div className="relative">
-                <div className="absolute inset-0 bg-primary/20 blur-xl rounded-full"></div>
-                <Shield className="h-10 w-10 text-primary relative" />
-              </div>
-              <div>
-                <span className="text-2xl font-bold bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">
-                  {APP_TITLE}
-                </span>
-                <p className="text-xs text-muted-foreground">{t('login.appSubtitle')}</p>
-              </div>
+              <img
+                src="/val-kira-logo.png"
+                alt="Val Kira CRM"
+                className="h-10 w-auto"
+              />
+              <p className="text-xs text-muted-foreground">{t('login.appSubtitle')}</p>
             </div>
             <div className="flex flex-wrap items-center gap-2 md:gap-4">
               <Link href="#pricing">
@@ -562,7 +557,11 @@ export default function Home() {
           <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-8">
             <div>
               <div className="flex items-center gap-2 mb-4">
-                <Shield className="h-6 w-6 text-primary" />
+                <img
+                  src="/val-kira-logo.png"
+                  alt="Val Kira CRM"
+                  className="h-6 w-auto"
+                />
                 <span className="font-bold text-lg">{APP_TITLE}</span>
               </div>
               <p className="text-sm text-muted-foreground">
