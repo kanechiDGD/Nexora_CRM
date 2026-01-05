@@ -39,13 +39,13 @@
       "week": "This week",
       "month": "This month"
     },
-      "types": {
-        "event": "Event",
-        "task": "Task",
-        "activity": "Activity",
-        "email": "Email"
-      }
-    },
+    "types": {
+      "event": "Event",
+      "task": "Task",
+      "activity": "Activity",
+      "email": "Email"
+    }
+  },
   "dashboard": {
     "title": "Dashboard",
     "subtitle": "Overview of CRM metrics and KPIs",
@@ -352,14 +352,14 @@
       "starter": {
         "name": "Starter",
         "description": "For independent adjusters",
-        "price": "$99",
+        "price": "$149",
         "period": "/month",
-        "users": "Up to 5 users",
+        "users": "Includes 3 users",
         "features": {
-          "clients": "50 active clients",
-          "storage": "10 GB storage",
-          "calendar": "Calendar & tasks",
-          "reports": "Basic reports",
+          "clients": "Includes 3 users",
+          "storage": "$29 per extra user",
+          "calendar": "14-day free trial",
+          "reports": "Core CRM features",
           "support": "Email support"
         },
         "cta": "Start Free Trial"
@@ -367,34 +367,34 @@
       "professional": {
         "name": "Professional",
         "description": "For growing teams",
-        "price": "$249",
+        "price": "$299",
         "period": "/month",
-        "users": "Up to 15 users",
+        "users": "Includes 5 users",
         "badge": "MOST POPULAR",
         "features": {
-          "clients": "Unlimited clients",
-          "storage": "100 GB storage",
-          "allStarter": "Everything in Starter, plus:",
-          "analytics": "Advanced reports & analytics",
-          "construction": "Construction management",
-          "api": "API access",
-          "support": "Priority support (chat)"
+          "clients": "Includes 5 users",
+          "storage": "$39 per extra user",
+          "allStarter": "14-day free trial",
+          "analytics": "Automation rules & workflows",
+          "construction": "Email + Gmail tracking",
+          "api": "Priority support",
+          "support": "Account support"
         },
         "cta": "Start Free Trial"
       },
       "enterprise": {
         "name": "Enterprise",
         "description": "For large operations",
-        "price": "$499",
+        "price": "$799",
         "period": "/month",
-        "users": "Up to 50 users",
+        "users": "Includes 10 users",
         "features": {
-          "clients": "Unlimited clients",
-          "storage": "Unlimited storage",
-          "allPro": "Everything in Professional, plus:",
-          "onboarding": "Personalized onboarding",
+          "clients": "Includes 10 users",
+          "storage": "$59 per extra user",
+          "allPro": "14-day free trial",
+          "onboarding": "Dedicated onboarding",
           "integrations": "Custom integrations",
-          "support24": "Dedicated 24/7 support",
+          "support24": "Priority support",
           "sla": "Guaranteed SLA"
         },
         "cta": "Contact Sales"
@@ -488,7 +488,7 @@
     "languageSpanish": "Espanol",
     "forgotPassword": "Forgot password?"
   },
-    "clientContactDialog": {
+  "clientContactDialog": {
     "saveSuccess": "Contact saved and client updated",
     "createActivityError": "Error saving activity: {{message}}",
     "updateClientError": "Error updating client: {{message}}",
@@ -511,31 +511,31 @@
       "userLabel": "User #{{id}}"
     },
     "noActivities": "No activities recorded for this client",
-      "claimInfoTitle": "Claim information",
-      "caseSummaryTitle": "Case summary",
-      "callReportTitle": "Call report",
-      "callReportSubtitle": "Key updates to share with the client today",
-      "callReport": {
-        "missingDocuments": "Missing documents",
-        "noneMissing": "All critical documents are on file",
-        "teamReminder": "If there are no new updates, check with the team before calling the client."
-      },
-      "caseSummary": {
-        "claimStatus": "Claim status",
-        "lastStatusChange": "Last status change",
-        "adjustmentDate": "Adjustment date",
-        "scopeReceived": "Scope received",
-        "scopeSent": "Scope sent",
-        "response": "Response received",
-        "appraisal": "Appraisal started",
-        "appraisalLetter": "Appraisal letter sent"
-      },
-      "claimLabels": {
-        "insurance": "Insurance",
-        "claimNumber": "Claim number",
-        "status": "Status",
-        "assignedAdjuster": "Assigned adjuster"
-      },
+    "claimInfoTitle": "Claim information",
+    "caseSummaryTitle": "Case summary",
+    "callReportTitle": "Call report",
+    "callReportSubtitle": "Key updates to share with the client today",
+    "callReport": {
+      "missingDocuments": "Missing documents",
+      "noneMissing": "All critical documents are on file",
+      "teamReminder": "If there are no new updates, check with the team before calling the client."
+    },
+    "caseSummary": {
+      "claimStatus": "Claim status",
+      "lastStatusChange": "Last status change",
+      "adjustmentDate": "Adjustment date",
+      "scopeReceived": "Scope received",
+      "scopeSent": "Scope sent",
+      "response": "Response received",
+      "appraisal": "Appraisal started",
+      "appraisalLetter": "Appraisal letter sent"
+    },
+    "claimLabels": {
+      "insurance": "Insurance",
+      "claimNumber": "Claim number",
+      "status": "Status",
+      "assignedAdjuster": "Assigned adjuster"
+    },
     "registerContactTitle": "Log new contact",
     "contactMethodLabel": "Contact method",
     "contactMethods": {
@@ -674,25 +674,25 @@
       "performedByHelp": "The current user is detected automatically",
       "typeLabel": "Activity type *",
       "typePlaceholder": "Select type",
-        "types": {
-          "call": "Call",
-          "email": "Email",
-          "visit": "Visit/Meeting",
-          "note": "Note",
-          "document": "Document",
-          "statusChange": "Status change",
-          "adjustmentCompleted": "Adjustment completed",
-          "scopeRequested": "Scope requested",
-          "scopeReceived": "Scope received",
-          "scopeSent": "Scope sent",
-          "responseFavorable": "Favorable response",
-          "responseNegative": "Negative response",
-          "appraisalStarted": "Appraisal started",
-          "appraisalLetterSent": "Appraisal letter sent",
-          "releaseLetterRequired": "Release letter required",
-          "itelRequested": "ITEL requested",
-          "reinspectionRequested": "Reinspection requested"
-        },
+      "types": {
+        "call": "Call",
+        "email": "Email",
+        "visit": "Visit/Meeting",
+        "note": "Note",
+        "document": "Document",
+        "statusChange": "Status change",
+        "adjustmentCompleted": "Adjustment completed",
+        "scopeRequested": "Scope requested",
+        "scopeReceived": "Scope received",
+        "scopeSent": "Scope sent",
+        "responseFavorable": "Favorable response",
+        "responseNegative": "Negative response",
+        "appraisalStarted": "Appraisal started",
+        "appraisalLetterSent": "Appraisal letter sent",
+        "releaseLetterRequired": "Release letter required",
+        "itelRequested": "ITEL requested",
+        "reinspectionRequested": "Reinspection requested"
+      },
       "clientLabel": "Client (optional)",
       "clientPlaceholder": "Search client...",
       "clientSearchPlaceholder": "Type client name...",
@@ -763,10 +763,10 @@
     "sendFailed": "Failed to send email",
     "syncSuccess": "Synced {{count}} emails",
     "syncFailed": "Failed to sync inbox",
-      "empty": "No emails linked to this claim yet",
-      "noSubject": "No subject",
-      "unread": "Unread",
-      "openInGmail": "Open in Gmail",
+    "empty": "No emails linked to this claim yet",
+    "noSubject": "No subject",
+    "unread": "Unread",
+    "openInGmail": "Open in Gmail",
     "validation": {
       "required": "Please complete all fields"
     }
@@ -1094,20 +1094,20 @@
       "constructionStatus": "Status",
       "dateOfLoss": "Date of Loss",
       "claimSubmittedDate": "Claim Submission Date",
-        "adjustmentDate": "Adjustment Date",
-        "lastContactDate": "Last Contact",
-        "nextContactDate": "Next Contact",
-        "propertyType": "Property Type"
-      },
-      "kpis": {
-        "clientContact": "Client follow-up",
-        "adjusterContact": "Adjuster follow-up",
-        "statusUpdate": "Status update",
-        "daysSince": "Days since last update"
-      },
-      "actions": {
-        "edit": "Edit Client"
-      },
+      "adjustmentDate": "Adjustment Date",
+      "lastContactDate": "Last Contact",
+      "nextContactDate": "Next Contact",
+      "propertyType": "Property Type"
+    },
+    "kpis": {
+      "clientContact": "Client follow-up",
+      "adjusterContact": "Adjuster follow-up",
+      "statusUpdate": "Status update",
+      "daysSince": "Days since last update"
+    },
+    "actions": {
+      "edit": "Edit Client"
+    },
     "quick": {
       "status": "Status",
       "insurance": "Insurance",
