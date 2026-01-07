@@ -20,4 +20,10 @@ export const ENV = {
   appBaseUrl: process.env.APP_BASE_URL ?? process.env.PUBLIC_APP_URL ?? "",
   inviteTokenHours: Number(process.env.INVITE_TOKEN_HOURS ?? 72),
   passwordResetTokenHours: Number(process.env.PASSWORD_RESET_TOKEN_HOURS ?? 2),
+  stripeSecretKey: process.env.STRIPE_SECRET_KEY ?? "",
+  stripeWebhookSecret: process.env.STRIPE_WEBHOOK_SECRET ?? "",
+  stripePriceStarter: process.env.STRIPE_PRICE_STARTER ?? "",
+  stripePriceProfessional: process.env.STRIPE_PRICE_PROFESSIONAL ?? "",
+  stripePriceEnterprise: process.env.STRIPE_PRICE_ENTERPRISE ?? "",
+  stripePriceExtraSeat: process.env.STRIPE_PRICE_EXTRA_SEAT ?? "",
 };

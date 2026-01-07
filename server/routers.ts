@@ -3,6 +3,7 @@ import { getSessionCookieOptions } from "./_core/cookies";
 import { systemRouter } from "./_core/systemRouter";
 import { publicProcedure, protectedProcedure, router } from "./_core/trpc";
 import { z } from "zod";
+import Stripe from "stripe";
 import * as db from "./db";
 import { generateClientId } from "./utils/generateClientId";
 import { generatePassword } from "./utils/generatePassword";
@@ -14,6 +15,13 @@ import { buildInviteEmail, buildPasswordResetEmail, sendEmail } from "./_core/em
 import { sdk } from "./_core/sdk";
 import { getGmailAccessToken, sendGmailMessage } from "./services/gmail";
 import { backfillGmailMessages } from "./services/gmailSync";
+import { stripe } from "./services/stripe";
+import {
+  getAllowedSeats,
+  getPlanConfig,
+  getTrialDaysLeft,
+  isAccessBlocked
+} from "./utils/billing";
 
 // Helper para verificar roles
 const adminProcedure = protectedProcedure.use(({ ctx, next }) => {
@@ -37,18 +45,56 @@ const staffProcedure = protectedProcedure.use(({ ctx, next }) => {
 });
 
 // Middleware que inyecta organizationId del usuario autenticado
-const orgProcedure = protectedProcedure.use(({ ctx, next }) => {
+const orgProcedure = protectedProcedure.use(async ({ ctx, next }) => {
   if (!ctx.organizationMember) {
     throw new TRPCError({
       code: 'FORBIDDEN',
       message: 'Usuario no pertenece a ninguna organización. Completa el proceso de onboarding.'
     });
   }
+  const organization = await db.getOrganizationById(ctx.organizationMember.organizationId);
+  if (!organization) {
+    throw new TRPCError({
+      code: 'NOT_FOUND',
+      message: 'Organización no encontrada'
+    });
+  }
+  if (isAccessBlocked(organization)) {
+    throw new TRPCError({
+      code: 'FORBIDDEN',
+      message: 'El acceso está restringido. Agrega un método de pago para continuar.'
+    });
+  }
   return next({
     ctx: {
       ...ctx,
       organizationId: ctx.organizationMember.organizationId,
-      memberRole: ctx.organizationMember.role
+      memberRole: ctx.organizationMember.role,
+      organization,
+    }
+  });
+});
+
+const orgBillingProcedure = protectedProcedure.use(async ({ ctx, next }) => {
+  if (!ctx.organizationMember) {
+    throw new TRPCError({
+      code: 'FORBIDDEN',
+      message: 'Usuario no pertenece a ninguna organización. Completa el proceso de onboarding.'
+    });
+  }
+  const organization = await db.getOrganizationById(ctx.organizationMember.organizationId);
+  if (!organization) {
+    throw new TRPCError({
+      code: 'NOT_FOUND',
+      message: 'Organización no encontrada'
+    });
+  }
+  return next({
+    ctx: {
+      ...ctx,
+      organizationId: ctx.organizationMember.organizationId,
+      memberRole: ctx.organizationMember.role,
+      organization,
     }
   });
 });
@@ -103,6 +149,8 @@ async function selectRoleAssignee(roleId: number, organizationId: number) {
   const primary = members.find((member: any) => member.isPrimary === 1);
   return primary?.userId ?? members[0].userId ?? null;
 }
+
+ 
 
 export const appRouter = router({
   system: systemRouter,
@@ -1683,6 +1731,134 @@ export const appRouter = router({
       }),
   }),
 
+  billing: router({
+    getStatus: orgBillingProcedure.query(async ({ ctx }) => {
+      const trialDaysLeft = getTrialDaysLeft(ctx.organization);
+      const allowedSeats = getAllowedSeats(ctx.organization);
+      return {
+        planTier: ctx.organization.planTier,
+        planStatus: ctx.organization.planStatus,
+        trialDaysLeft,
+        allowedSeats,
+        extraSeats: ctx.organization.extraSeats ?? 0,
+        hasPaymentMethod: ctx.organization.hasPaymentMethod === 1,
+      };
+    }),
+
+    createCheckoutSession: orgBillingProcedure
+      .input(z.object({
+        planTier: z.enum(["starter", "professional", "enterprise"]).optional(),
+        requestedSeats: z.number().min(1).optional(),
+        successPath: z.string().optional(),
+        cancelPath: z.string().optional(),
+      }))
+      .mutation(async ({ input, ctx }) => {
+        const selectedTier = (input.planTier ?? ctx.organization.planTier ?? "starter") as "starter" | "professional" | "enterprise";
+        const planConfig = getPlanConfig(selectedTier);
+        if (!planConfig.priceId) {
+          throw new TRPCError({ code: "BAD_REQUEST", message: "Stripe price not configured for plan" });
+        }
+        const memberCount = input.requestedSeats ?? await db.getOrganizationMemberCount(ctx.organizationId);
+        const extraSeatsNeeded = Math.max(0, memberCount - planConfig.includedSeats);
+
+        if (selectedTier !== ctx.organization.planTier) {
+          await db.updateOrganization(ctx.organizationId, {
+            planTier: selectedTier,
+          });
+        }
+
+        const lineItems: Stripe.Checkout.SessionCreateParams.LineItem[] = [
+          { price: planConfig.priceId, quantity: 1 },
+        ];
+        if (extraSeatsNeeded > 0) {
+          if (!ENV.stripePriceExtraSeat) {
+            throw new TRPCError({ code: "BAD_REQUEST", message: "Stripe price not configured for extra seats" });
+          }
+          lineItems.push({ price: ENV.stripePriceExtraSeat, quantity: extraSeatsNeeded });
+        }
+
+        let trialEndsAt = ctx.organization.trialEndsAt;
+        if (!trialEndsAt) {
+          const now = new Date();
+          trialEndsAt = new Date(now.getTime() + 14 * 24 * 60 * 60 * 1000);
+          await db.updateOrganization(ctx.organizationId, {
+            trialStartedAt: now,
+            trialEndsAt,
+          });
+        }
+        const nowUnix = Math.floor(Date.now() / 1000);
+        const trialEndUnix = trialEndsAt
+          ? Math.floor(new Date(trialEndsAt).getTime() / 1000)
+          : undefined;
+        const trialEnd = trialEndUnix && trialEndUnix > nowUnix ? trialEndUnix : undefined;
+
+        const session = await stripe.checkout.sessions.create({
+          mode: "subscription",
+          payment_method_collection: "if_required",
+          client_reference_id: String(ctx.organizationId),
+          customer: ctx.organization.stripeCustomerId ?? undefined,
+          customer_email: ctx.user?.email ?? undefined,
+          line_items: lineItems,
+          metadata: {
+            organizationId: String(ctx.organizationId),
+            planTier: selectedTier,
+          },
+          subscription_data: {
+            metadata: {
+              organizationId: String(ctx.organizationId),
+              planTier: selectedTier,
+            },
+            trial_end: trialEnd,
+          },
+          success_url: `${ENV.appBaseUrl}${input.successPath ?? "/dashboard"}`,
+          cancel_url: `${ENV.appBaseUrl}${input.cancelPath ?? "/billing?status=cancel"}`,
+        });
+
+        return { url: session.url };
+      }),
+
+    createPortalSession: orgBillingProcedure
+      .mutation(async ({ ctx }) => {
+        if (!ctx.organization.stripeCustomerId) {
+          throw new TRPCError({ code: "BAD_REQUEST", message: "Stripe customer not found" });
+        }
+        const session = await stripe.billingPortal.sessions.create({
+          customer: ctx.organization.stripeCustomerId,
+          return_url: `${ENV.appBaseUrl}/billing`,
+        });
+        return { url: session.url };
+      }),
+
+    addExtraSeat: orgBillingProcedure
+      .mutation(async ({ ctx }) => {
+        if (!ctx.organization.stripeSubscriptionId) {
+          throw new TRPCError({ code: "BAD_REQUEST", message: "Stripe subscription not found" });
+        }
+        if (!ENV.stripePriceExtraSeat) {
+          throw new TRPCError({ code: "BAD_REQUEST", message: "Stripe price not configured for extra seats" });
+        }
+
+        const currentExtraSeats = ctx.organization.extraSeats ?? 0;
+        const newExtraSeats = currentExtraSeats + 1;
+
+        if (ctx.organization.stripeExtraItemId) {
+          await stripe.subscriptionItems.update(ctx.organization.stripeExtraItemId, {
+            quantity: newExtraSeats,
+          });
+        } else {
+          const item = await stripe.subscriptionItems.create({
+            subscription: ctx.organization.stripeSubscriptionId,
+            price: ENV.stripePriceExtraSeat,
+            quantity: newExtraSeats,
+          });
+          await db.updateOrganization(ctx.organizationId, { stripeExtraItemId: item.id });
+        }
+
+        await db.updateOrganization(ctx.organizationId, { extraSeats: newExtraSeats });
+        return { extraSeats: newExtraSeats };
+      }),
+  }),
+
   // ============ ORGANIZATIONS ROUTER ============
   organizations: router({    // Verificar si el usuario tiene organización
     checkMembership: protectedProcedure.query(async ({ ctx }) => {
@@ -1691,7 +1867,46 @@ export const appRouter = router({
         return { hasMembership: false, member: null, organization: null };
       }
       const organization = await db.getOrganizationById(member.organizationId);
-      return { hasMembership: true, member, organization };
+      if (!organization) {
+        return { hasMembership: false, member: null, organization: null };
+      }
+
+      const trialDaysLeft = getTrialDaysLeft(organization);
+      const accessBlocked = isAccessBlocked(organization);
+      const allowedSeats = getAllowedSeats(organization);
+
+      if (
+        trialDaysLeft !== null &&
+        trialDaysLeft <= 5 &&
+        trialDaysLeft > 0 &&
+        !organization.hasPaymentMethod &&
+        !organization.trialNotifiedAt
+      ) {
+        await notifyOrganizationMembers({
+          organizationId: organization.id,
+          type: "EMAIL",
+          title: "Free trial ending soon",
+          body: `Your trial ends in ${trialDaysLeft} day(s). Add a payment method to keep access.`,
+          entityType: "BILLING",
+          entityId: String(organization.id),
+        });
+        await db.updateOrganization(organization.id, { trialNotifiedAt: new Date() });
+      }
+
+      return {
+        hasMembership: true,
+        member,
+        organization,
+        billing: {
+          planTier: organization.planTier,
+          planStatus: organization.planStatus,
+          trialDaysLeft,
+          accessBlocked,
+          allowedSeats,
+          extraSeats: organization.extraSeats ?? 0,
+          hasPaymentMethod: organization.hasPaymentMethod === 1,
+        },
+      };
     }),
 
     // Crear organización (onboarding paso 2) - PUBLIC para permitir onboarding sin autenticación
@@ -1700,7 +1915,7 @@ export const appRouter = router({
         name: z.string().min(1),
         businessType: z.string(),
         logo: z.string().optional().nullable(),
-        memberCount: z.number().min(1).max(20),
+        planTier: z.enum(["starter", "professional", "enterprise"]).optional(),
       }))
       .mutation(async ({ input, ctx }) => {
         if (ctx.organizationMember) {
@@ -1752,12 +1967,20 @@ export const appRouter = router({
           slugSuffix += 1;
           slug = `${slugBaseForSuffix}-${slugSuffix}`;
         }
+        const planTier = input.planTier ?? "starter";
+        const now = new Date();
+        const trialEndsAt = new Date(now.getTime() + 14 * 24 * 60 * 60 * 1000);
+
         const orgId = await db.createOrganization({
           name: input.name,
           slug,
           businessType: input.businessType,
           logo: input.logo,
           ownerId: ownerUser.id,
+          planTier,
+          planStatus: "trialing",
+          trialStartedAt: now,
+          trialEndsAt,
         });
 
         // Crear miembro admin con username y password
@@ -1779,48 +2002,8 @@ export const appRouter = router({
         });
 
 
-        // Generar usuarios automáticos
-        const generatedUsers: Array<{ username: string; password: string; role: string }> = [];
-
-        for (let i = 1; i < input.memberCount; i++) {
-          const username = `usuario${i}@${slug}.internal`;
-          const password = generatePassword(8);
-          const passwordHash = await bcrypt.hash(password, 10);
-          const role = i === 1 ? 'CO_ADMIN' : 'VENDEDOR';
-
-          // Crear usuario dummy en tabla users (sin email real)
-          const dummyUser = await db.upsertUser({
-            openId: `dummy-${orgId}-${i}`,
-            name: `Usuario ${i}`,
-            email: null,
-            loginMethod: 'internal',
-            role: 'user',
-          });
-
-          const dummyUserId = await db.getUserByOpenId(`dummy-${orgId}-${i}`);
-
-          // Crear miembro de organización
-          await db.createOrganizationMember({
-            organizationId: orgId,
-            userId: dummyUserId!.id,
-            role: role as "ADMIN" | "CO_ADMIN" | "VENDEDOR",
-            username,
-            password: passwordHash,
-          });
-
-          generatedUsers.push({ username, password, role });
-        }
-
-        // Agregar credenciales del admin al principio de la lista
-        generatedUsers.unshift({
-          username: adminUsername,
-          password: adminPassword,
-          role: 'ADMIN',
-        });
-
         return {
           organizationId: orgId,
-          generatedUsers,
         };
       }),
 
@@ -1836,8 +2019,9 @@ export const appRouter = router({
         }
 
         const memberCount = await db.getOrganizationMemberCount(ctx.organizationId);
-        if (organization.maxMembers && memberCount >= organization.maxMembers) {
-          throw new TRPCError({ code: "BAD_REQUEST", message: "Organization member limit reached" });
+        const allowedSeats = getAllowedSeats(organization);
+        if (allowedSeats > 0 && memberCount >= allowedSeats) {
+          throw new TRPCError({ code: "BAD_REQUEST", message: "SEAT_LIMIT_REACHED" });
         }
 
         const existingUser = await db.getUserByEmail(input.email);
@@ -1939,6 +2123,16 @@ export const appRouter = router({
 
         if (!user) {
           throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Failed to create user" });
+        }
+
+        const organization = await db.getOrganizationById(invite.organizationId);
+        if (!organization) {
+          throw new TRPCError({ code: "NOT_FOUND", message: "Organization not found" });
+        }
+        const memberCount = await db.getOrganizationMemberCount(invite.organizationId);
+        const allowedSeats = getAllowedSeats(organization);
+        if (allowedSeats > 0 && memberCount >= allowedSeats) {
+          throw new TRPCError({ code: "BAD_REQUEST", message: "SEAT_LIMIT_REACHED" });
         }
 
         let username = invite.email;
@@ -2043,6 +2237,16 @@ export const appRouter = router({
             code: 'BAD_REQUEST',
             message: 'El nombre de usuario ya existe',
           });
+        }
+
+        const memberCount = await db.getOrganizationMemberCount(ctx.organizationId);
+        const organization = await db.getOrganizationById(ctx.organizationId);
+        if (!organization) {
+          throw new TRPCError({ code: "NOT_FOUND", message: "Organization not found" });
+        }
+        const allowedSeats = getAllowedSeats(organization);
+        if (allowedSeats > 0 && memberCount >= allowedSeats) {
+          throw new TRPCError({ code: "BAD_REQUEST", message: "SEAT_LIMIT_REACHED" });
         }
 
         // Hashear contraseña

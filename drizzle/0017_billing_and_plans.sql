@@ -1,0 +1,13 @@
+ALTER TABLE organizations
+  ADD COLUMN planTier VARCHAR(32) NOT NULL DEFAULT 'starter',
+  ADD COLUMN planStatus VARCHAR(32) NOT NULL DEFAULT 'trialing',
+  ADD COLUMN stripeCustomerId VARCHAR(64),
+  ADD COLUMN stripeSubscriptionId VARCHAR(64),
+  ADD COLUMN stripeSubscriptionStatus VARCHAR(32),
+  ADD COLUMN stripePlanItemId VARCHAR(64),
+  ADD COLUMN stripeExtraItemId VARCHAR(64),
+  ADD COLUMN hasPaymentMethod INT NOT NULL DEFAULT 0,
+  ADD COLUMN extraSeats INT NOT NULL DEFAULT 0,
+  ADD COLUMN trialStartedAt TIMESTAMP NULL,
+  ADD COLUMN trialEndsAt TIMESTAMP NULL,
+  ADD COLUMN trialNotifiedAt TIMESTAMP NULL;

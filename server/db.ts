@@ -933,6 +933,14 @@ export async function getOrganizationById(id: number) {
   return result.length > 0 ? result[0] : undefined;
 }
 
+export async function getOrganizationByStripeCustomerId(customerId: string) {
+  const db = await getDb();
+  if (!db) return undefined;
+  const result = await db.select().from(organizations)
+    .where(eq(organizations.stripeCustomerId, customerId)).limit(1);
+  return result.length > 0 ? result[0] : undefined;
+}
+
 export async function getOrganizationBySlug(slug: string) {
   const db = await getDb();
   if (!db) return undefined;

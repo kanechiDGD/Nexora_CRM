@@ -12,6 +12,7 @@ import { setupSecurityMiddlewares } from "./security";
 import { apiLimiter, authLimiter } from "./rateLimiting";
 import { logger } from "./logger";
 import { uploadRouter } from "../upload";
+import { handleStripeWebhook } from "../services/stripeWebhook";
 
 function isPortAvailable(port: number): Promise<boolean> {
   return new Promise(resolve => {
@@ -41,6 +42,19 @@ async function startServer() {
 
   // Security middlewares (helmet, CORS, etc.)
   setupSecurityMiddlewares(app);
+
+  // Stripe webhook needs the raw body for signature verification
+  app.post("/api/stripe/webhook", express.raw({ type: "application/json" }), async (req, res) => {
+    try {
+      const signature = req.headers["stripe-signature"];
+      const payload = req.body as Buffer;
+      const result = await handleStripeWebhook(payload, Array.isArray(signature) ? signature[0] : signature);
+      res.status(200).json(result);
+    } catch (error) {
+      logger.error("[Stripe] Webhook error", error);
+      res.status(400).json({ error: "Webhook Error" });
+    }
+  });
 
   // Configure body parser with larger size limit for file uploads
   app.use(express.json({ limit: "50mb" }));

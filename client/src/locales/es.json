@@ -373,7 +373,7 @@
         "badge": "MÁS POPULAR",
         "features": {
           "clients": "Incluye 5 usuarios",
-          "storage": "$39 por usuario extra",
+        "storage": "$29 por usuario extra",
           "allStarter": "Prueba gratis 14 d?as",
           "analytics": "Reglas y workflows autom?ticos",
           "construction": "Email + seguimiento Gmail",
@@ -385,19 +385,19 @@
       "enterprise": {
         "name": "Enterprise",
         "description": "Para grandes operaciones",
-        "price": "$799",
+        "price": "$499",
         "period": "/mes",
         "users": "Incluye 10 usuarios",
         "features": {
           "clients": "Incluye 10 usuarios",
-          "storage": "$59 por usuario extra",
+        "storage": "$29 por usuario extra",
           "allPro": "Prueba gratis 14 d?as",
           "onboarding": "Onboarding dedicado",
           "integrations": "Integraciones personalizadas",
           "support24": "Soporte prioritario",
           "sla": "SLA garantizado"
         },
-        "cta": "Contactar Ventas"
+        "cta": "Comenzar prueba gratis"
       },
       "allPlans": "Todos los planes incluyen 14 d?as de prueba gratis. No se requiere tarjeta."
     },
@@ -445,6 +445,11 @@
       },
       "copyright": "Todos los derechos reservados."
     }
+  },
+  "billing": {
+    "accessBlockedTitle": "Agrega un método de pago para continuar",
+    "accessBlockedDescription": "Tu prueba gratis terminó. Agrega un método de pago para recuperar el acceso.",
+    "accessBlockedCta": "Agregar método de pago"
   },
   "login": {
     "appTitle": "Nexora CRM",
@@ -1195,7 +1200,7 @@
     "createSuccess": "?Organizaci?n creada exitosamente!",
     "creating": "Creando...",
     "title": "Configuraci?n Inicial",
-    "stepDescription": "Paso {{step}} de 3 - Configura tu organizaci?n",
+    "stepDescription": "Paso {{step}} de 2 - Configura tu organizaci?n",
     "authRequired": {
       "title": "Verifica tu cuenta primero",
       "description": "Inicia sesion con Google antes de crear tu organizacion.",
@@ -1221,6 +1226,7 @@
       "orgNameRequired": "Por favor ingresa el nombre de la organizaci?n",
       "businessTypeRequired": "Por favor selecciona el tipo de negocio"
     },
+    "planLabel": "Plan seleccionado",
     "toasts": {
       "credentialsCopied": "Credenciales copiadas al portapapeles",
       "csvDownloaded": "CSV descargado"
@@ -1241,7 +1247,7 @@
       },
       "copyAll": "Copiar Todo",
       "downloadCsv": "Descargar CSV",
-      "goToLogin": "Ir al Login"
+      "goToLogin": "Continuar a facturación"
     },
     "businessTypes": {
       "publicAdjusters": "Public Adjusters",
@@ -1342,6 +1348,17 @@
     },
     "membersTitle": "Miembros de la Organizaci?n",
     "membersDescription": "Lista de todos los usuarios con acceso al sistema",
+    "seats": {
+      "title": "Usuarios",
+      "used": "{{used}} de {{total}} usuarios usados",
+      "addSeat": "Agregar usuario extra",
+      "upgradeTitle": "Agregar usuario extra",
+      "upgradeDescription": "Alcanzaste el l?mite del plan. Agrega otro usuario por $29/mes.",
+      "confirm": "Agregar usuario ($29/mes)",
+      "cancel": "Ahora no",
+      "processing": "Procesando...",
+      "added": "Usuario extra agregado"
+    },
     "table": {
       "user": "Usuario",
       "role": "Rol",

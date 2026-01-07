@@ -5,6 +5,12 @@ import { Route, Switch } from "wouter";
 import ErrorBoundary from "./components/ErrorBoundary";
 import { ThemeProvider } from "./contexts/ThemeContext";
 import Home from "./pages/Home";
+import PricingPage from "./pages/Pricing";
+import FeaturesPage from "./pages/Features";
+import Terms from "./pages/Terms";
+import Privacy from "./pages/Privacy";
+import Billing from "./pages/Billing";
+import Contact from "./pages/Contact";
 import Dashboard from "./pages/Dashboard";
 import Clients from "./pages/Clients";
 import ClientProfile from "./pages/ClientProfile";
@@ -31,6 +37,12 @@ function Router() {
   return (
     <Switch>
       <Route path={"/"} component={Home} />
+      <Route path={"/pricing"} component={PricingPage} />
+      <Route path={"/features"} component={FeaturesPage} />
+      <Route path={"/terms"} component={Terms} />
+      <Route path={"/privacy"} component={Privacy} />
+      <Route path={"/billing"} component={Billing} />
+      <Route path={"/contact"} component={Contact} />
       <Route path={"/login"} component={Login} />
       <Route path={"/forgot-password"} component={ForgotPassword} />
       <Route path={"/reset-password"} component={ResetPassword} />

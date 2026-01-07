@@ -4,6 +4,8 @@ import { useAuth } from "@/_core/hooks/useAuth";
 import { trpc } from "@/lib/trpc";
 import { Loader2 } from "lucide-react";
 import { useTranslation } from "react-i18next";
+import { Button } from "@/components/ui/button";
+import { toast } from "sonner";
 
 interface AuthGuardProps {
   children: ReactNode;
@@ -22,6 +24,24 @@ export default function AuthGuard({ children }: AuthGuardProps) {
       refetchOnWindowFocus: false,
     }
   );
+
+  const checkoutMutation = trpc.billing.createCheckoutSession.useMutation({
+    onSuccess: (data) => {
+      if (data?.url) {
+        window.location.href = data.url;
+      }
+    },
+    onError: (error) => toast.error(error.message),
+  });
+
+  const portalMutation = trpc.billing.createPortalSession.useMutation({
+    onSuccess: (data) => {
+      if (data?.url) {
+        window.location.href = data.url;
+      }
+    },
+    onError: (error) => toast.error(error.message),
+  });
 
   useEffect(() => {
     // Si no está autenticado, redirigir a login
@@ -53,6 +73,33 @@ export default function AuthGuard({ children }: AuthGuardProps) {
   // (la redirección se maneja en useEffect)
   if (!user || !membership?.hasMembership) {
     return null;
+  }
+
+  if (membership.billing?.accessBlocked) {
+    const planTier = membership.billing.planTier ?? "starter";
+    const hasCustomer = Boolean(membership.organization?.stripeCustomerId);
+    const handleBilling = () => {
+      if (hasCustomer) {
+        portalMutation.mutate();
+        return;
+      }
+      checkoutMutation.mutate({ planTier });
+    };
+
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background px-4">
+        <div className="max-w-xl rounded-2xl border border-border bg-card p-8 text-center space-y-4">
+          <h1 className="text-2xl font-semibold">{t("billing.accessBlockedTitle")}</h1>
+          <p className="text-muted-foreground">{t("billing.accessBlockedDescription")}</p>
+          <Button
+            onClick={handleBilling}
+            disabled={checkoutMutation.isPending || portalMutation.isPending}
+          >
+            {t("billing.accessBlockedCta")}
+          </Button>
+        </div>
+      </div>
+    );
   }
 
   // Usuario autenticado y con organización: renderizar contenido

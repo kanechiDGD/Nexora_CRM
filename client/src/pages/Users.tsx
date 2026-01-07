@@ -59,6 +59,7 @@ export default function Users() {
   const [showInviteDialog, setShowInviteDialog] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [showResetDialog, setShowResetDialog] = useState(false);
+  const [showSeatDialog, setShowSeatDialog] = useState(false);
   const [selectedMember, setSelectedMember] = useState<any>(null);
   const [newPassword, setNewPassword] = useState("");
 
@@ -71,6 +72,7 @@ export default function Users() {
 
   const utils = trpc.useUtils();
   const { data: members, isLoading } = trpc.organizations.getMembers.useQuery();
+  const { data: membership } = trpc.organizations.checkMembership.useQuery();
   const invitesEnabled = import.meta.env.VITE_INVITES_ENABLED === "true";
   const { data: invites, isLoading: isInvitesLoading } = trpc.organizations.listInvites.useQuery(
     undefined,
@@ -109,6 +111,10 @@ export default function Users() {
       setNewUserRole("VENDEDOR");
     },
     onError: (error) => {
+      if (error.message === "SEAT_LIMIT_REACHED") {
+        setShowSeatDialog(true);
+        return;
+      }
       toast.error(error.message);
     },
   });
@@ -132,8 +138,31 @@ export default function Users() {
       setInviteRole("VENDEDOR");
     },
     onError: (error) => {
+      if (error.message === "SEAT_LIMIT_REACHED") {
+        setShowSeatDialog(true);
+        return;
+      }
       toast.error(error.message);
     },
+  });
+
+  const checkoutMutation = trpc.billing.createCheckoutSession.useMutation({
+    onSuccess: (data) => {
+      if (data?.url) {
+        window.location.href = data.url;
+      }
+    },
+    onError: (error) => toast.error(error.message),
+  });
+
+  const addSeatMutation = trpc.billing.addExtraSeat.useMutation({
+    onSuccess: () => {
+      toast.success(t("usersPage.seats.added"));
+      utils.organizations.checkMembership.invalidate();
+      utils.organizations.getMembers.invalidate();
+      setShowSeatDialog(false);
+    },
+    onError: (error) => toast.error(error.message),
   });
 
   const revokeInviteMutation = trpc.organizations.revokeInvite.useMutation({
@@ -161,6 +190,12 @@ export default function Users() {
       toast.error(t("usersPage.validation.completeAllFields"));
       return;
     }
+    const allowedSeats = membership?.billing?.allowedSeats ?? 0;
+    const memberCount = (members as OrgMember[] | undefined)?.length ?? 0;
+    if (allowedSeats > 0 && memberCount >= allowedSeats) {
+      setShowSeatDialog(true);
+      return;
+    }
     addMemberMutation.mutate({
       username: newUsername,
       password: newUserPassword,
@@ -179,7 +214,32 @@ export default function Users() {
       toast.error(t("usersPage.validation.completeAllFields"));
       return;
     }
+    const allowedSeats = membership?.billing?.allowedSeats ?? 0;
+    const memberCount = (members as OrgMember[] | undefined)?.length ?? 0;
+    if (allowedSeats > 0 && memberCount >= allowedSeats) {
+      setShowSeatDialog(true);
+      return;
+    }
     inviteMemberMutation.mutate({ email: inviteEmail, role: inviteRole });
+  };
+
+  const memberCount = (members as OrgMember[] | undefined)?.length ?? 0;
+  const allowedSeats = membership?.billing?.allowedSeats ?? 0;
+  const seatsRemaining = allowedSeats > 0 ? Math.max(0, allowedSeats - memberCount) : 0;
+  const planTier = membership?.billing?.planTier ?? "starter";
+  const hasSubscription = Boolean(membership?.organization?.stripeSubscriptionId);
+
+  const handlePurchaseSeat = () => {
+    if (hasSubscription) {
+      addSeatMutation.mutate();
+      return;
+    }
+    checkoutMutation.mutate({
+      planTier,
+      requestedSeats: memberCount + 1,
+      successPath: "/users?seat=success",
+      cancelPath: "/users?seat=cancel",
+    });
   };
 
   const getRoleBadge = (role: string) => {
@@ -230,6 +290,22 @@ export default function Users() {
             </Button>
           </div>
         </div>
+
+        {allowedSeats > 0 && (
+          <div className="rounded-2xl border border-border bg-card p-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <p className="text-sm font-medium">{t("usersPage.seats.title")}</p>
+              <p className="text-sm text-muted-foreground">
+                {t("usersPage.seats.used", { used: memberCount, total: allowedSeats })}
+              </p>
+            </div>
+            {seatsRemaining <= 0 && (
+              <Button variant="outline" onClick={() => setShowSeatDialog(true)}>
+                {t("usersPage.seats.addSeat")}
+              </Button>
+            )}
+          </div>
+        )}
 
         <Card>
           <CardHeader>
@@ -507,6 +583,36 @@ export default function Users() {
                   </>
                 ) : (
                   t("usersPage.actions.delete")
+                )}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* Dialog: Extra Seat */}
+        <Dialog open={showSeatDialog} onOpenChange={setShowSeatDialog}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>{t("usersPage.seats.upgradeTitle")}</DialogTitle>
+              <DialogDescription>
+                {t("usersPage.seats.upgradeDescription")}
+              </DialogDescription>
+            </DialogHeader>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setShowSeatDialog(false)}>
+                {t("usersPage.seats.cancel")}
+              </Button>
+              <Button
+                onClick={handlePurchaseSeat}
+                disabled={checkoutMutation.isPending || addSeatMutation.isPending}
+              >
+                {checkoutMutation.isPending || addSeatMutation.isPending ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    {t("usersPage.seats.processing")}
+                  </>
+                ) : (
+                  t("usersPage.seats.confirm")
                 )}
               </Button>
             </DialogFooter>

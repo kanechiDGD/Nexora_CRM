@@ -39,12 +39,12 @@ export default function Home() {
               />
             </div>
             <div className="flex flex-wrap items-center justify-end gap-2 md:gap-4">
-              <Link href="#pricing">
+              <Link href="/pricing">
                 <Button variant="ghost" className="h-9 px-3 text-sm">
                   {t('landing.nav.pricing')}
                 </Button>
               </Link>
-              <Link href="#features">
+              <Link href="/features">
                 <Button variant="ghost" className="h-9 px-3 text-sm">
                   {t('landing.nav.features')}
                 </Button>
@@ -83,7 +83,7 @@ export default function Home() {
               {t('landing.hero.subtitle')} <span className="text-primary font-semibold">{t('landing.hero.subtitleHighlight')}</span>.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <Link href="/onboarding">
+              <Link href="/onboarding?plan=starter">
                 <Button size="lg" className="text-lg px-8 shadow-xl shadow-primary/20 group w-full sm:w-auto">
                   {t('landing.hero.cta')}
                   <ChevronRight className="ml-2 h-5 w-5 group-hover:translate-x-1 transition-transform" />
@@ -365,7 +365,7 @@ export default function Home() {
                     <span className="text-sm">{t('landing.pricing.starter.features.support')}</span>
                   </li>
                 </ul>
-                <Link href="/onboarding">
+                <Link href="/onboarding?plan=starter">
                   <Button className="w-full" variant="outline">
                     {t('landing.pricing.starter.cta')}
                   </Button>
@@ -418,7 +418,7 @@ export default function Home() {
                     <span className="text-sm">{t('landing.pricing.professional.features.support')}</span>
                   </li>
                 </ul>
-                <Link href="/onboarding">
+                <Link href="/onboarding?plan=professional">
                   <Button className="w-full shadow-lg shadow-primary/20">
                     {t('landing.pricing.professional.cta')}
                   </Button>
@@ -468,7 +468,7 @@ export default function Home() {
                     <span className="text-sm">{t('landing.pricing.enterprise.features.sla')}</span>
                   </li>
                 </ul>
-                <Link href="/onboarding">
+                <Link href="/onboarding?plan=enterprise">
                   <Button className="w-full" variant="outline">
                     {t('landing.pricing.enterprise.cta')}
                   </Button>
@@ -571,27 +571,27 @@ export default function Home() {
             <div>
               <h4 className="font-semibold mb-4">{t('landing.footer.product.title')}</h4>
               <ul className="space-y-2 text-sm text-muted-foreground">
-                <li><Link href="#features"><a className="hover:text-foreground">{t('landing.footer.product.features')}</a></Link></li>
-                <li><Link href="#pricing"><a className="hover:text-foreground">{t('landing.footer.product.pricing')}</a></Link></li>
-                <li><a href="#" className="hover:text-foreground">{t('landing.footer.product.successStories')}</a></li>
-                <li><a href="#" className="hover:text-foreground">{t('landing.footer.product.roadmap')}</a></li>
+                <li><Link href="/features"><a className="hover:text-foreground">{t('landing.footer.product.features')}</a></Link></li>
+                <li><Link href="/pricing"><a className="hover:text-foreground">{t('landing.footer.product.pricing')}</a></Link></li>
+                <li><Link href="/contact"><a className="hover:text-foreground">{t('landing.footer.product.successStories')}</a></Link></li>
+                <li><Link href="/contact"><a className="hover:text-foreground">{t('landing.footer.product.roadmap')}</a></Link></li>
               </ul>
             </div>
             <div>
               <h4 className="font-semibold mb-4">{t('landing.footer.support.title')}</h4>
               <ul className="space-y-2 text-sm text-muted-foreground">
-                <li><a href="#" className="hover:text-foreground">{t('landing.footer.support.helpCenter')}</a></li>
-                <li><a href="#" className="hover:text-foreground">{t('landing.footer.support.documentation')}</a></li>
-                <li><a href="#" className="hover:text-foreground">{t('landing.footer.support.tutorials')}</a></li>
-                <li><a href="#" className="hover:text-foreground">{t('landing.footer.support.contact')}</a></li>
+                <li><Link href="/contact"><a className="hover:text-foreground">{t('landing.footer.support.helpCenter')}</a></Link></li>
+                <li><Link href="/contact"><a className="hover:text-foreground">{t('landing.footer.support.documentation')}</a></Link></li>
+                <li><Link href="/contact"><a className="hover:text-foreground">{t('landing.footer.support.tutorials')}</a></Link></li>
+                <li><Link href="/contact"><a className="hover:text-foreground">{t('landing.footer.support.contact')}</a></Link></li>
               </ul>
             </div>
             <div>
               <h4 className="font-semibold mb-4">{t('landing.footer.legal.title')}</h4>
               <ul className="space-y-2 text-sm text-muted-foreground">
-                <li><a href="#" className="hover:text-foreground">{t('landing.footer.legal.terms')}</a></li>
-                <li><a href="#" className="hover:text-foreground">{t('landing.footer.legal.privacy')}</a></li>
-                <li><a href="#" className="hover:text-foreground">{t('landing.footer.legal.security')}</a></li>
+                <li><Link href="/terms"><a className="hover:text-foreground">{t('landing.footer.legal.terms')}</a></Link></li>
+                <li><Link href="/privacy"><a className="hover:text-foreground">{t('landing.footer.legal.privacy')}</a></Link></li>
+                <li><Link href="/billing"><a className="hover:text-foreground">Billing</a></Link></li>
               </ul>
             </div>
           </div>

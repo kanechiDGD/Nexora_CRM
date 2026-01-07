@@ -373,7 +373,7 @@
         "badge": "MOST POPULAR",
         "features": {
           "clients": "Includes 5 users",
-          "storage": "$39 per extra user",
+        "storage": "$29 per extra user",
           "allStarter": "14-day free trial",
           "analytics": "Automation rules & workflows",
           "construction": "Email + Gmail tracking",
@@ -385,19 +385,19 @@
       "enterprise": {
         "name": "Enterprise",
         "description": "For large operations",
-        "price": "$799",
+        "price": "$499",
         "period": "/month",
         "users": "Includes 10 users",
         "features": {
           "clients": "Includes 10 users",
-          "storage": "$59 per extra user",
+        "storage": "$29 per extra user",
           "allPro": "14-day free trial",
           "onboarding": "Dedicated onboarding",
           "integrations": "Custom integrations",
           "support24": "Priority support",
           "sla": "Guaranteed SLA"
         },
-        "cta": "Contact Sales"
+        "cta": "Start Free Trial"
       },
       "allPlans": "All plans include 14 days free trial. No credit card required."
     },
@@ -445,6 +445,11 @@
       },
       "copyright": "All rights reserved."
     }
+  },
+  "billing": {
+    "accessBlockedTitle": "Add a payment method to continue",
+    "accessBlockedDescription": "Your free trial has ended. Add a payment method to restore access.",
+    "accessBlockedCta": "Add payment method"
   },
   "login": {
     "appTitle": "Nexora CRM",
@@ -1195,7 +1200,7 @@
     "createSuccess": "Organization created successfully!",
     "creating": "Creating...",
     "title": "Initial Setup",
-    "stepDescription": "Step {{step}} of 3 - Set up your organization",
+    "stepDescription": "Step {{step}} of 2 - Set up your organization",
     "authRequired": {
       "title": "Verify your account first",
       "description": "Please sign in with Google before creating your organization.",
@@ -1221,6 +1226,7 @@
       "orgNameRequired": "Please enter the organization name",
       "businessTypeRequired": "Please select a business type"
     },
+    "planLabel": "Selected plan",
     "toasts": {
       "credentialsCopied": "Credentials copied to clipboard",
       "csvDownloaded": "CSV downloaded"
@@ -1241,7 +1247,7 @@
       },
       "copyAll": "Copy All",
       "downloadCsv": "Download CSV",
-      "goToLogin": "Go to Login"
+      "goToLogin": "Continue to billing"
     },
     "businessTypes": {
       "publicAdjusters": "Public Adjusters",
@@ -1342,6 +1348,17 @@
     },
     "membersTitle": "Organization Members",
     "membersDescription": "List of all users with access to the system",
+    "seats": {
+      "title": "Seats",
+      "used": "{{used}} of {{total}} seats used",
+      "addSeat": "Add extra seat",
+      "upgradeTitle": "Add an extra seat",
+      "upgradeDescription": "You've reached your plan limit. Add another seat for $29/month.",
+      "confirm": "Add seat ($29/mo)",
+      "cancel": "Not now",
+      "processing": "Processing...",
+      "added": "Extra seat added"
+    },
     "table": {
       "user": "User",
       "role": "Role",

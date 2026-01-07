@@ -141,11 +141,11 @@ export default function Login() {
                   {t("login.heroEyebrow")}
                 </p>
                 <div className="relative inline-flex">
-                  <div className="absolute inset-0 rounded-full bg-blue-500/35 blur-3xl" aria-hidden="true" />
+                  <div className="absolute inset-0 rounded-full bg-blue-500/25 blur-3xl" aria-hidden="true" />
                   <img
                     src="/val-kira-logo.png"
                     alt={t("login.appTitle")}
-                    className="relative h-56 sm:h-64 md:h-80 w-auto drop-shadow-[0_0_28px_rgba(59,130,246,0.65)]"
+                    className="relative h-24 sm:h-28 md:h-32 w-auto max-w-[520px] drop-shadow-[0_0_20px_rgba(59,130,246,0.55)]"
                   />
                 </div>
                 <p className="text-sm sm:text-base text-slate-300 mt-2">

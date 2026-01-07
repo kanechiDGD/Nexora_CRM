@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
-import { Loader2, Building2, Users, CheckCircle2, Copy, Download } from "lucide-react";
+import { Loader2, Building2 } from "lucide-react";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { getGoogleLoginUrl } from "@/const";
 
@@ -22,34 +22,29 @@ const BUSINESS_TYPES = [
   { value: "Other", labelKey: "onboarding.businessTypes.other" },
 ];
 
-interface GeneratedUser {
-  username: string;
-  password: string;
-  role: string;
-}
-
 export default function OnboardingWizard() {
   const { t } = useTranslation();
   const [, setLocation] = useLocation();
   const { user, loading } = useAuth();
-  const [step, setStep] = useState(2); // Empezar en paso 2 (usuario ya está logueado)
+  const [step] = useState(2); // Empezar en paso 2 (usuario ya está logueado)
+  const initialPlan = (() => {
+    const value = new URLSearchParams(window.location.search).get("plan");
+    if (value === "professional" || value === "enterprise") {
+      return value;
+    }
+    return "starter";
+  })();
+  const [planTier] = useState<"starter" | "professional" | "enterprise">(initialPlan);
 
   // Step 2: Organization Info
   const [orgName, setOrgName] = useState("");
   const [businessType, setBusinessType] = useState("");
   const [logo, setLogo] = useState("");
 
-  // Step 3: Users
-  const [memberCount, setMemberCount] = useState(5);
-  const [generatedUsers, setGeneratedUsers] = useState<GeneratedUser[]>([]);
-  const [organizationId, setOrganizationId] = useState<number | null>(null);
-
   const createOrgMutation = trpc.organizations.create.useMutation({
     onSuccess: (data) => {
-      setOrganizationId(data.organizationId);
-      setGeneratedUsers(data.generatedUsers);
-      setStep(3);
       toast.success(t("onboarding.createSuccess"));
+      setLocation(`/billing?plan=${planTier}`);
     },
     onError: (error) => {
       toast.error(`Error: ${error.message}`);
@@ -70,37 +65,8 @@ export default function OnboardingWizard() {
       name: orgName,
       businessType,
       logo: logo || null,
-      memberCount,
+      planTier,
     });
-  };
-
-  const handleCopyCredentials = () => {
-    const text = generatedUsers
-      .map((u) => `${u.username} | ${u.password} | ${u.role}`)
-      .join("\n");
-    navigator.clipboard.writeText(text);
-    toast.success(t("onboarding.toasts.credentialsCopied"));
-  };
-
-  const handleDownloadCSV = () => {
-    const csv = [
-      "Username,Password,Role",
-      ...generatedUsers.map((u) => `${u.username},${u.password},${u.role}`),
-    ].join("\n");
-
-    const blob = new Blob([csv], { type: "text/csv" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `${orgName.toLowerCase().replace(/\s+/g, "-")}-usuarios.csv`;
-    a.click();
-    URL.revokeObjectURL(url);
-    toast.success(t("onboarding.toasts.csvDownloaded"));
-  };
-
-  const handleFinish = () => {
-    // Redirigir al login para que el usuario inicie sesión con sus credenciales
-    setLocation("/login");
   };
 
   if (loading) {
@@ -162,6 +128,9 @@ export default function OnboardingWizard() {
               </div>
 
               <div className="space-y-4">
+                <div className="rounded-lg border border-border bg-muted/40 px-4 py-3 text-sm text-muted-foreground">
+                  {t("onboarding.planLabel")}: <span className="font-medium text-foreground capitalize">{planTier}</span>
+                </div>
                 <div>
                   <Label htmlFor="orgName">{t("onboarding.orgInfo.orgNameLabel")}</Label>
                   <Input
@@ -203,21 +172,6 @@ export default function OnboardingWizard() {
                   </p>
                 </div>
 
-                <div>
-                  <Label htmlFor="memberCount">{t("onboarding.orgInfo.memberCountLabel")}</Label>
-                  <Input
-                    id="memberCount"
-                    type="number"
-                    min={1}
-                    max={20}
-                    value={memberCount}
-                    onChange={(e) => setMemberCount(parseInt(e.target.value) || 1)}
-                    className="mt-1"
-                  />
-                  <p className="text-xs text-muted-foreground mt-1">
-                    {t("onboarding.orgInfo.memberCountHint")}
-                  </p>
-                </div>
               </div>
 
               <div className="flex justify-between pt-4">
@@ -241,81 +195,6 @@ export default function OnboardingWizard() {
             </div>
           )}
 
-          {/* Step 3: Generated Users */}
-          {step === 3 && (
-            <div className="space-y-6">
-              <div className="flex items-center gap-3 mb-6">
-                <div className="w-12 h-12 rounded-full bg-green-100 dark:bg-green-900 flex items-center justify-center">
-                  <CheckCircle2 className="w-6 h-6 text-green-600 dark:text-green-400" />
-                </div>
-                <div>
-                  <h3 className="font-semibold text-lg">{t("onboarding.users.title")}</h3>
-                  <p className="text-sm text-muted-foreground">
-                    {t("onboarding.users.subtitle")}
-                  </p>
-                </div>
-              </div>
-
-              <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg p-4">
-                <p className="text-sm text-yellow-800 dark:text-yellow-200">
-                  <strong>{t("onboarding.users.importantLabel")}</strong> {t("onboarding.users.importantText")}
-                </p>
-              </div>
-
-              <div className="border rounded-lg overflow-hidden">
-                <table className="w-full">
-                  <thead className="bg-muted">
-                    <tr>
-                      <th className="text-left p-3 font-medium">{t("onboarding.users.table.user")}</th>
-                      <th className="text-left p-3 font-medium">{t("onboarding.users.table.password")}</th>
-                      <th className="text-left p-3 font-medium">{t("onboarding.users.table.role")}</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {generatedUsers.map((user, idx) => (
-                      <tr key={idx} className="border-t">
-                        <td className="p-3 font-mono text-sm">{user.username}</td>
-                        <td className="p-3 font-mono text-sm">{user.password}</td>
-                        <td className="p-3">
-                          <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${user.role === 'CO_ADMIN'
-                            ? 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200'
-                            : 'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-200'
-                            }`}>
-                            {user.role === 'CO_ADMIN' ? t("onboarding.users.roles.coAdmin") : t("onboarding.users.roles.seller")}
-                          </span>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-
-              <div className="flex gap-3">
-                <Button
-                  variant="outline"
-                  onClick={handleCopyCredentials}
-                  className="flex-1"
-                >
-                  <Copy className="w-4 h-4 mr-2" />
-                  {t("onboarding.users.copyAll")}
-                </Button>
-                <Button
-                  variant="outline"
-                  onClick={handleDownloadCSV}
-                  className="flex-1"
-                >
-                  <Download className="w-4 h-4 mr-2" />
-                  {t("onboarding.users.downloadCsv")}
-                </Button>
-              </div>
-
-              <div className="flex justify-end pt-4">
-                <Button onClick={handleFinish} size="lg">
-                  {t("onboarding.users.goToLogin")}
-                </Button>
-              </div>
-            </div>
-          )}
         </CardContent>
       </Card>
     </div>
