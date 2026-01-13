@@ -349,6 +349,13 @@ export async function getClientsWithUpcomingContact(organizationId: number, days
     );
 }
 
+export async function deleteAllClients(organizationId: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  const { and } = await import('drizzle-orm');
+  return await db.delete(clients).where(and(eq(clients.organizationId, organizationId)));
+}
+
 // ============ ACTIVITY LOGS ============
 
 export async function getActivityLogsByClientId(clientId: string, organizationId: number) {

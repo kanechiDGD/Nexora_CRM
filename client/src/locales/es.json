@@ -15,6 +15,51 @@
     "newClient": "Nuevo Cliente",
     "searchPlaceholder": "Buscar por nombre, email, teléfono o número de reclamo...",
     "noClientsFound": "No se encontraron clientes",
+    "import": {
+      "button": "Importar Excel/CSV",
+      "title": "Importar clientes",
+      "description": "Sube un archivo Excel (.xlsx/.xls) o CSV para agregar clientes en lote.",
+      "help": "Leemos la primera hoja y detectamos columnas por encabezado.",
+      "chooseFile": "Seleccionar archivo",
+      "headersTitle": "Encabezados requeridos",
+      "headers": "firstName, lastName (sin importar mayusculas). Opcionales: email, phone, propertyAddress, city, state, zipCode, insuranceCompany, claimNumber, claimStatus, notes, etc.",
+      "processing": "Procesando archivo...",
+      "success": "{{count}} clientes importados",
+      "partial": "{{count}} filas con problemas",
+      "error": "Error al importar: {{message}}",
+      "noRows": "No se encontraron filas en el archivo",
+      "errorsTitle": "Filas con problemas",
+      "errorRow": "Fila {{row}}: {{message}}",
+      "close": "Cerrar"
+    },
+    "deleteAll": {
+      "button": "Borrar todos",
+      "title": "Borrar todos los clientes",
+      "description": "Esto eliminara todos los clientes de tu organizacion. Esta accion no se puede deshacer.",
+      "cancel": "Cancelar",
+      "confirm": "Borrar todos",
+      "deleting": "Borrando...",
+      "success": "Todos los clientes fueron borrados",
+      "error": "Error al borrar: {{message}}"
+    },
+    "filters": {
+      "status": "Filtrar estado",
+      "statusAll": "Todos los estados",
+      "supplemented": "Filtrar suplementado",
+      "all": "Todos"
+    },
+    "menu": {
+      "sort": "Ordenar",
+      "filter": "Filtrar"
+    },
+    "sort": {
+      "name": "Nombre A-Z",
+      "insurance": "Aseguradora A-Z",
+      "status": "Estado A-Z",
+      "none": "Sin orden",
+      "asc": "A-Z",
+      "desc": "Z-A"
+    },
     "table": {
       "name": "Nombre",
       "contact": "Contacto",

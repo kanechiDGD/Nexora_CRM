@@ -15,6 +15,51 @@
     "newClient": "New Client",
     "searchPlaceholder": "Search by name, email, phone or claim number...",
     "noClientsFound": "No clients found",
+    "import": {
+      "button": "Import Excel/CSV",
+      "title": "Import clients",
+      "description": "Upload an Excel (.xlsx/.xls) or CSV file to add clients in bulk.",
+      "help": "We read the first sheet and match columns by header.",
+      "chooseFile": "Choose file",
+      "headersTitle": "Required headers",
+      "headers": "firstName, lastName (case-insensitive). Optional: email, phone, propertyAddress, city, state, zipCode, insuranceCompany, claimNumber, claimStatus, notes, etc.",
+      "processing": "Processing file...",
+      "success": "{{count}} clients imported",
+      "partial": "{{count}} rows need attention",
+      "error": "Import failed: {{message}}",
+      "noRows": "No rows found in the file",
+      "errorsTitle": "Rows with issues",
+      "errorRow": "Row {{row}}: {{message}}",
+      "close": "Close"
+    },
+    "deleteAll": {
+      "button": "Delete all",
+      "title": "Delete all clients",
+      "description": "This will remove every client in your organization. This action cannot be undone.",
+      "cancel": "Cancel",
+      "confirm": "Delete all",
+      "deleting": "Deleting...",
+      "success": "All clients deleted",
+      "error": "Delete failed: {{message}}"
+    },
+    "filters": {
+      "status": "Filter status",
+      "statusAll": "All statuses",
+      "supplemented": "Filter supplemented",
+      "all": "All"
+    },
+    "menu": {
+      "sort": "Sort",
+      "filter": "Filter"
+    },
+    "sort": {
+      "name": "Name A-Z",
+      "insurance": "Insurance A-Z",
+      "status": "Status A-Z",
+      "none": "No sort",
+      "asc": "A-Z",
+      "desc": "Z-A"
+    },
     "table": {
       "name": "Name",
       "contact": "Contact",

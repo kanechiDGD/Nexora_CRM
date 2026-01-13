@@ -121,6 +121,49 @@ const coAdminOrgProcedure = orgProcedure.use(({ ctx, next }) => {
   return next({ ctx });
 });
 
+const clientImportRowSchema = z.object({
+  rowNumber: z.number().optional(),
+  firstName: z.string().optional(),
+  lastName: z.string().optional(),
+  email: z.string().optional().nullable(),
+  phone: z.string().optional().nullable(),
+  alternatePhone: z.string().optional().nullable(),
+  propertyAddress: z.string().optional().nullable(),
+  city: z.string().optional().nullable(),
+  state: z.string().optional().nullable(),
+  zipCode: z.string().optional().nullable(),
+  propertyType: z.string().optional().nullable(),
+  insuranceCompany: z.string().optional().nullable(),
+  policyNumber: z.string().optional().nullable(),
+  claimNumber: z.string().optional().nullable(),
+  deductible: z.number().optional().nullable(),
+  coverageAmount: z.number().optional().nullable(),
+  claimStatus: z.string().optional().nullable(),
+  suplementado: z.enum(["si", "no"]).optional().nullable(),
+  primerCheque: z.enum(["OBTENIDO", "PENDIENTE"]).optional().nullable(),
+  dateOfLoss: z.date().optional().nullable(),
+  claimSubmittedDate: z.date().optional().nullable(),
+  scheduledVisit: z.date().optional().nullable(),
+  adjustmentDate: z.date().optional().nullable(),
+  lastContactDate: z.date().optional().nullable(),
+  nextContactDate: z.date().optional().nullable(),
+  salesPerson: z.string().optional().nullable(),
+  assignedAdjuster: z.string().optional().nullable(),
+  damageType: z.string().optional().nullable(),
+  damageDescription: z.string().optional().nullable(),
+  estimatedLoss: z.number().optional().nullable(),
+  insuranceEstimate: z.number().optional().nullable(),
+  firstCheckAmount: z.number().optional().nullable(),
+  actualPayout: z.number().optional().nullable(),
+  notes: z.string().optional().nullable(),
+  internalNotes: z.string().optional().nullable(),
+  constructionStatus: z.string().optional().nullable(),
+});
+
+const clientImportSchema = z.object({
+  rows: z.array(clientImportRowSchema).min(1).max(1000),
+});
+
 async function notifyOrganizationMembers(params: {
   organizationId: number;
   type: "EVENT" | "TASK" | "ACTIVITY" | "EMAIL";
@@ -413,6 +456,74 @@ export const appRouter = router({
             message: "Failed to create client",
           });
         }
+      }),
+
+    bulkImport: orgProcedure
+      .input(clientImportSchema)
+      .mutation(async ({ input, ctx }) => {
+        const errors: Array<{ row: number; message: string }> = [];
+        const createdIds: string[] = [];
+
+        for (let index = 0; index < input.rows.length; index += 1) {
+          const row = input.rows[index];
+          const rowNumber = row.rowNumber ?? index + 1;
+          const firstName = row.firstName?.trim() || "Unknown";
+          const lastName = row.lastName?.trim() || "Non";
+
+          const baseId = generateClientId(row.city || "", firstName, lastName);
+          let customId = baseId;
+          let suffix = 1;
+          while (await db.getClientById(customId, ctx.organizationId)) {
+            suffix += 1;
+            customId = `${baseId}-${suffix}`;
+            if (customId.length > 50) {
+              customId = `${baseId}-${Date.now().toString().slice(-4)}`;
+              break;
+            }
+          }
+
+          const { rowNumber: _rowNumber, ...clientData } = row;
+
+          try {
+            await db.createClient({
+              ...clientData,
+              firstName,
+              lastName,
+              id: customId,
+              organizationId: ctx.organizationId,
+              createdBy: ctx.user.id,
+              updatedBy: ctx.user.id,
+            });
+
+            await db.createAuditLog({
+              entityType: "CLIENT",
+              entityId: 0,
+              action: "CREATE",
+              performedBy: ctx.user.id,
+            });
+
+            createdIds.push(customId);
+          } catch (error) {
+            console.error("[Clients] Failed to import client", error);
+            errors.push({ row: rowNumber, message: "Failed to create client" });
+          }
+        }
+
+        return { created: createdIds.length, errors };
+      }),
+
+    deleteAll: coAdminOrgProcedure
+      .mutation(async ({ ctx }) => {
+        await db.deleteAllClients(ctx.organizationId);
+
+        await db.createAuditLog({
+          entityType: "CLIENT",
+          entityId: 0,
+          action: "DELETE",
+          performedBy: ctx.user.id,
+        });
+
+        return { success: true };
       }),
 
     update: orgProcedure
