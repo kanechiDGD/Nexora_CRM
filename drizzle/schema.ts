@@ -45,6 +45,8 @@ export const organizations = mysqlTable("organizations", {
   stripeExtraItemId: varchar("stripeExtraItemId", { length: 64 }),
   hasPaymentMethod: int("hasPaymentMethod").default(0).notNull(),
   extraSeats: int("extraSeats").default(0).notNull(),
+  billingCompedCode: varchar("billingCompedCode", { length: 64 }),
+  billingCompedAt: timestamp("billingCompedAt"),
   trialStartedAt: timestamp("trialStartedAt"),
   trialEndsAt: timestamp("trialEndsAt"),
   trialNotifiedAt: timestamp("trialNotifiedAt"),

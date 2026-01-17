@@ -494,7 +494,20 @@
   "billing": {
     "accessBlockedTitle": "Agrega un método de pago para continuar",
     "accessBlockedDescription": "Tu prueba gratis terminó. Agrega un método de pago para recuperar el acceso.",
-    "accessBlockedCta": "Agregar método de pago"
+    "accessBlockedCta": "Agregar método de pago",
+    "trialCountdownTitle": "Tu prueba gratis termina pronto",
+    "trialCountdownLabel": "Tu prueba gratis termina en {{days}} día(s). Agrega un método de pago para evitar interrupciones.",
+    "addPaymentMethod": "Agregar método de pago",
+    "noPaymentMethodLabel": "No hay método de pago registrado.",
+    "haveCoupon": "Tienes un cupón? Aplica aquí.",
+    "promoCodeLabel": "Código de cupón",
+    "promoCodePlaceholder": "Ingresa tu código de cupón",
+    "promoCodeHint": "Si tienes un cupón, aplícalo antes de iniciar la prueba.",
+    "startTrial": "Iniciar prueba gratis",
+    "applyCoupon": "Aplicar cupón",
+    "couponApplied": "Cupón aplicado. Los cobros quedan excluidos.",
+    "couponRequired": "Primero ingresa un código de cupón.",
+    "compedActive": "Cupón activo: esta organización está excluida de cobros."
   },
   "login": {
     "appTitle": "Nexora CRM",

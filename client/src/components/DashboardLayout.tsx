@@ -148,6 +148,17 @@ function DashboardLayoutContent({
   const { data: organization } = trpc.organizations.getMyOrganization.useQuery(undefined, {
     enabled: !!user,
   });
+  const { data: membership } = trpc.organizations.checkMembership.useQuery(undefined, {
+    enabled: !!user,
+    refetchOnWindowFocus: false,
+  });
+  const setupMutation = trpc.billing.createSetupSession.useMutation({
+    onSuccess: (data) => {
+      if (data?.url) {
+        window.location.href = data.url;
+      }
+    },
+  });
   const { data: notifications = [] } = trpc.notifications.list.useQuery(
     { limit: 200 },
     { enabled: !!user }
@@ -165,6 +176,18 @@ function DashboardLayoutContent({
     () => notifications.filter((notification: any) => !notification.readAt).length,
     [notifications]
   );
+  const isComped = membership?.billing?.isComped === true;
+  const trialDaysLeft = membership?.billing?.trialDaysLeft ?? null;
+  const showTrialCountdown = Boolean(
+    trialDaysLeft !== null &&
+      trialDaysLeft > 0 &&
+      !membership?.billing?.hasPaymentMethod &&
+      !isComped
+  );
+  const returnPath = `${location}${window.location.search || ""}`;
+  const handleAddPaymentMethod = () => {
+    setupMutation.mutate({ successPath: returnPath, cancelPath: returnPath });
+  };
 
   useEffect(() => {
     if (isCollapsed) {
@@ -283,6 +306,33 @@ function DashboardLayoutContent({
           </SidebarContent>
 
           <SidebarFooter className="p-3 space-y-2">
+            {showTrialCountdown && (
+              <div className="rounded-lg border border-border bg-card p-3 space-y-2">
+                <p className="text-xs font-medium text-foreground">
+                  {t("billing.trialCountdownTitle")}
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  {t("billing.trialCountdownLabel", { days: trialDaysLeft })}
+                </p>
+                <Button
+                  size="sm"
+                  className="w-full"
+                  onClick={handleAddPaymentMethod}
+                  disabled={setupMutation.isPending}
+                >
+                  {t("billing.addPaymentMethod")}
+                </Button>
+                <button
+                  type="button"
+                  className="text-[11px] text-muted-foreground underline underline-offset-2"
+                  onClick={() => {
+                    window.location.href = "/billing";
+                  }}
+                >
+                  {t("billing.haveCoupon")}
+                </button>
+              </div>
+            )}
             {/* Selector de Idioma */}
             <LanguageSelector />
 

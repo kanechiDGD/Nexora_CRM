@@ -54,6 +54,10 @@ export function isTrialActive(org: Organization | null): boolean {
   return Date.now() <= new Date(org.trialEndsAt).getTime();
 }
 
+export function isComped(org: Organization | null): boolean {
+  return Boolean(org?.billingCompedAt);
+}
+
 export function isSubscriptionActive(org: Organization | null): boolean {
   const status = org?.stripeSubscriptionStatus ?? "";
   return status === "active" || status === "trialing";
@@ -61,6 +65,7 @@ export function isSubscriptionActive(org: Organization | null): boolean {
 
 export function isAccessBlocked(org: Organization | null): boolean {
   if (!org) return false;
+  if (isComped(org)) return false;
   if (isSubscriptionActive(org)) return false;
   if (isTrialActive(org)) return false;
   return true;

@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { User, Mail, Calendar, Shield, Edit, Save, X, Upload } from "lucide-react";
 import DashboardLayout from "@/components/DashboardLayout";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { trpc } from "@/lib/trpc";
 import { toast } from "sonner";
 import { useTranslation } from "react-i18next";
@@ -28,6 +29,10 @@ export default function Profile() {
 
   const utils = trpc.useUtils();
   const { data: gmailStatus } = trpc.gmail.status.useQuery();
+  const { data: membership } = trpc.organizations.checkMembership.useQuery(undefined, {
+    enabled: !!user,
+    refetchOnWindowFocus: false,
+  });
   const disconnectGmail = trpc.gmail.disconnect.useMutation({
     onSuccess: () => {
       toast.success(t("profile.gmail.disconnected"));
@@ -137,10 +142,34 @@ export default function Profile() {
     // TODO: Implementar subida de foto a S3
     toast.info(t("profile.toasts.photoComingSoon"));
   };
+  const setupMutation = trpc.billing.createSetupSession.useMutation({
+    onSuccess: (data) => {
+      if (data?.url) {
+        window.location.href = data.url;
+      }
+    },
+    onError: (error) => toast.error(error.message),
+  });
 
   const handleGmailConnect = () => {
     const returnTo = window.location.pathname + window.location.search;
     window.location.href = `/api/gmail/connect?returnTo=${encodeURIComponent(returnTo)}`;
+  };
+
+  const hasPaymentMethod = membership?.billing?.hasPaymentMethod === true;
+  const isComped = membership?.billing?.isComped === true;
+  const trialDaysLeft = membership?.billing?.trialDaysLeft ?? null;
+  const showTrialCountdown = Boolean(
+    trialDaysLeft !== null &&
+      trialDaysLeft > 0 &&
+      !hasPaymentMethod &&
+      !isComped
+  );
+  const showNoPaymentMethod = Boolean(
+    membership?.hasMembership && !hasPaymentMethod && !isComped
+  );
+  const handleAddPaymentMethod = () => {
+    setupMutation.mutate({ successPath: "/profile", cancelPath: "/profile" });
   };
 
   return (
@@ -172,6 +201,38 @@ export default function Profile() {
             </div>
           )}
         </div>
+
+        {(showTrialCountdown || showNoPaymentMethod) && (
+          <Alert>
+            <Calendar className="h-4 w-4" />
+            <AlertTitle>{t("billing.trialCountdownTitle")}</AlertTitle>
+            <AlertDescription>
+              {showTrialCountdown && (
+                <p>{t("billing.trialCountdownLabel", { days: trialDaysLeft })}</p>
+              )}
+              {showNoPaymentMethod && (
+                <p>{t("billing.noPaymentMethodLabel")}</p>
+              )}
+              <Button
+                size="sm"
+                className="mt-2"
+                onClick={handleAddPaymentMethod}
+                disabled={setupMutation.isPending}
+              >
+                {t("billing.addPaymentMethod")}
+              </Button>
+              <button
+                type="button"
+                className="text-xs text-muted-foreground underline underline-offset-2 mt-2"
+                onClick={() => {
+                  window.location.href = "/billing";
+                }}
+              >
+                {t("billing.haveCoupon")}
+              </button>
+            </AlertDescription>
+          </Alert>
+        )}
 
         {/* Profile Photo */}
         <Card className="border-border">

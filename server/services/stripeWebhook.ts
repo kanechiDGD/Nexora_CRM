@@ -25,10 +25,34 @@ export async function handleStripeWebhook(payload: Buffer, signature: string | u
       const organizationId = Number(session.metadata?.organizationId || 0);
 
       if (organizationId && customerId) {
-        await db.updateOrganization(organizationId, {
+        const updates: Record<string, string | null> = {
           stripeCustomerId: customerId,
-          stripeSubscriptionId: subscriptionId ?? null,
-        });
+        };
+        if (session.mode === "subscription") {
+          updates.stripeSubscriptionId = subscriptionId ?? null;
+        }
+        await db.updateOrganization(organizationId, updates);
+      }
+
+      if (session.mode === "setup" && customerId) {
+        const setupIntentId =
+          typeof session.setup_intent === "string"
+            ? session.setup_intent
+            : session.setup_intent?.id;
+        if (setupIntentId) {
+          const setupIntent = await stripe.setupIntents.retrieve(setupIntentId);
+          const paymentMethodId =
+            typeof setupIntent.payment_method === "string"
+              ? setupIntent.payment_method
+              : setupIntent.payment_method?.id;
+          if (paymentMethodId) {
+            await stripe.customers.update(customerId, {
+              invoice_settings: {
+                default_payment_method: paymentMethodId,
+              },
+            });
+          }
+        }
       }
       break;
     }

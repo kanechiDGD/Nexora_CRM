@@ -26,4 +26,5 @@ export const ENV = {
   stripePriceProfessional: process.env.STRIPE_PRICE_PROFESSIONAL ?? "",
   stripePriceEnterprise: process.env.STRIPE_PRICE_ENTERPRISE ?? "",
   stripePriceExtraSeat: process.env.STRIPE_PRICE_EXTRA_SEAT ?? "",
+  billingCompedCode: process.env.BILLING_COMPED_CODE ?? "",
 };

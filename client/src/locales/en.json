@@ -494,7 +494,20 @@
   "billing": {
     "accessBlockedTitle": "Add a payment method to continue",
     "accessBlockedDescription": "Your free trial has ended. Add a payment method to restore access.",
-    "accessBlockedCta": "Add payment method"
+    "accessBlockedCta": "Add payment method",
+    "trialCountdownTitle": "Free trial ending soon",
+    "trialCountdownLabel": "Your free trial ends in {{days}} day(s). Add a payment method to avoid interruption.",
+    "addPaymentMethod": "Add payment method",
+    "noPaymentMethodLabel": "No payment method on file.",
+    "haveCoupon": "Have a coupon? Apply it here.",
+    "promoCodeLabel": "Promo code",
+    "promoCodePlaceholder": "Enter your coupon code",
+    "promoCodeHint": "Have a coupon? Apply it before starting the trial.",
+    "startTrial": "Start free trial",
+    "applyCoupon": "Apply coupon",
+    "couponApplied": "Coupon applied. Billing is now waived.",
+    "couponRequired": "Enter a coupon code first.",
+    "compedActive": "Coupon active: billing is waived for this organization."
   },
   "login": {
     "appTitle": "Nexora CRM",

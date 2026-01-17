@@ -1,23 +1,46 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import MarketingLayout from "@/components/MarketingLayout";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
+import { useTranslation } from "react-i18next";
 
 export default function Billing() {
+  const { t } = useTranslation();
   const { user } = useAuth();
+  const utils = trpc.useUtils();
   const { data: membership } = trpc.organizations.checkMembership.useQuery(undefined, {
     enabled: !!user,
     retry: false,
     refetchOnWindowFocus: false,
   });
+  const [promotionCode, setPromotionCode] = useState("");
 
   const checkoutMutation = trpc.billing.createCheckoutSession.useMutation({
     onSuccess: (data) => {
       if (data?.url) {
         window.location.href = data.url;
       }
+    },
+    onError: (error) => toast.error(error.message),
+  });
+
+  const setupMutation = trpc.billing.createSetupSession.useMutation({
+    onSuccess: (data) => {
+      if (data?.url) {
+        window.location.href = data.url;
+      }
+    },
+    onError: (error) => toast.error(error.message),
+  });
+
+  const applyCompedMutation = trpc.billing.applyCompedCode.useMutation({
+    onSuccess: () => {
+      toast.success(t("billing.couponApplied"));
+      utils.organizations.checkMembership.invalidate();
+      utils.billing.getStatus.invalidate();
     },
     onError: (error) => toast.error(error.message),
   });
@@ -40,11 +63,27 @@ export default function Billing() {
   const hasCustomer = Boolean(membership?.organization?.stripeCustomerId);
 
   const handleStartTrial = () => {
-    checkoutMutation.mutate({ planTier });
+    checkoutMutation.mutate({
+      planTier,
+      promotionCode: promotionCode.trim() || undefined,
+    });
   };
 
   const handleManageBilling = () => {
     portalMutation.mutate();
+  };
+
+  const handleAddPaymentMethod = () => {
+    setupMutation.mutate({ successPath: "/billing", cancelPath: "/billing" });
+  };
+
+  const handleApplyCoupon = () => {
+    const trimmed = promotionCode.trim();
+    if (!trimmed) {
+      toast.error(t("billing.couponRequired"));
+      return;
+    }
+    applyCompedMutation.mutate({ code: trimmed });
   };
 
   return (
@@ -61,12 +100,35 @@ export default function Billing() {
                 <p className="text-sm text-muted-foreground">
                   Start your 14-day free trial or manage billing details for your organization.
                 </p>
+                {membership?.billing?.isComped && (
+                  <div className="rounded-lg border border-border bg-muted/30 px-3 py-2 text-sm text-muted-foreground">
+                    {t("billing.compedActive")}
+                  </div>
+                )}
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">{t("billing.promoCodeLabel")}</label>
+                  <Input
+                    value={promotionCode}
+                    onChange={(event) => setPromotionCode(event.target.value)}
+                    placeholder={t("billing.promoCodePlaceholder")}
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    {t("billing.promoCodeHint")}
+                  </p>
+                </div>
                 <div className="flex flex-wrap gap-3">
                   <Button
                     onClick={handleStartTrial}
                     disabled={checkoutMutation.isPending}
                   >
-                    Start free trial
+                    {t("billing.startTrial")}
+                  </Button>
+                  <Button
+                    variant="outline"
+                    onClick={handleApplyCoupon}
+                    disabled={applyCompedMutation.isPending}
+                  >
+                    {t("billing.applyCoupon")}
                   </Button>
                   {hasCustomer && (
                     <Button
@@ -77,6 +139,13 @@ export default function Billing() {
                       Manage billing
                     </Button>
                   )}
+                  <Button
+                    variant="outline"
+                    onClick={handleAddPaymentMethod}
+                    disabled={setupMutation.isPending}
+                  >
+                    {t("billing.addPaymentMethod")}
+                  </Button>
                 </div>
               </div>
             ) : (

@@ -20,6 +20,7 @@ import {
   getAllowedSeats,
   getPlanConfig,
   getTrialDaysLeft,
+  isComped,
   isAccessBlocked
 } from "./utils/billing";
 
@@ -1853,8 +1854,40 @@ export const appRouter = router({
         allowedSeats,
         extraSeats: ctx.organization.extraSeats ?? 0,
         hasPaymentMethod: ctx.organization.hasPaymentMethod === 1,
+        isComped: isComped(ctx.organization),
+        billingCompedCode: ctx.organization.billingCompedCode ?? null,
       };
     }),
+
+    applyCompedCode: orgBillingProcedure
+      .input(z.object({
+        code: z.string().min(1).max(64),
+      }))
+      .mutation(async ({ input, ctx }) => {
+        const rawCode = input.code.trim();
+        if (!rawCode) {
+          throw new TRPCError({ code: "BAD_REQUEST", message: "Coupon code is required" });
+        }
+        const configuredCode = ENV.billingCompedCode.trim();
+        if (!configuredCode) {
+          throw new TRPCError({ code: "BAD_REQUEST", message: "Coupon code is not configured" });
+        }
+        if (rawCode.toLowerCase() !== configuredCode.toLowerCase()) {
+          throw new TRPCError({ code: "BAD_REQUEST", message: "Invalid coupon code" });
+        }
+
+        await db.updateOrganization(ctx.organizationId, {
+          billingCompedCode: rawCode,
+          billingCompedAt: new Date(),
+          planStatus: "comped",
+          stripeSubscriptionStatus: null,
+          trialStartedAt: null,
+          trialEndsAt: null,
+          trialNotifiedAt: null,
+        });
+
+        return { success: true };
+      }),
 
     createCheckoutSession: orgBillingProcedure
       .input(z.object({
@@ -1862,6 +1895,7 @@ export const appRouter = router({
         requestedSeats: z.number().min(1).optional(),
         successPath: z.string().optional(),
         cancelPath: z.string().optional(),
+        promotionCode: z.string().optional(),
       }))
       .mutation(async ({ input, ctx }) => {
         const selectedTier = (input.planTier ?? ctx.organization.planTier ?? "starter") as "starter" | "professional" | "enterprise";
@@ -1903,12 +1937,14 @@ export const appRouter = router({
           : undefined;
         const trialEnd = trialEndUnix && trialEndUnix > nowUnix ? trialEndUnix : undefined;
 
+        const trimmedPromotionCode = input.promotionCode?.trim();
         const session = await stripe.checkout.sessions.create({
           mode: "subscription",
           payment_method_collection: "if_required",
+          allow_promotion_codes: trimmedPromotionCode ? undefined : true,
           client_reference_id: String(ctx.organizationId),
           customer: ctx.organization.stripeCustomerId ?? undefined,
-          customer_email: ctx.user?.email ?? undefined,
+          customer_email: ctx.organization.stripeCustomerId ? undefined : ctx.user?.email ?? undefined,
           line_items: lineItems,
           metadata: {
             organizationId: String(ctx.organizationId),
@@ -1921,6 +1957,7 @@ export const appRouter = router({
             },
             trial_end: trialEnd,
           },
+          discounts: trimmedPromotionCode ? [{ promotion_code: trimmedPromotionCode }] : undefined,
           success_url: `${ENV.appBaseUrl}${input.successPath ?? "/dashboard"}`,
           cancel_url: `${ENV.appBaseUrl}${input.cancelPath ?? "/billing?status=cancel"}`,
         });
@@ -1937,6 +1974,39 @@ export const appRouter = router({
           customer: ctx.organization.stripeCustomerId,
           return_url: `${ENV.appBaseUrl}/billing`,
         });
+        return { url: session.url };
+      }),
+
+    createSetupSession: orgBillingProcedure
+      .input(z.object({
+        successPath: z.string().optional(),
+        cancelPath: z.string().optional(),
+      }))
+      .mutation(async ({ input, ctx }) => {
+        let customerId = ctx.organization.stripeCustomerId;
+        if (!customerId) {
+          const customer = await stripe.customers.create({
+            email: ctx.user?.email ?? undefined,
+            name: ctx.organization.name ?? undefined,
+            metadata: {
+              organizationId: String(ctx.organizationId),
+            },
+          });
+          customerId = customer.id;
+          await db.updateOrganization(ctx.organizationId, { stripeCustomerId: customerId });
+        }
+
+        const session = await stripe.checkout.sessions.create({
+          mode: "setup",
+          customer: customerId,
+          payment_method_types: ["card"],
+          metadata: {
+            organizationId: String(ctx.organizationId),
+          },
+          success_url: `${ENV.appBaseUrl}${input.successPath ?? "/billing?status=setup_success"}`,
+          cancel_url: `${ENV.appBaseUrl}${input.cancelPath ?? "/billing?status=setup_cancel"}`,
+        });
+
         return { url: session.url };
       }),
 
@@ -1991,6 +2061,7 @@ export const appRouter = router({
         trialDaysLeft <= 5 &&
         trialDaysLeft > 0 &&
         !organization.hasPaymentMethod &&
+        !isComped(organization) &&
         !organization.trialNotifiedAt
       ) {
         await notifyOrganizationMembers({
@@ -2016,6 +2087,8 @@ export const appRouter = router({
           allowedSeats,
           extraSeats: organization.extraSeats ?? 0,
           hasPaymentMethod: organization.hasPaymentMethod === 1,
+          isComped: isComped(organization),
+          billingCompedCode: organization.billingCompedCode ?? null,
         },
       };
     }),
