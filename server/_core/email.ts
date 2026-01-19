@@ -90,23 +90,52 @@ export function buildInviteEmail({
   invitedBy: string;
   inviteUrl: string;
 }) {
+  const year = new Date().getFullYear();
   return {
     subject: `Valkira CRM - Invitation from ${invitedBy} to join ${organizationName}`,
     html: `
-      <div style="font-family: Arial, Helvetica, sans-serif; color: #0f172a; line-height: 1.5;">
+      <div style="background: #F8FAFC; padding: 24px 0; font-family: Arial, Helvetica, sans-serif; color: #0F172A; line-height: 1.5;">
         <div style="display:none;max-height:0;overflow:hidden;">
-          Activate your account securely. If you did not expect this, you can ignore this email.
+          ${invitedBy} invited you to join ${organizationName}. Accept to activate your account.
         </div>
-        <p style="margin: 0 0 12px; font-size: 14px; color: #64748b;">Valkira CRM</p>
-        <h2 style="margin: 0 0 8px; font-size: 22px;">Invitation to join ${organizationName}</h2>
-        <p style="margin: 0 0 14px;">${invitedBy} invited you to join <strong>${organizationName}</strong> in Valkira CRM.</p>
-        <p style="margin: 0 0 18px;">If you recognize this invitation, accept it below to set your password.</p>
-        <p style="margin: 0 0 18px;">
-          <a href="${inviteUrl}" style="display: inline-block; padding: 12px 18px; background: #14b8a6; color: #0f172a; text-decoration: none; border-radius: 6px; font-weight: 600;">Accept invite</a>
-        </p>
-        <p style="margin: 0 0 18px; font-size: 12px; color: #64748b;">This invitation is intended for ${invitedBy}'s team at ${organizationName}.</p>
-        <p style="margin: 0 0 18px; font-size: 12px; color: #64748b;">If you did not expect this invitation, you can ignore this email.</p>
-        <p style="margin: 12px 0 0; font-size: 12px; color: #64748b;">Support: support@valkiracrm.com</p>
+        <div style="max-width: 600px; margin: 0 auto; background: #FFFFFF; border: 1px solid #E2E8F0; border-radius: 12px; padding: 24px;">
+          <p style="margin: 0 0 8px; font-size: 12px; color: #475569; font-weight: 700;">Valkira CRM</p>
+          <h2 style="margin: 0 0 10px; font-size: 22px; color: #0F172A; font-weight: 700;">
+            Invitation to join ${organizationName}
+          </h2>
+          <p style="margin: 0 0 6px; font-size: 14px; color: #0F172A;">
+            ${invitedBy} invited you to join ${organizationName} on Valkira CRM.
+          </p>
+          <p style="margin: 0 0 16px; font-size: 14px; color: #475569;">
+            To activate your account, accept the invitation using the button below.
+          </p>
+          <div style="text-align: center; margin: 0 0 10px;">
+            <a href="${inviteUrl}" style="display: inline-block; padding: 12px 18px; background: #0EA5A4; color: #FFFFFF; text-decoration: none; border-radius: 10px; font-weight: 700;">
+              Accept invitation
+            </a>
+          </div>
+          <p style="margin: 0 0 18px; font-size: 12px; color: #475569; text-align: center;">
+            If you did not request this, do not click.
+          </p>
+          <p style="margin: 0 0 6px; font-size: 12px; color: #475569;">
+            If the button does not work, open this link:
+          </p>
+          <p style="margin: 0 0 6px; font-size: 12px;">
+            <a href="https://www.valkiracrm.com/invite" style="color: #2563EB; text-decoration: none;">
+              https://www.valkiracrm.com/invite
+            </a>
+          </p>
+          <p style="margin: 0 0 18px; font-size: 12px; color: #475569;">
+            Then sign in and check your pending invitations.
+          </p>
+          <p style="margin: 0 0 18px; font-size: 12px; color: #475569;">
+            Did not expect this invitation? You can ignore this email. No account will be activated without your action.
+          </p>
+        </div>
+        <div style="max-width: 600px; margin: 18px auto 0; text-align: center; color: #64748B; font-size: 11px;">
+          <div>Support: support@valkiracrm.com</div>
+          <div>&copy; ${year} Valkira CRM</div>
+        </div>
       </div>
     `,
   };
