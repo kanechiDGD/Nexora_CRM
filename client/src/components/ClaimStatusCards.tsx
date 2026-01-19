@@ -1,7 +1,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { trpc } from "@/lib/trpc";
 import { FileText, Users } from "lucide-react";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import {
   Dialog,
   DialogContent,
@@ -15,7 +15,7 @@ import { Badge } from "@/components/ui/badge";
 import { useTranslation } from "react-i18next";
 
 export function ClaimStatusCards() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const [, setLocation] = useLocation();
   const [selectedStatus, setSelectedStatus] = useState<{
     status: string;
@@ -29,31 +29,120 @@ export function ClaimStatusCards() {
   // Obtener estados personalizados para obtener sus displayNames
   const { data: customStatuses = [] } = trpc.customClaimStatuses.list.useQuery();
 
-  // Función para obtener el nombre para mostrar de un estado
-  const getStatusDisplayName = (status: string) => {
-    // Check if it's a default status and translate it
-    const defaultStatuses = ["NO_SOMETIDA", "EN_PROCESO", "APROVADA", "RECHAZADA", "CERRADA"];
+  const normalizeKey = (value: string) =>
+    value
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, " ")
+      .trim();
+
+  const defaultStatuses = [
+    "NO_SOMETIDA",
+    "SOMETIDA",
+    "AJUSTACION_PROGRAMADA",
+    "AJUSTACION_TERMINADA",
+    "EN_PROCESO",
+    "APROVADA",
+    "RECHAZADA",
+    "CERRADA",
+  ];
+
+  const legacyStatusMap: Record<string, string> = {
+    construida: "CONSTRUIDA",
+    construction: "CONSTRUCTION",
+    liberado: "LIBERADO",
+    released: "LIBERADO",
+    reinspeccion: "REINSPECCION",
+    "reinspeccion no s": "REINSPECCION_NO_S",
+    "reinspeccion nos": "REINSPECCION_NO_S",
+    futuro: "FUTURO",
+    "con fecha de inspeccion": "CON_FECHA_DE_INSPECCION",
+    "inspection scheduled": "CON_FECHA_DE_INSPECCION",
+    negada: "NEGADA",
+    denied: "NEGADA",
+    appraisal: "APPRAISAL",
+    "scope pending": "SCOPE_PENDING",
+    "estimate sended to insurance": "ESTIMATE_SENDED_TO_INSURANCE",
+    "estimate sent to insurance": "ESTIMATE_SENDED_TO_INSURANCE",
+  };
+
+  const legacyStatusLabels: Record<string, { en: string; es: string }> = {
+    CONSTRUIDA: { en: "Constructed", es: "Construida" },
+    CONSTRUCTION: { en: "Construction", es: "Construccion" },
+    LIBERADO: { en: "Released", es: "Liberado" },
+    REINSPECCION: { en: "Reinspection", es: "Reinspeccion" },
+    REINSPECCION_NO_S: { en: "Reinspection No/S", es: "Reinspeccion No/S" },
+    FUTURO: { en: "Future", es: "Futuro" },
+    CON_FECHA_DE_INSPECCION: { en: "Inspection Scheduled", es: "Con Fecha De Inspeccion" },
+    NEGADA: { en: "Denied", es: "Negada" },
+    APPRAISAL: { en: "Appraisal", es: "Appraisal" },
+    SCOPE_PENDING: { en: "Scope Pending", es: "Scope Pending" },
+    ESTIMATE_SENDED_TO_INSURANCE: { en: "Estimate Sent to Insurance", es: "Estimate Sent to Insurance" },
+  };
+
+  const getStatusMeta = (status: string) => {
     if (defaultStatuses.includes(status)) {
-        return t(`dashboard.claimStatus.status.${status}`);
+      return {
+        key: `default:${status}`,
+        displayName: t(`dashboard.claimStatus.status.${status}`),
+      };
     }
-    
-    // Buscar en estados personalizados
+
     const customStatus = customStatuses.find((cs: any) => cs.name === status);
     if (customStatus) {
-      return customStatus.displayName;
+      return {
+        key: `custom:${customStatus.name}`,
+        displayName: customStatus.displayName,
+      };
     }
-    
-    // Fallback: formatear el nombre del estado
-    return status.replace(/_/g, ' ').toLowerCase()
-      .split(' ')
-      .map(word => word.charAt(0).toUpperCase() + word.slice(1))
-      .join(' ');
+
+    const normalized = normalizeKey(status);
+    const legacyKey = legacyStatusMap[normalized];
+    if (legacyKey && legacyStatusLabels[legacyKey]) {
+      const label = legacyStatusLabels[legacyKey];
+      return {
+        key: `legacy:${legacyKey}`,
+        displayName: i18n.language.startsWith("es") ? label.es : label.en,
+      };
+    }
+
+    return {
+      key: `raw:${normalized || status}`,
+      displayName: status
+        .replace(/_/g, " ")
+        .toLowerCase()
+        .split(" ")
+        .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+        .join(" "),
+    };
   };
+
+  const groupedStatusData = useMemo(() => {
+    const map = new Map<string, { status: string; displayName: string; count: number; clients: any[] }>();
+    statusData.forEach((statusInfo: any) => {
+      const meta = getStatusMeta(statusInfo.status);
+      const entry = map.get(meta.key);
+      if (!entry) {
+        map.set(meta.key, {
+          status: meta.key,
+          displayName: meta.displayName,
+          count: statusInfo.count || 0,
+          clients: statusInfo.clients || [],
+        });
+      } else {
+        entry.count += statusInfo.count || 0;
+        entry.clients = entry.clients.concat(statusInfo.clients || []);
+        entry.displayName = meta.displayName;
+      }
+    });
+    return Array.from(map.values());
+  }, [statusData, customStatuses, i18n.language, t]);
 
   const handleCardClick = (statusInfo: any) => {
     setSelectedStatus({
       status: statusInfo.status,
-      displayName: getStatusDisplayName(statusInfo.status),
+      displayName: statusInfo.displayName,
       clients: statusInfo.clients || [],
     });
   };
@@ -95,7 +184,7 @@ export function ClaimStatusCards() {
   return (
     <>
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-        {statusData.map((statusInfo: any) => (
+        {groupedStatusData.map((statusInfo: any) => (
           <Card
             key={statusInfo.status}
             className="cursor-pointer hover:shadow-lg transition-shadow"
@@ -103,7 +192,7 @@ export function ClaimStatusCards() {
           >
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">
-                {getStatusDisplayName(statusInfo.status)}
+                {statusInfo.displayName}
               </CardTitle>
               <FileText className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
