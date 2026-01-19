@@ -1407,17 +1407,22 @@
     },
     "membersTitle": "Miembros de la Organizaci?n",
     "membersDescription": "Lista de todos los usuarios con acceso al sistema",
-    "seats": {
-      "title": "Usuarios",
-      "used": "{{used}} de {{total}} usuarios usados",
-      "addSeat": "Agregar usuario extra",
-      "upgradeTitle": "Agregar usuario extra",
-      "upgradeDescription": "Alcanzaste el l?mite del plan. Agrega otro usuario por $29/mes.",
-      "confirm": "Agregar usuario ($29/mes)",
-      "cancel": "Ahora no",
-      "processing": "Procesando...",
-      "added": "Usuario extra agregado"
-    },
+      "seats": {
+        "title": "Usuarios",
+        "used": "{{used}} de {{total}} usuarios usados",
+        "addSeat": "Agregar usuario extra",
+        "upgradeTitle": "Agregar usuario extra",
+        "upgradeDescription": "Alcanzaste el l?mite del plan. Agrega otro usuario por $29/mes.",
+        "couponLabel": "Cup?n de invitaci?n",
+        "couponPlaceholder": "Ingresa el c?digo",
+        "couponApply": "Aplicar cup?n",
+        "couponApplied": "Cup?n aplicado. Usuario extra agregado",
+        "couponInvalid": "C?digo de cup?n inv?lido",
+        "confirm": "Agregar usuario ($29/mes)",
+        "cancel": "Ahora no",
+        "processing": "Procesando...",
+        "added": "Usuario extra agregado"
+      },
     "table": {
       "user": "Usuario",
       "role": "Rol",

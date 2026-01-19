@@ -1407,17 +1407,22 @@
     },
     "membersTitle": "Organization Members",
     "membersDescription": "List of all users with access to the system",
-    "seats": {
-      "title": "Seats",
-      "used": "{{used}} of {{total}} seats used",
-      "addSeat": "Add extra seat",
-      "upgradeTitle": "Add an extra seat",
-      "upgradeDescription": "You've reached your plan limit. Add another seat for $29/month.",
-      "confirm": "Add seat ($29/mo)",
-      "cancel": "Not now",
-      "processing": "Processing...",
-      "added": "Extra seat added"
-    },
+      "seats": {
+        "title": "Seats",
+        "used": "{{used}} of {{total}} seats used",
+        "addSeat": "Add extra seat",
+        "upgradeTitle": "Add an extra seat",
+        "upgradeDescription": "You've reached your plan limit. Add another seat for $29/month.",
+        "couponLabel": "Invitation coupon",
+        "couponPlaceholder": "Enter coupon code",
+        "couponApply": "Apply coupon",
+        "couponApplied": "Coupon applied. Extra seat added",
+        "couponInvalid": "Invalid coupon code",
+        "confirm": "Add seat ($29/mo)",
+        "cancel": "Not now",
+        "processing": "Processing...",
+        "added": "Extra seat added"
+      },
     "table": {
       "user": "User",
       "role": "Role",

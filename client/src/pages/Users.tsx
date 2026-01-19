@@ -60,6 +60,7 @@ export default function Users() {
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [showResetDialog, setShowResetDialog] = useState(false);
   const [showSeatDialog, setShowSeatDialog] = useState(false);
+  const [seatCoupon, setSeatCoupon] = useState("");
   const [selectedMember, setSelectedMember] = useState<any>(null);
   const [newPassword, setNewPassword] = useState("");
 
@@ -165,6 +166,19 @@ export default function Users() {
     onError: (error) => toast.error(error.message),
   });
 
+  const applySeatCouponMutation = trpc.billing.applySeatCoupon.useMutation({
+    onSuccess: () => {
+      toast.success(t("usersPage.seats.couponApplied"));
+      utils.organizations.checkMembership.invalidate();
+      utils.organizations.getMembers.invalidate();
+      setSeatCoupon("");
+      setShowSeatDialog(false);
+    },
+    onError: (error) => {
+      toast.error(error.message || t("usersPage.seats.couponInvalid"));
+    },
+  });
+
   const revokeInviteMutation = trpc.organizations.revokeInvite.useMutation({
     onSuccess: () => {
       toast.success(t("usersPage.toasts.inviteRevoked"));
@@ -254,6 +268,14 @@ export default function Users() {
       successPath: "/users?seat=success",
       cancelPath: "/users?seat=cancel",
     });
+  };
+
+  const handleApplySeatCoupon = () => {
+    if (!seatCoupon.trim()) {
+      toast.error(t("usersPage.seats.couponInvalid"));
+      return;
+    }
+    applySeatCouponMutation.mutate({ code: seatCoupon });
   };
 
   const getRoleBadge = (role: string) => {
@@ -629,19 +651,44 @@ export default function Users() {
         </Dialog>
 
         {/* Dialog: Extra Seat */}
-        <Dialog open={showSeatDialog} onOpenChange={setShowSeatDialog}>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>{t("usersPage.seats.upgradeTitle")}</DialogTitle>
-              <DialogDescription>
-                {t("usersPage.seats.upgradeDescription")}
-              </DialogDescription>
-            </DialogHeader>
-            <DialogFooter>
-              <Button variant="outline" onClick={() => setShowSeatDialog(false)}>
-                {t("usersPage.seats.cancel")}
-              </Button>
-              <Button
+          <Dialog open={showSeatDialog} onOpenChange={setShowSeatDialog}>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>{t("usersPage.seats.upgradeTitle")}</DialogTitle>
+                <DialogDescription>
+                  {t("usersPage.seats.upgradeDescription")}
+                </DialogDescription>
+              </DialogHeader>
+              <div className="space-y-3">
+                <div className="space-y-2">
+                  <Label htmlFor="seatCoupon">{t("usersPage.seats.couponLabel")}</Label>
+                  <Input
+                    id="seatCoupon"
+                    value={seatCoupon}
+                    onChange={(e) => setSeatCoupon(e.target.value)}
+                    placeholder={t("usersPage.seats.couponPlaceholder")}
+                  />
+                </div>
+                <Button
+                  variant="outline"
+                  onClick={handleApplySeatCoupon}
+                  disabled={applySeatCouponMutation.isPending}
+                >
+                  {applySeatCouponMutation.isPending ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      {t("usersPage.seats.processing")}
+                    </>
+                  ) : (
+                    t("usersPage.seats.couponApply")
+                  )}
+                </Button>
+              </div>
+              <DialogFooter>
+                <Button variant="outline" onClick={() => setShowSeatDialog(false)}>
+                  {t("usersPage.seats.cancel")}
+                </Button>
+                <Button
                 onClick={handlePurchaseSeat}
                 disabled={checkoutMutation.isPending || addSeatMutation.isPending}
               >

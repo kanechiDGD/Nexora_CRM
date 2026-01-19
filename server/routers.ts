@@ -2012,12 +2012,12 @@ export const appRouter = router({
         return { url: session.url };
       }),
 
-    createSetupSession: orgBillingProcedure
-      .input(z.object({
-        successPath: z.string().optional(),
-        cancelPath: z.string().optional(),
-      }))
-      .mutation(async ({ input, ctx }) => {
+      createSetupSession: orgBillingProcedure
+        .input(z.object({
+          successPath: z.string().optional(),
+          cancelPath: z.string().optional(),
+        }))
+        .mutation(async ({ input, ctx }) => {
         let customerId = ctx.organization.stripeCustomerId;
         if (!customerId) {
           const customer = await stripe.customers.create({
@@ -2042,11 +2042,25 @@ export const appRouter = router({
           cancel_url: `${ENV.appBaseUrl}${input.cancelPath ?? "/billing?status=setup_cancel"}`,
         });
 
-        return { url: session.url };
-      }),
+          return { url: session.url };
+        }),
 
-    addExtraSeat: orgBillingProcedure
-      .mutation(async ({ ctx }) => {
+      applySeatCoupon: orgBillingProcedure
+        .input(z.object({ code: z.string().min(1) }))
+        .mutation(async ({ input, ctx }) => {
+          const normalized = input.code.trim().toLowerCase();
+          if (normalized !== "tres") {
+            throw new TRPCError({ code: "BAD_REQUEST", message: "Invalid coupon code" });
+          }
+
+          const currentExtraSeats = ctx.organization.extraSeats ?? 0;
+          const newExtraSeats = currentExtraSeats + 1;
+          await db.updateOrganization(ctx.organizationId, { extraSeats: newExtraSeats });
+          return { extraSeats: newExtraSeats };
+        }),
+
+      addExtraSeat: orgBillingProcedure
+        .mutation(async ({ ctx }) => {
         if (!ctx.organization.stripeSubscriptionId) {
           throw new TRPCError({ code: "BAD_REQUEST", message: "Stripe subscription not found" });
         }
