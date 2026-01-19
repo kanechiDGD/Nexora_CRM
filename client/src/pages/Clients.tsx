@@ -35,6 +35,7 @@ import * as XLSX from "xlsx";
 import { useLocation, useSearch } from "wouter";
 import DashboardLayout from "@/components/DashboardLayout";
 import { useTranslation } from "react-i18next";
+import { getClaimStatusDisplayName } from "@/utils/claimStatus";
 
 type ImportError = { row: number; message: string };
 
@@ -457,33 +458,12 @@ export default function Clients() {
   });
   const { data: customStatuses = [] } = trpc.customClaimStatuses.list.useQuery();
 
-  const getStatusDisplayName = (status: string) => {
-    const defaultStatuses = [
-      "NO_SOMETIDA",
-      "SOMETIDA",
-      "AJUSTACION_PROGRAMADA",
-      "AJUSTACION_TERMINADA",
-      "EN_PROCESO",
-      "APROVADA",
-      "RECHAZADA",
-      "CERRADA",
-    ];
-    if (defaultStatuses.includes(status)) {
-      return t(`dashboard.claimStatus.status.${status}`);
-    }
-
-    const customStatus = customStatuses.find((cs: any) => cs.name === status);
-    if (customStatus?.displayName) {
-      return customStatus.displayName;
-    }
-
-    return status
-      .replace(/_/g, " ")
-      .toLowerCase()
-      .split(" ")
-      .map(word => word.charAt(0).toUpperCase() + word.slice(1))
-      .join(" ");
-  };
+  const getStatusDisplayName = (status: string) =>
+    getClaimStatusDisplayName(status, {
+      t,
+      language: i18n.language,
+      customStatuses,
+    });
 
   const statusOptions = useMemo(() => {
     const defaultStatuses = [

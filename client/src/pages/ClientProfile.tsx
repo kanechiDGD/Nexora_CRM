@@ -34,6 +34,7 @@ import { NewActivityDialog } from "@/components/NewActivityDialog";
 import { EditActivityDialog } from "@/components/EditActivityDialog";
 import { DeleteActivityDialog } from "@/components/DeleteActivityDialog";
 import { useTranslation } from "react-i18next";
+import { getClaimStatusDisplayName } from "@/utils/claimStatus";
 import { usePermissions } from "@/hooks/usePermissions";
 
 type ActivityLog = {
@@ -194,10 +195,14 @@ export default function ClientProfile() {
       RECHAZADA: { variant: "destructive", label: t("dashboard.claimStatus.status.RECHAZADA") },
       CERRADA: { variant: "outline", label: t("dashboard.claimStatus.status.CERRADA") },
     };
-    const customStatus = customClaimStatuses.find((cs: any) => cs.name === status);
+    const displayName = getClaimStatusDisplayName(status, {
+      t,
+      language: i18n.language,
+      customStatuses: customClaimStatuses,
+    });
     const config = variants[status] || {
       variant: "outline",
-      label: customStatus?.displayName || status,
+      label: displayName,
     };
     return <Badge variant={config.variant}>{config.label}</Badge>;
   };

@@ -13,6 +13,7 @@ import { Button } from "@/components/ui/button";
 import { useLocation } from "wouter";
 import { Badge } from "@/components/ui/badge";
 import { useTranslation } from "react-i18next";
+import { getClaimStatusMeta } from "@/utils/claimStatus";
 
 export function ClaimStatusCards() {
   const { t, i18n } = useTranslation();
@@ -29,99 +30,14 @@ export function ClaimStatusCards() {
   // Obtener estados personalizados para obtener sus displayNames
   const { data: customStatuses = [] } = trpc.customClaimStatuses.list.useQuery();
 
-  const normalizeKey = (value: string) =>
-    value
-      .normalize("NFD")
-      .replace(/[\u0300-\u036f]/g, "")
-      .toLowerCase()
-      .replace(/[^a-z0-9]+/g, " ")
-      .trim();
-
-  const defaultStatuses = [
-    "NO_SOMETIDA",
-    "SOMETIDA",
-    "AJUSTACION_PROGRAMADA",
-    "AJUSTACION_TERMINADA",
-    "EN_PROCESO",
-    "APROVADA",
-    "RECHAZADA",
-    "CERRADA",
-  ];
-
-  const legacyStatusMap: Record<string, string> = {
-    construida: "CONSTRUIDA",
-    construction: "CONSTRUCTION",
-    liberado: "LIBERADO",
-    released: "LIBERADO",
-    reinspeccion: "REINSPECCION",
-    "reinspeccion no s": "REINSPECCION_NO_S",
-    "reinspeccion nos": "REINSPECCION_NO_S",
-    futuro: "FUTURO",
-    "con fecha de inspeccion": "CON_FECHA_DE_INSPECCION",
-    "inspection scheduled": "CON_FECHA_DE_INSPECCION",
-    negada: "NEGADA",
-    denied: "NEGADA",
-    appraisal: "APPRAISAL",
-    "scope pending": "SCOPE_PENDING",
-    "estimate sended to insurance": "ESTIMATE_SENDED_TO_INSURANCE",
-    "estimate sent to insurance": "ESTIMATE_SENDED_TO_INSURANCE",
-  };
-
-  const legacyStatusLabels: Record<string, { en: string; es: string }> = {
-    CONSTRUIDA: { en: "Constructed", es: "Construida" },
-    CONSTRUCTION: { en: "Construction", es: "Construccion" },
-    LIBERADO: { en: "Released", es: "Liberado" },
-    REINSPECCION: { en: "Reinspection", es: "Reinspeccion" },
-    REINSPECCION_NO_S: { en: "Reinspection No/S", es: "Reinspeccion No/S" },
-    FUTURO: { en: "Future", es: "Futuro" },
-    CON_FECHA_DE_INSPECCION: { en: "Inspection Scheduled", es: "Con Fecha De Inspeccion" },
-    NEGADA: { en: "Denied", es: "Negada" },
-    APPRAISAL: { en: "Appraisal", es: "Appraisal" },
-    SCOPE_PENDING: { en: "Scope Pending", es: "Scope Pending" },
-    ESTIMATE_SENDED_TO_INSURANCE: { en: "Estimate Sent to Insurance", es: "Estimate Sent to Insurance" },
-  };
-
-  const getStatusMeta = (status: string) => {
-    if (defaultStatuses.includes(status)) {
-      return {
-        key: `default:${status}`,
-        displayName: t(`dashboard.claimStatus.status.${status}`),
-      };
-    }
-
-    const customStatus = customStatuses.find((cs: any) => cs.name === status);
-    if (customStatus) {
-      return {
-        key: `custom:${customStatus.name}`,
-        displayName: customStatus.displayName,
-      };
-    }
-
-    const normalized = normalizeKey(status);
-    const legacyKey = legacyStatusMap[normalized];
-    if (legacyKey && legacyStatusLabels[legacyKey]) {
-      const label = legacyStatusLabels[legacyKey];
-      return {
-        key: `legacy:${legacyKey}`,
-        displayName: i18n.language.startsWith("es") ? label.es : label.en,
-      };
-    }
-
-    return {
-      key: `raw:${normalized || status}`,
-      displayName: status
-        .replace(/_/g, " ")
-        .toLowerCase()
-        .split(" ")
-        .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
-        .join(" "),
-    };
-  };
-
   const groupedStatusData = useMemo(() => {
     const map = new Map<string, { status: string; displayName: string; count: number; clients: any[] }>();
     statusData.forEach((statusInfo: any) => {
-      const meta = getStatusMeta(statusInfo.status);
+      const meta = getClaimStatusMeta(statusInfo.status, {
+        t,
+        language: i18n.language,
+        customStatuses,
+      });
       const entry = map.get(meta.key);
       if (!entry) {
         map.set(meta.key, {
