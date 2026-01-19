@@ -17,6 +17,7 @@ export const ENV = {
   forgeApiKey: process.env.BUILT_IN_FORGE_API_KEY ?? "",
   resendApiKey: process.env.RESEND_API_KEY ?? "",
   emailFrom: process.env.EMAIL_FROM ?? "",
+  emailReplyTo: process.env.EMAIL_REPLY_TO ?? "",
   appBaseUrl: process.env.APP_BASE_URL ?? process.env.PUBLIC_APP_URL ?? "",
   inviteTokenHours: Number(process.env.INVITE_TOKEN_HOURS ?? 72),
   passwordResetTokenHours: Number(process.env.PASSWORD_RESET_TOKEN_HOURS ?? 2),

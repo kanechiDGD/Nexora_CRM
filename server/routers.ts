@@ -16,6 +16,7 @@ import { sdk } from "./_core/sdk";
 import { getGmailAccessToken, sendGmailMessage } from "./services/gmail";
 import { backfillGmailMessages } from "./services/gmailSync";
 import { stripe } from "./services/stripe";
+import type { InsertUser } from "../drizzle/schema";
 import {
   getAllowedSeats,
   getPlanConfig,
@@ -326,27 +327,61 @@ export const appRouter = router({
         return { success: true };
       }),
 
-    changePassword: protectedProcedure
-      .input(z.object({
-        currentPassword: z.string().min(1),
-        newPassword: z.string().min(8),
-      }))
-      .mutation(async ({ input, ctx }) => {
-        const member = await db.getOrganizationMemberByUserId(ctx.user.id);
-        if (!member?.password) {
-          throw new TRPCError({ code: "BAD_REQUEST", message: "User not found" });
-        }
+      changePassword: protectedProcedure
+        .input(z.object({
+          currentPassword: z.string().min(1),
+          newPassword: z.string().min(8),
+        }))
+        .mutation(async ({ input, ctx }) => {
+          const member = await db.getOrganizationMemberByUserId(ctx.user.id);
+          if (!member?.password) {
+            throw new TRPCError({ code: "BAD_REQUEST", message: "User not found" });
+          }
 
-        const isValid = await bcrypt.compare(input.currentPassword, member.password);
-        if (!isValid) {
-          throw new TRPCError({ code: "BAD_REQUEST", message: "Current password is incorrect" });
-        }
+          const isValid = await bcrypt.compare(input.currentPassword, member.password);
+          if (!isValid) {
+            throw new TRPCError({ code: "BAD_REQUEST", message: "Current password is incorrect" });
+          }
 
-        const passwordHash = await bcrypt.hash(input.newPassword, 10);
-        await db.updateOrganizationMember(member.id, { password: passwordHash });
-        return { success: true };
-      }),
-  }),
+          const passwordHash = await bcrypt.hash(input.newPassword, 10);
+          await db.updateOrganizationMember(member.id, { password: passwordHash });
+          return { success: true };
+        }),
+      updateProfile: protectedProcedure
+        .input(z.object({
+          name: z.string().min(1),
+          email: z.string().email().optional(),
+        }))
+        .mutation(async ({ input, ctx }) => {
+          const trimmedName = input.name.trim();
+          const trimmedEmail = input.email?.trim().toLowerCase();
+
+          if (!trimmedName) {
+            throw new TRPCError({ code: "BAD_REQUEST", message: "Name is required" });
+          }
+
+          if (trimmedEmail && trimmedEmail !== (ctx.user.email || "").toLowerCase()) {
+            const existingMember = await db.getOrganizationMemberByUsername(trimmedEmail);
+            if (existingMember && existingMember.userId !== ctx.user.id) {
+              throw new TRPCError({ code: "BAD_REQUEST", message: "Email already in use" });
+            }
+          }
+
+          const member = await db.getOrganizationMemberByUserId(ctx.user.id);
+          if (member && trimmedEmail && member.username !== trimmedEmail) {
+            await db.updateOrganizationMember(member.id, { username: trimmedEmail });
+          }
+
+          const updateData: Partial<InsertUser> = { name: trimmedName };
+          if (trimmedEmail !== undefined) {
+            updateData.email = trimmedEmail;
+          }
+
+          await db.updateUser(ctx.user.id, updateData);
+          const updated = await db.getUserById(ctx.user.id);
+          return updated ?? { ...ctx.user, ...updateData };
+        }),
+    }),
 
   // ============ CLIENTS ROUTER ============
   clients: router({
@@ -2216,15 +2251,23 @@ export const appRouter = router({
           }
         }
 
-        const existingInvite = await db.getOrganizationInviteByEmail(ctx.organizationId, input.email);
-        if (existingInvite && !existingInvite.acceptedAt && !existingInvite.revokedAt) {
-          throw new TRPCError({ code: "BAD_REQUEST", message: "Invite already sent" });
+      const token = generateToken(32);
+      const tokenHash = hashToken(token);
+      const expiresAt = new Date(Date.now() + ENV.inviteTokenHours * 60 * 60 * 1000);
+      const existingInvite = await db.getOrganizationInviteByEmail(ctx.organizationId, input.email);
+      if (existingInvite) {
+        if (existingInvite.acceptedAt) {
+          throw new TRPCError({ code: "BAD_REQUEST", message: "Invite already accepted" });
         }
-
-        const token = generateToken(32);
-        const tokenHash = hashToken(token);
-        const expiresAt = new Date(Date.now() + ENV.inviteTokenHours * 60 * 60 * 1000);
-
+        await db.updateOrganizationInvite(existingInvite.id, {
+          tokenHash,
+          expiresAt,
+          invitedBy: ctx.user.id,
+          role: input.role,
+          revokedAt: null,
+          createdAt: new Date(),
+        });
+      } else {
         await db.createOrganizationInvite({
           organizationId: ctx.organizationId,
           email: input.email,
@@ -2233,6 +2276,7 @@ export const appRouter = router({
           invitedBy: ctx.user.id,
           expiresAt,
         });
+      }
 
         const inviteUrl = `${ENV.appBaseUrl}/invite?token=${token}`;
         const email = buildInviteEmail({
@@ -2263,6 +2307,20 @@ export const appRouter = router({
           throw new TRPCError({ code: "NOT_FOUND", message: "Invite not found" });
         }
         await db.updateOrganizationInvite(invite.id, { revokedAt: new Date() });
+        return { success: true };
+      }),
+    deleteInvite: adminOrgProcedure
+      .input(z.object({ id: z.number() }))
+      .mutation(async ({ input, ctx }) => {
+        const invite = await db.getOrganizationInviteById(input.id);
+        if (!invite || invite.organizationId != ctx.organizationId) {
+          throw new TRPCError({ code: "NOT_FOUND", message: "Invite not found" });
+        }
+        const isExpired = invite.expiresAt && new Date(invite.expiresAt).getTime() < Date.now();
+        if (!invite.revokedAt && !isExpired) {
+          throw new TRPCError({ code: "BAD_REQUEST", message: "Only revoked or expired invites can be deleted" });
+        }
+        await db.deleteOrganizationInvite(invite.id);
         return { success: true };
       }),
 

@@ -181,6 +181,12 @@ export async function getUserById(id: number) {
   return result.length > 0 ? result[0] : undefined;
 }
 
+export async function updateUser(id: number, data: Partial<InsertUser>) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  await db.update(users).set(data).where(eq(users.id, id));
+}
+
 export async function getUserByEmail(email: string) {
   const db = await getDb();
   if (!db) {
@@ -1116,6 +1122,12 @@ export async function updateOrganizationInvite(id: number, data: Partial<InsertO
   const db = await getDb();
   if (!db) throw new Error("Database not available");
   await db.update(organizationInvites).set(data).where(eq(organizationInvites.id, id));
+}
+
+export async function deleteOrganizationInvite(id: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  await db.delete(organizationInvites).where(eq(organizationInvites.id, id));
 }
 
 // ==================== Password Reset Tokens ====================

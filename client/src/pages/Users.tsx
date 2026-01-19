@@ -29,7 +29,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Loader2, UserPlus, Trash2, KeyRound, AlertCircle, MailPlus, XCircle } from "lucide-react";
+import { Loader2, UserPlus, Trash2, KeyRound, AlertCircle, MailPlus, XCircle, RotateCcw } from "lucide-react";
 import { trpc } from "@/lib/trpc";
 import { toast } from "sonner";
 import { format } from "date-fns";
@@ -175,6 +175,16 @@ export default function Users() {
     },
   });
 
+  const deleteInviteMutation = trpc.organizations.deleteInvite.useMutation({
+    onSuccess: () => {
+      toast.success(t("usersPage.toasts.inviteDeleted"));
+      utils.organizations.listInvites.invalidate();
+    },
+    onError: (error) => {
+      toast.error(error.message);
+    },
+  });
+
   const handleRoleChange = (memberId: number, newRole: "ADMIN" | "CO_ADMIN" | "VENDEDOR") => {
     updateRoleMutation.mutate({ memberId, newRole });
   };
@@ -209,19 +219,23 @@ export default function Users() {
     }
   };
 
-  const handleInviteMember = () => {
-    if (!inviteEmail) {
-      toast.error(t("usersPage.validation.completeAllFields"));
-      return;
-    }
+    const handleInviteMember = () => {
+      if (!inviteEmail) {
+        toast.error(t("usersPage.validation.completeAllFields"));
+        return;
+      }
     const allowedSeats = membership?.billing?.allowedSeats ?? 0;
     const memberCount = (members as OrgMember[] | undefined)?.length ?? 0;
     if (allowedSeats > 0 && memberCount >= allowedSeats) {
       setShowSeatDialog(true);
       return;
     }
-    inviteMemberMutation.mutate({ email: inviteEmail, role: inviteRole });
-  };
+      inviteMemberMutation.mutate({ email: inviteEmail, role: inviteRole });
+    };
+
+    const handleResendInvite = (invite: OrgInvite) => {
+      inviteMemberMutation.mutate({ email: invite.email, role: invite.role });
+    };
 
   const memberCount = (members as OrgMember[] | undefined)?.length ?? 0;
   const allowedSeats = membership?.billing?.allowedSeats ?? 0;
@@ -411,6 +425,7 @@ export default function Users() {
                     {inviteRows.map((invite) => {
                       const isExpired = new Date(invite.expiresAt).getTime() < Date.now();
                       const canRevoke = !invite.acceptedAt && !invite.revokedAt && !isExpired;
+                      const canDelete = Boolean(invite.revokedAt) || isExpired;
                       return (
                         <TableRow key={invite.id}>
                           <TableCell className="font-medium">{invite.email}</TableCell>
@@ -419,15 +434,39 @@ export default function Users() {
                           <TableCell>
                             {format(new Date(invite.expiresAt), "dd/MM/yyyy", { locale: dateLocale })}
                           </TableCell>
-                          <TableCell className="text-right">
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              disabled={!canRevoke || revokeInviteMutation.isPending}
-                              onClick={() => revokeInviteMutation.mutate({ id: invite.id })}
-                            >
-                              <XCircle className="h-4 w-4" />
-                            </Button>
+                          <TableCell className="text-right space-x-2">
+                            {!invite.acceptedAt && (
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                disabled={inviteMemberMutation.isPending}
+                                onClick={() => handleResendInvite(invite)}
+                                title={t("usersPage.actions.sendInvite")}
+                              >
+                                <RotateCcw className="h-4 w-4" />
+                              </Button>
+                            )}
+                            {canRevoke ? (
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                disabled={revokeInviteMutation.isPending}
+                                onClick={() => revokeInviteMutation.mutate({ id: invite.id })}
+                                title={t("usersPage.invites.status.revoked")}
+                              >
+                                <XCircle className="h-4 w-4" />
+                              </Button>
+                            ) : canDelete ? (
+                              <Button
+                                variant="destructive"
+                                size="sm"
+                                disabled={deleteInviteMutation.isPending}
+                                onClick={() => deleteInviteMutation.mutate({ id: invite.id })}
+                                title={t("usersPage.actions.delete")}
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            ) : null}
                           </TableCell>
                         </TableRow>
                       );

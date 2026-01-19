@@ -230,6 +230,126 @@ const normalizePrimerCheque = (value: unknown): "OBTENIDO" | "PENDIENTE" | undef
   return undefined;
 };
 
+const normalizeLookupKey = (value: string) =>
+  value
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, " ")
+    .trim();
+
+const DEFAULT_CLAIM_STATUSES = new Set([
+  "NO_SOMETIDA",
+  "SOMETIDA",
+  "AJUSTACION_PROGRAMADA",
+  "AJUSTACION_TERMINADA",
+  "EN_PROCESO",
+  "APROVADA",
+  "RECHAZADA",
+  "CERRADA",
+]);
+
+const CLAIM_STATUS_MAP: Record<string, string> = {
+  "no sometida": "NO_SOMETIDA",
+  "no sometido": "NO_SOMETIDA",
+  "no presentada": "NO_SOMETIDA",
+  "no presentado": "NO_SOMETIDA",
+  "not submitted": "NO_SOMETIDA",
+  "not filed": "NO_SOMETIDA",
+  "unsubmitted": "NO_SOMETIDA",
+  sometida: "SOMETIDA",
+  sometido: "SOMETIDA",
+  presentada: "SOMETIDA",
+  presentado: "SOMETIDA",
+  submitted: "SOMETIDA",
+  filed: "SOMETIDA",
+  "ajustacion programada": "AJUSTACION_PROGRAMADA",
+  "ajuste programado": "AJUSTACION_PROGRAMADA",
+  "adjustment scheduled": "AJUSTACION_PROGRAMADA",
+  "scheduled adjustment": "AJUSTACION_PROGRAMADA",
+  "ajustacion terminada": "AJUSTACION_TERMINADA",
+  "ajuste terminado": "AJUSTACION_TERMINADA",
+  "ajuste completado": "AJUSTACION_TERMINADA",
+  "adjustment completed": "AJUSTACION_TERMINADA",
+  "adjustment done": "AJUSTACION_TERMINADA",
+  "en proceso": "EN_PROCESO",
+  "en progreso": "EN_PROCESO",
+  "in process": "EN_PROCESO",
+  "in progress": "EN_PROCESO",
+  aprobada: "APROVADA",
+  aprovado: "APROVADA",
+  aprobados: "APROVADA",
+  approved: "APROVADA",
+  rechazada: "RECHAZADA",
+  rechazado: "RECHAZADA",
+  denied: "RECHAZADA",
+  rejected: "RECHAZADA",
+  declined: "RECHAZADA",
+  cerrada: "CERRADA",
+  cerrado: "CERRADA",
+  closed: "CERRADA",
+};
+
+const CONSTRUCTION_STATUS_MAP: Record<string, string> = {
+  pendiente: "PENDING",
+  pending: "PENDING",
+  "en progreso": "IN_PROGRESS",
+  "en proceso": "IN_PROGRESS",
+  "in progress": "IN_PROGRESS",
+  completado: "COMPLETED",
+  completada: "COMPLETED",
+  terminado: "COMPLETED",
+  terminada: "COMPLETED",
+  completed: "COMPLETED",
+  done: "COMPLETED",
+  "en pausa": "ON_HOLD",
+  pausado: "ON_HOLD",
+  pausada: "ON_HOLD",
+  "en espera": "ON_HOLD",
+  "on hold": "ON_HOLD",
+  onhold: "ON_HOLD",
+  hold: "ON_HOLD",
+};
+
+const normalizeClaimStatus = (
+  value: unknown,
+  customStatuses: Array<{ name: string; displayName?: string | null }>
+) => {
+  if (typeof value !== "string") return undefined;
+  const trimmed = value.trim();
+  if (!trimmed) return undefined;
+  const normalized = normalizeLookupKey(trimmed);
+  if (!normalized) return undefined;
+
+  const directCode = normalized.replace(/\s+/g, "_").toUpperCase();
+  if (DEFAULT_CLAIM_STATUSES.has(directCode)) return directCode;
+
+  const mapped = CLAIM_STATUS_MAP[normalized];
+  if (mapped) return mapped;
+
+  const customMatch = customStatuses.find((status) => {
+    const nameKey = normalizeLookupKey(status.name);
+    const displayKey = status.displayName ? normalizeLookupKey(status.displayName) : "";
+    return normalized === nameKey || (displayKey && normalized === displayKey);
+  });
+  if (customMatch) return customMatch.name;
+
+  return trimmed;
+};
+
+const normalizeConstructionStatus = (value: unknown) => {
+  if (typeof value !== "string") return undefined;
+  const trimmed = value.trim();
+  if (!trimmed) return undefined;
+  const normalized = normalizeLookupKey(trimmed);
+  if (!normalized) return undefined;
+  const directCode = normalized.replace(/\s+/g, "_").toUpperCase();
+  if (["PENDING", "IN_PROGRESS", "COMPLETED", "ON_HOLD"].includes(directCode)) {
+    return directCode;
+  }
+  return CONSTRUCTION_STATUS_MAP[normalized] ?? trimmed;
+};
+
 const coerceImportValue = (field: keyof ClientImportRow, value: unknown) => {
   if (value === null || value === undefined) return undefined;
 
@@ -572,7 +692,18 @@ export default function Clients() {
         return;
       }
 
-      const result = await bulkImportMutation.mutateAsync({ rows: payloadRows });
+      const normalizedRows = payloadRows.map((row) => {
+        const next = { ...row };
+        if (next.claimStatus) {
+          next.claimStatus = normalizeClaimStatus(next.claimStatus, customStatuses);
+        }
+        if (next.constructionStatus) {
+          next.constructionStatus = normalizeConstructionStatus(next.constructionStatus);
+        }
+        return next;
+      });
+
+      const result = await bulkImportMutation.mutateAsync({ rows: normalizedRows });
 
       setImportSummary({ created: result.created, failed: result.errors.length });
       setImportErrors(result.errors);

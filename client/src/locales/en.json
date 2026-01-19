@@ -510,13 +510,13 @@
     "compedActive": "Coupon active: billing is waived for this organization."
   },
   "login": {
-    "appTitle": "Nexora CRM",
+    "appTitle": "Valkira CRM",
     "appSubtitle": "Claims + client operations for public adjusters",
     "welcome": "Welcome",
     "selectOption": "Select an option to continue",
     "loginExisting": "Log in with username",
     "loginExistingDesc": "Use your organization credentials",
-    "createNew": "New to Nexora CRM?",
+    "createNew": "New to Valkira CRM?",
     "createNewDesc": "Create your organization and invite your team.",
     "needHelp": "Need help? Contact your organization admin.",
     "loginTitle": "Log in with credentials",
@@ -1388,14 +1388,15 @@
       "sendInvite": "Send invite",
       "sending": "Sending..."
     },
-    "toasts": {
-      "roleUpdated": "Role updated successfully",
-      "memberDeleted": "Member deleted successfully",
-      "memberAdded": "Member added successfully",
-      "passwordReset": "Password reset successfully",
-      "inviteSent": "Invite sent",
-      "inviteRevoked": "Invite revoked"
-    },
+      "toasts": {
+        "roleUpdated": "Role updated successfully",
+        "memberDeleted": "Member deleted successfully",
+        "memberAdded": "Member added successfully",
+        "passwordReset": "Password reset successfully",
+        "inviteSent": "Invite sent",
+        "inviteRevoked": "Invite revoked",
+        "inviteDeleted": "Invite deleted"
+      },
     "validation": {
       "completeAllFields": "Please complete all fields"
     },
@@ -1567,6 +1568,7 @@
     },
     "toasts": {
       "passwordUpdated": "Password updated successfully",
+      "profileUpdated": "Profile updated successfully",
       "editComingSoon": "Editing is coming soon",
       "photoComingSoon": "Photo upload is coming soon"
     },
@@ -1663,7 +1665,7 @@
   },
   "invite": {
     "eyebrow": "Invitation",
-    "title": "Activate your Nexora CRM account",
+    "title": "Activate your Valkira CRM account",
     "subtitle": "Confirm your name and set a password to join your team.",
     "nameLabel": "Full name",
     "namePlaceholder": "Your name",

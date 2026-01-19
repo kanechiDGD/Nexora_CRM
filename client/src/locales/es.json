@@ -510,13 +510,13 @@
     "compedActive": "Cupón activo: esta organización está excluida de cobros."
   },
   "login": {
-    "appTitle": "Nexora CRM",
+    "appTitle": "Valkira CRM",
     "appSubtitle": "Operaciones de reclamos y clientes para ajustadores publicos",
     "welcome": "Bienvenido",
     "selectOption": "Selecciona una opción para continuar",
     "loginExisting": "Iniciar con usuario",
     "loginExistingDesc": "Usa tus credenciales de organizacion",
-    "createNew": "Nuevo en Nexora CRM?",
+    "createNew": "Nuevo en Valkira CRM?",
     "createNewDesc": "Crea tu organizacion e invita a tu equipo.",
     "needHelp": "Necesitas ayuda? Contacta al administrador.",
     "loginTitle": "Iniciar con credenciales",
@@ -1388,14 +1388,15 @@
       "sendInvite": "Enviar invitacion",
       "sending": "Enviando..."
     },
-    "toasts": {
-      "roleUpdated": "Rol actualizado correctamente",
-      "memberDeleted": "Miembro eliminado correctamente",
-      "memberAdded": "Miembro agregado correctamente",
-      "passwordReset": "Contrase?a reseteada correctamente",
-      "inviteSent": "Invitacion enviada",
-      "inviteRevoked": "Invitacion revocada"
-    },
+      "toasts": {
+        "roleUpdated": "Rol actualizado correctamente",
+        "memberDeleted": "Miembro eliminado correctamente",
+        "memberAdded": "Miembro agregado correctamente",
+        "passwordReset": "Contrase?a reseteada correctamente",
+        "inviteSent": "Invitacion enviada",
+        "inviteRevoked": "Invitacion revocada",
+        "inviteDeleted": "Invitacion eliminada"
+      },
     "validation": {
       "completeAllFields": "Por favor completa todos los campos"
     },
@@ -1567,6 +1568,7 @@
     },
     "toasts": {
       "passwordUpdated": "Contrase?a actualizada exitosamente",
+      "profileUpdated": "Perfil actualizado correctamente",
       "editComingSoon": "Funcionalidad de edici?n pr?ximamente disponible",
       "photoComingSoon": "Funcionalidad de cambio de foto pr?ximamente disponible"
     },
@@ -1663,7 +1665,7 @@
   },
   "invite": {
     "eyebrow": "Invitacion",
-    "title": "Activa tu cuenta de Nexora CRM",
+    "title": "Activa tu cuenta de Valkira CRM",
     "subtitle": "Confirma tu nombre y crea una contrasena para unirte.",
     "nameLabel": "Nombre completo",
     "namePlaceholder": "Tu nombre",

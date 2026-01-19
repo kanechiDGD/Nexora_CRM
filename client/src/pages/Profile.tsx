@@ -58,6 +58,17 @@ export default function Profile() {
     },
   });
 
+  const updateProfileMutation = trpc.auth.updateProfile.useMutation({
+    onSuccess: () => {
+      toast.success(t("profile.toasts.profileUpdated"));
+      utils.auth.me.invalidate();
+      setIsEditing(false);
+    },
+    onError: (error) => {
+      toast.error(error.message);
+    },
+  });
+
   const handleChangePassword = () => {
     if (!formData.currentPassword || !formData.newPassword || !formData.confirmPassword) {
       toast.error(t("profile.validation.completePasswordFields"));
@@ -115,16 +126,11 @@ export default function Profile() {
       return;
     }
 
-    // TODO: Implementar actualización cuando exista el endpoint
-    toast.info(t("profile.toasts.editComingSoon"));
-    setIsEditing(false);
-    
-    // updateProfile.mutate({
-    //   name: formData.name,
-    //   email: formData.email,
-    //   currentPassword: formData.currentPassword || undefined,
-    //   newPassword: formData.newPassword || undefined,
-    // });
+    const trimmedEmail = formData.email.trim();
+    updateProfileMutation.mutate({
+      name: formData.name.trim(),
+      ...(trimmedEmail ? { email: trimmedEmail } : {}),
+    });
   };
 
   const handleCancel = () => {
@@ -194,7 +200,7 @@ export default function Profile() {
                 <X className="h-4 w-4 mr-2" />
                 {t("profile.actions.cancel")}
               </Button>
-              <Button onClick={handleSave}>
+              <Button onClick={handleSave} disabled={updateProfileMutation.isPending}>
                 <Save className="h-4 w-4 mr-2" />
                 {t("profile.actions.save")}
               </Button>
