@@ -91,22 +91,22 @@ export function buildInviteEmail({
   inviteUrl: string;
 }) {
   return {
-    subject: `You have been invited to ${organizationName} on Valkira CRM`,
+    subject: `Valkira CRM - Invitation from ${invitedBy} to join ${organizationName}`,
     html: `
       <div style="font-family: Arial, Helvetica, sans-serif; color: #0f172a; line-height: 1.5;">
         <div style="display:none;max-height:0;overflow:hidden;">
-          You have been invited to ${organizationName} on Valkira CRM.
+          Activate your account securely. If you did not expect this, you can ignore this email.
         </div>
         <p style="margin: 0 0 12px; font-size: 14px; color: #64748b;">Valkira CRM</p>
-        <h2 style="margin: 0 0 8px; font-size: 22px;">You're invited</h2>
-        <p style="margin: 0 0 14px;">${invitedBy} invited you to join <strong>${organizationName}</strong>.</p>
-        <p style="margin: 0 0 18px;">Set your password to activate your account:</p>
+        <h2 style="margin: 0 0 8px; font-size: 22px;">Invitation to join ${organizationName}</h2>
+        <p style="margin: 0 0 14px;">${invitedBy} invited you to join <strong>${organizationName}</strong> in Valkira CRM.</p>
+        <p style="margin: 0 0 18px;">If you recognize this invitation, accept it below to set your password.</p>
         <p style="margin: 0 0 18px;">
           <a href="${inviteUrl}" style="display: inline-block; padding: 12px 18px; background: #14b8a6; color: #0f172a; text-decoration: none; border-radius: 6px; font-weight: 600;">Accept invite</a>
         </p>
-        <p style="margin: 0 0 8px; font-size: 12px; color: #64748b;">If the button does not work, copy and paste this link:</p>
-        <p style="margin: 0 0 18px; font-size: 12px; color: #0f172a;">${inviteUrl}</p>
-        <p style="margin: 0; font-size: 12px; color: #64748b;">If you did not expect this invitation, you can ignore this email.</p>
+        <p style="margin: 0 0 18px; font-size: 12px; color: #64748b;">This invitation is intended for ${invitedBy}'s team at ${organizationName}.</p>
+        <p style="margin: 0 0 18px; font-size: 12px; color: #64748b;">If you did not expect this invitation, you can ignore this email.</p>
+        <p style="margin: 12px 0 0; font-size: 12px; color: #64748b;">Support: support@valkiracrm.com</p>
       </div>
     `,
   };

@@ -2324,18 +2324,18 @@ export const appRouter = router({
         return { success: true };
       }),
 
-    acceptInvite: publicProcedure
-      .input(z.object({
-        token: z.string().min(10),
-        name: z.string().min(2),
-        password: z.string().min(8),
-      }))
-      .mutation(async ({ input }) => {
-        const tokenHash = hashToken(input.token);
-        const invite = await db.getOrganizationInviteByTokenHash(tokenHash);
-        if (!invite) {
-          throw new TRPCError({ code: "BAD_REQUEST", message: "Invalid or expired invite" });
-        }
+      acceptInvite: publicProcedure
+        .input(z.object({
+          token: z.string().min(10),
+          name: z.string().min(2),
+          password: z.string().min(8),
+        }))
+        .mutation(async ({ input, ctx }) => {
+          const tokenHash = hashToken(input.token);
+          const invite = await db.getOrganizationInviteByTokenHash(tokenHash);
+          if (!invite) {
+            throw new TRPCError({ code: "BAD_REQUEST", message: "Invalid or expired invite" });
+          }
 
         if (invite.revokedAt || invite.acceptedAt) {
           throw new TRPCError({ code: "BAD_REQUEST", message: "Invite already used" });
@@ -2386,17 +2386,23 @@ export const appRouter = router({
         }
 
         const passwordHash = await bcrypt.hash(input.password, 10);
-        await db.createOrganizationMember({
-          organizationId: invite.organizationId,
-          userId: user.id,
-          role: invite.role,
-          username,
-          password: passwordHash,
-        });
+          await db.createOrganizationMember({
+            organizationId: invite.organizationId,
+            userId: user.id,
+            role: invite.role,
+            username,
+            password: passwordHash,
+          });
 
-        await db.updateOrganizationInvite(invite.id, { acceptedAt: new Date() });
-        return { success: true };
-      }),
+          await db.updateOrganizationInvite(invite.id, { acceptedAt: new Date() });
+          const sessionToken = await sdk.createSessionToken(user.openId, {
+            name: user.name || input.name || "",
+            expiresInMs: ONE_YEAR_MS,
+          });
+          const cookieOptions = getSessionCookieOptions(ctx.req);
+          ctx.res.cookie(COOKIE_NAME, sessionToken, { ...cookieOptions, maxAge: ONE_YEAR_MS });
+          return { success: true };
+        }),
 
     // Obtener mi organización
     getMyOrganization: orgProcedure.query(async ({ ctx }) => {

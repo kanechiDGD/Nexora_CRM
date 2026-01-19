@@ -26,6 +26,9 @@ export default function AcceptInvite() {
     onSuccess: () => {
       setSubmitted(true);
       setError("");
+      setTimeout(() => {
+        window.location.href = "/dashboard";
+      }, 400);
     },
     onError: (err) => {
       setError(err.message);
