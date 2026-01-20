@@ -263,9 +263,12 @@ export const constructionProjects = mysqlTable("constructionProjects", {
   actualCompletionDate: timestamp("actualCompletionDate"),
 
   // Estado y costos
-  projectStatus: mysqlEnum("projectStatus", ["PLANIFICACION", "EN_PROGRESO", "PAUSADO", "COMPLETADO", "CANCELADO"]).default("PLANIFICACION"),
+  projectStatus: mysqlEnum("projectStatus", ["PLANIFICACION", "EN_PROGRESO", "PAUSADO", "SCHEDULED", "COMPLETADO", "CANCELADO"]).default("PLANIFICACION"),
+  formStatus: mysqlEnum("formStatus", ["DRAFT", "READY"]).default("DRAFT"),
   estimatedCost: int("estimatedCost"),
   actualCost: int("actualCost"),
+  materialsOrdered: int("materialsOrdered").default(0),
+  crewAssigned: int("crewAssigned").default(0),
 
   // Contratistas y equipo
   contractor: varchar("contractor", { length: 200 }),
@@ -274,6 +277,13 @@ export const constructionProjects = mysqlTable("constructionProjects", {
   // Notas
   notes: text("notes"),
   specialRequirements: text("specialRequirements"),
+  scopeItems: text("scopeItems"),
+  scopeOther: text("scopeOther"),
+  roofDetails: text("roofDetails"),
+  exteriorDetails: text("exteriorDetails"),
+  interiorDetails: text("interiorDetails"),
+  materialOrderItems: text("materialOrderItems"),
+  materialOrderNotes: text("materialOrderNotes"),
 
   // Multi-tenant
   organizationId: int("organizationId").notNull(),
@@ -304,6 +314,8 @@ export const documents = mysqlTable("documents", {
     "ESTIMADO",
     "ESTIMADO_ASEGURANZA",
     "ESTIMADO_NUESTRO",
+    "MATERIAL_ORDER",
+    "CREW_REPORT",
     "FACTURA",
     "PERMISO",
     "OTRO",

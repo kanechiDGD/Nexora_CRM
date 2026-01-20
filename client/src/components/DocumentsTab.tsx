@@ -219,6 +219,8 @@ export default function DocumentsTab({ clientId }: DocumentsTabProps) {
             ESTIMADO: { label: t('documents.types.estimate'), variant: "default" },
             ESTIMADO_ASEGURANZA: { label: t('documents.types.insuranceEstimate'), variant: "default" },
             ESTIMADO_NUESTRO: { label: t('documents.types.ourEstimate'), variant: "secondary" },
+            MATERIAL_ORDER: { label: t('documents.types.materialOrder'), variant: "secondary" },
+            CREW_REPORT: { label: t('documents.types.crewReport'), variant: "secondary" },
             FACTURA: { label: t('documents.types.invoice'), variant: "secondary" },
             PERMISO: { label: t('documents.types.permit'), variant: "outline" },
             OTRO: { label: t('documents.types.other'), variant: "outline" },
@@ -252,6 +254,8 @@ export default function DocumentsTab({ clientId }: DocumentsTabProps) {
                                         <SelectItem value="POLIZA">{t('documents.types.policy')}</SelectItem>
                                         <SelectItem value="ESTIMADO_ASEGURANZA">{t('documents.types.insuranceEstimate')}</SelectItem>
                                         <SelectItem value="ESTIMADO_NUESTRO">{t('documents.types.ourEstimate')}</SelectItem>
+                                        <SelectItem value="MATERIAL_ORDER">{t('documents.types.materialOrder')}</SelectItem>
+                                        <SelectItem value="CREW_REPORT">{t('documents.types.crewReport')}</SelectItem>
                                         <SelectItem value="CONTRATO">{t('documents.types.contract')}</SelectItem>
                                         <SelectItem value="FOTO">{t('documents.types.photo')}</SelectItem>
                                         <SelectItem value="FACTURA">{t('documents.types.invoice')}</SelectItem>
@@ -342,6 +346,8 @@ export default function DocumentsTab({ clientId }: DocumentsTabProps) {
                                                     <SelectItem value="POLIZA">{t('documents.types.policy')}</SelectItem>
                                                     <SelectItem value="ESTIMADO_ASEGURANZA">{t('documents.types.insuranceEstimate')}</SelectItem>
                                                     <SelectItem value="ESTIMADO_NUESTRO">{t('documents.types.ourEstimate')}</SelectItem>
+                                                    <SelectItem value="MATERIAL_ORDER">{t('documents.types.materialOrder')}</SelectItem>
+                                                    <SelectItem value="CREW_REPORT">{t('documents.types.crewReport')}</SelectItem>
                                                     <SelectItem value="CONTRATO">{t('documents.types.contract')}</SelectItem>
                                                     <SelectItem value="FOTO">{t('documents.types.photo')}</SelectItem>
                                                     <SelectItem value="FACTURA">{t('documents.types.invoice')}</SelectItem>

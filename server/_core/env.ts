@@ -15,6 +15,8 @@ export const ENV = {
   isProduction: process.env.NODE_ENV === "production",
   forgeApiUrl: process.env.BUILT_IN_FORGE_API_URL ?? "",
   forgeApiKey: process.env.BUILT_IN_FORGE_API_KEY ?? "",
+  groqApiKey: process.env.GROQ_API_KEY ?? "",
+  groqModel: process.env.GROQ_MODEL ?? "llama-3.1-70b-versatile",
   resendApiKey: process.env.RESEND_API_KEY ?? "",
   emailFrom: process.env.EMAIL_FROM ?? "",
   emailReplyTo: process.env.EMAIL_REPLY_TO ?? "",

@@ -16,6 +16,10 @@ import { sdk } from "./_core/sdk";
 import { getGmailAccessToken, sendGmailMessage } from "./services/gmail";
 import { backfillGmailMessages } from "./services/gmailSync";
 import { stripe } from "./services/stripe";
+import { storagePut } from "./storage";
+import { generateMaterialOrderPdf } from "./utils/materialOrderPdf";
+import { generateCrewReportPdf } from "./utils/crewReportPdf";
+import { extractEstimateWithOpenAI } from "./utils/openaiEstimate";
 import type { InsertUser } from "../drizzle/schema";
 import {
   getAllowedSeats,
@@ -231,6 +235,51 @@ async function selectRoleAssignee(roleId: number, organizationId: number) {
   return primary?.userId ?? members[0].userId ?? null;
 }
 
+function serializeJsonField(value: unknown) {
+  if (value === undefined) return undefined;
+  if (value === null) return null;
+  return JSON.stringify(value);
+}
+
+function normalizeConstructionPayload<T extends Record<string, any>>(payload: T) {
+  const data: Record<string, any> = { ...payload };
+
+  if ("materialsOrdered" in payload) {
+    data.materialsOrdered = payload.materialsOrdered ? 1 : 0;
+  }
+  if ("crewAssigned" in payload) {
+    data.crewAssigned = payload.crewAssigned ? 1 : 0;
+  }
+  if ("scopeItems" in payload) {
+    data.scopeItems = serializeJsonField(payload.scopeItems);
+  }
+  if ("roofDetails" in payload) {
+    data.roofDetails = serializeJsonField(payload.roofDetails);
+  }
+  if ("exteriorDetails" in payload) {
+    data.exteriorDetails = serializeJsonField(payload.exteriorDetails);
+  }
+  if ("interiorDetails" in payload) {
+    data.interiorDetails = serializeJsonField(payload.interiorDetails);
+  }
+  if ("materialOrderItems" in payload) {
+    data.materialOrderItems = serializeJsonField(payload.materialOrderItems);
+  }
+
+  return data;
+}
+
+async function extractEstimateTextFromPdf(url: string) {
+  const response = await fetch(url);
+  if (!response.ok) {
+    throw new Error(`Failed to fetch estimate PDF: ${response.status}`);
+  }
+  const buffer = Buffer.from(await response.arrayBuffer());
+  const pdfParse = (await import("pdf-parse")).default as any;
+  const result = await pdfParse(buffer);
+  const text = (result?.text || "").replace(/\s+/g, " ").trim();
+  return text.slice(0, 12000);
+}
  
 
 export const appRouter = router({
@@ -1207,6 +1256,75 @@ export const appRouter = router({
         return await db.searchConstructionProjectsByName(input.searchTerm, ctx.organizationId);
       }),
 
+    generateScopeFromEstimate: orgProcedure
+      .input(z.object({
+        projectId: z.number(),
+      }))
+      .mutation(async ({ input, ctx }) => {
+        const project = await db.getConstructionProjectById(input.projectId, ctx.organizationId);
+        if (!project || !project.clientId) {
+          throw new TRPCError({ code: "NOT_FOUND", message: "Proyecto o cliente no encontrado" });
+        }
+
+        const documents = await db.getDocumentsByClientId(project.clientId, ctx.organizationId);
+        const estimate = documents.find((doc: any) => doc.documentType === "ESTIMADO_NUESTRO");
+        if (!estimate?.fileUrl) {
+          throw new TRPCError({ code: "NOT_FOUND", message: "Estimado nuestro no encontrado" });
+        }
+
+        const text = await extractEstimateTextFromPdf(estimate.fileUrl);
+        if (!text) {
+          throw new TRPCError({ code: "BAD_REQUEST", message: "No se pudo extraer texto del PDF" });
+        }
+
+        const extracted = await extractEstimateWithOpenAI(text);
+
+        const scopeItems = extracted.scopeItems ?? [];
+        const scopeOther = extracted.scopeOther ?? null;
+        const roof = extracted.roof ?? {};
+        const materials = extracted.materials ?? [];
+
+        const roofDetails = {
+          layers: roof.layers ?? null,
+          pitch: roof.pitch ?? null,
+          chimneyCount: roof.chimneyCount ?? null,
+          skylightCount: roof.skylightCount ?? null,
+          starterFeet: roof.starterFeet ?? null,
+          gutterApronFeet: roof.gutterApronFeet ?? null,
+          dripEdgeFeet: roof.dripEdgeFeet ?? null,
+          flashingFeet: roof.flashingFeet ?? null,
+          flashingNeeded: roof.flashingNeeded ?? null,
+          bootCount: roof.bootCount ?? null,
+          electricBootCount: roof.electricBootCount ?? null,
+          kitchenVentCount: roof.kitchenVentCount ?? null,
+          ventType: roof.ventType ?? null,
+          ventCount: roof.ventCount ?? null,
+          iceWaterSquares: roof.iceWaterSquares ?? null,
+          iceWaterLines: roof.iceWaterLines ?? null,
+          needsPlywood: roof.needsPlywood ?? null,
+          plywoodSheets: roof.plywoodSheets ?? null,
+        };
+
+        await db.updateConstructionProject(project.id, ctx.organizationId, {
+          scopeItems: JSON.stringify(scopeItems),
+          scopeOther,
+          roofType: roof.material ?? null,
+          roofColor: roof.color ?? null,
+          roofSQ: roof.squares ?? null,
+          roofDetails: JSON.stringify(roofDetails),
+          materialOrderItems: materials.length ? JSON.stringify(materials) : null,
+          materialOrderNotes: materials.length ? "Generated from estimate" : null,
+          updatedBy: ctx.user.id,
+        });
+
+        return {
+          scopeItems,
+          scopeOther,
+          roof,
+          materials,
+        };
+      }),
+
     // Crear nuevo proyecto
     create: orgProcedure
       .input(z.object({
@@ -1225,21 +1343,41 @@ export const appRouter = router({
         startDate: z.date().optional().nullable(),
         estimatedCompletionDate: z.date().optional().nullable(),
         actualCompletionDate: z.date().optional().nullable(),
-        projectStatus: z.enum(["PLANIFICACION", "EN_PROGRESO", "PAUSADO", "COMPLETADO", "CANCELADO"]).optional(),
+        projectStatus: z.enum(["PLANIFICACION", "EN_PROGRESO", "PAUSADO", "SCHEDULED", "COMPLETADO", "CANCELADO"]).optional(),
+        formStatus: z.enum(["DRAFT", "READY"]).optional(),
         estimatedCost: z.number().optional().nullable(),
         actualCost: z.number().optional().nullable(),
+        materialsOrdered: z.boolean().optional(),
+        crewAssigned: z.boolean().optional(),
         contractor: z.string().optional().nullable(),
         projectManager: z.string().optional().nullable(),
         notes: z.string().optional().nullable(),
         specialRequirements: z.string().optional().nullable(),
+        scopeItems: z.array(z.string()).optional().nullable(),
+        scopeOther: z.string().optional().nullable(),
+        roofDetails: z.record(z.any()).optional().nullable(),
+        exteriorDetails: z.record(z.any()).optional().nullable(),
+        interiorDetails: z.record(z.any()).optional().nullable(),
+        materialOrderItems: z.array(z.record(z.any())).optional().nullable(),
+        materialOrderNotes: z.string().optional().nullable(),
       }))
       .mutation(async ({ input, ctx }) => {
-        return await db.createConstructionProject({
-          ...input,
+        const payload = normalizeConstructionPayload(input);
+        const result = await db.createConstructionProject({
+          ...payload,
           organizationId: ctx.organizationId,
           createdBy: ctx.user.id,
           updatedBy: ctx.user.id,
         });
+
+        if (input.clientId) {
+          await db.updateClient(input.clientId, ctx.organizationId, {
+            claimStatus: READY_FOR_CONSTRUCTION_STATUS,
+            updatedBy: ctx.user.id,
+          });
+        }
+
+        return result;
       }),
 
     // Actualizar proyecto
@@ -1262,20 +1400,255 @@ export const appRouter = router({
           startDate: z.date().optional().nullable(),
           estimatedCompletionDate: z.date().optional().nullable(),
           actualCompletionDate: z.date().optional().nullable(),
-          projectStatus: z.enum(["PLANIFICACION", "EN_PROGRESO", "PAUSADO", "COMPLETADO", "CANCELADO"]).optional(),
+          projectStatus: z.enum(["PLANIFICACION", "EN_PROGRESO", "PAUSADO", "SCHEDULED", "COMPLETADO", "CANCELADO"]).optional(),
+          formStatus: z.enum(["DRAFT", "READY"]).optional(),
           estimatedCost: z.number().optional().nullable(),
           actualCost: z.number().optional().nullable(),
+          materialsOrdered: z.boolean().optional(),
+          crewAssigned: z.boolean().optional(),
           contractor: z.string().optional().nullable(),
           projectManager: z.string().optional().nullable(),
           notes: z.string().optional().nullable(),
           specialRequirements: z.string().optional().nullable(),
+          scopeItems: z.array(z.string()).optional().nullable(),
+          scopeOther: z.string().optional().nullable(),
+          roofDetails: z.record(z.any()).optional().nullable(),
+          exteriorDetails: z.record(z.any()).optional().nullable(),
+          interiorDetails: z.record(z.any()).optional().nullable(),
+          materialOrderItems: z.array(z.record(z.any())).optional().nullable(),
+          materialOrderNotes: z.string().optional().nullable(),
         }),
       }))
       .mutation(async ({ input, ctx }) => {
-        return await db.updateConstructionProject(input.id, ctx.organizationId, {
-          ...input.data,
+        const existing = await db.getConstructionProjectById(input.id, ctx.organizationId);
+        if (!existing) {
+          throw new TRPCError({ code: "NOT_FOUND", message: "Proyecto no encontrado" });
+        }
+
+        const normalized = normalizeConstructionPayload(input.data);
+        const nextState = {
+          ...existing,
+          ...normalized,
+        };
+
+        if (input.data.projectStatus === "EN_PROGRESO") {
+          const formStatus = input.data.formStatus ?? existing.formStatus;
+          if (formStatus !== "READY") {
+            throw new TRPCError({ code: "BAD_REQUEST", message: "Completa el formulario antes de iniciar construccion" });
+          }
+          const permitStatus = input.data.permitStatus ?? existing.permitStatus;
+          if (!permitStatus || permitStatus === "RECHAZADO") {
+            throw new TRPCError({ code: "BAD_REQUEST", message: "El permiso debe estar en tramite o aprobado" });
+          }
+        }
+
+        if (nextState.projectStatus === "EN_PROGRESO" && input.data.projectStatus !== "SCHEDULED") {
+          const permitStatus = nextState.permitStatus;
+          const permitReady = permitStatus === "APROBADO" || permitStatus === "NO_REQUERIDO";
+          const isScheduledReady = !!nextState.startDate && permitReady && nextState.materialsOrdered === 1 && nextState.crewAssigned === 1;
+          if (isScheduledReady) {
+            normalized.projectStatus = "SCHEDULED";
+          }
+        }
+
+        const updated = await db.updateConstructionProject(input.id, ctx.organizationId, {
+          ...normalized,
           updatedBy: ctx.user.id,
         });
+
+        if (
+          existing.projectStatus !== "EN_PROGRESO" &&
+          (normalized.projectStatus === "EN_PROGRESO" || input.data.projectStatus === "EN_PROGRESO")
+        ) {
+          const clientId = updated?.clientId ?? existing.clientId;
+          if (clientId) {
+            const tasks = await db.getTasksByClientId(clientId, ctx.organizationId);
+            const existingTitles = new Set(tasks.map((task: any) => task.title));
+            const now = Date.now();
+            const dueDate = new Date(now + 7 * 24 * 60 * 60 * 1000);
+            const taskPayloads = [
+              { title: "Construction permit in progress", description: "Track permit submission and approval." },
+              { title: "Order materials", description: "Confirm supplier, quantities, and ETA." },
+              { title: "Assign crew", description: "Confirm crew lead and schedule." },
+              { title: "Set construction start date", description: "Confirm start date with client and crew." },
+            ];
+            for (const task of taskPayloads) {
+              if (existingTitles.has(task.title)) continue;
+              await db.createTask({
+                clientId,
+                title: task.title,
+                description: task.description,
+                category: "SEGUIMIENTO",
+                priority: "MEDIA",
+                status: "PENDIENTE",
+                assignedTo: null,
+                dueDate,
+                completedAt: null,
+                attachments: null,
+                organizationId: ctx.organizationId,
+                createdBy: ctx.user.id,
+                updatedBy: ctx.user.id,
+              });
+            }
+          }
+        }
+
+        return updated;
+      }),
+
+    saveMaterialOrder: orgProcedure
+      .input(z.object({
+        projectId: z.number(),
+        items: z.array(z.object({
+          name: z.string(),
+          quantity: z.number(),
+          unit: z.string().optional().nullable(),
+          notes: z.string().optional().nullable(),
+          required: z.boolean().optional().nullable(),
+        })).min(1),
+        notes: z.string().optional().nullable(),
+        roofType: z.string().optional().nullable(),
+        roofColor: z.string().optional().nullable(),
+        roofSquares: z.number().optional().nullable(),
+        scopeItems: z.array(z.string()).optional().nullable(),
+        scopeOther: z.string().optional().nullable(),
+      }))
+      .mutation(async ({ input, ctx }) => {
+        const project = await db.getConstructionProjectById(input.projectId, ctx.organizationId);
+        if (!project) {
+          throw new TRPCError({ code: "NOT_FOUND", message: "Proyecto no encontrado" });
+        }
+        if (!project.clientId) {
+          throw new TRPCError({ code: "BAD_REQUEST", message: "Proyecto sin cliente asociado" });
+        }
+
+        const cleanedItems = input.items
+          .map((item) => ({
+            name: item.name.trim(),
+            quantity: item.quantity,
+            unit: item.unit ?? null,
+            notes: item.notes ?? null,
+            required: item.required ?? false,
+          }))
+          .filter((item) => item.name && item.quantity > 0);
+
+        if (!cleanedItems.length) {
+          throw new TRPCError({ code: "BAD_REQUEST", message: "Orden de materiales vacia" });
+        }
+
+        const updatePayload: Record<string, any> = {
+          materialOrderItems: JSON.stringify(cleanedItems),
+          materialOrderNotes: input.notes ?? null,
+          updatedBy: ctx.user.id,
+        };
+
+        if (input.roofType) updatePayload.roofType = input.roofType;
+        if (input.roofColor) updatePayload.roofColor = input.roofColor;
+        if (input.roofSquares) updatePayload.roofSQ = input.roofSquares;
+        if (input.scopeItems) updatePayload.scopeItems = JSON.stringify(input.scopeItems);
+        if (input.scopeOther) updatePayload.scopeOther = input.scopeOther;
+
+        await db.updateConstructionProject(input.projectId, ctx.organizationId, updatePayload);
+
+        const client = await db.getClientById(project.clientId, ctx.organizationId);
+        const organization = await db.getOrganizationById(ctx.organizationId);
+        if (!client || !organization) {
+          throw new TRPCError({ code: "NOT_FOUND", message: "Cliente u organizacion no encontrada" });
+        }
+
+        const clientName = `${client.firstName} ${client.lastName}`.trim();
+        const orderDate = new Date();
+        const orderNumber = `MO-${project.id}-${orderDate.toISOString().slice(0, 10).replace(/-/g, "")}`;
+        const generatedBy = ctx.user.name || ctx.user.email || "System";
+
+        const roofType = input.roofType ?? project.roofType ?? null;
+        const roofColor = input.roofColor ?? project.roofColor ?? null;
+        const roofSquares = input.roofSquares ?? project.roofSQ ?? null;
+        const pdfBytes = await generateMaterialOrderPdf({
+          organizationName: organization.name,
+          generatedBy,
+          orderNumber,
+          orderDate: orderDate.toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric" }),
+          clientName,
+          projectName: project.projectName,
+          propertyAddress: project.propertyAddress ?? client.propertyAddress ?? null,
+          roofType,
+          roofColor,
+          roofSquares,
+          items: cleanedItems,
+          notes: input.notes ?? null,
+        });
+
+        const fileName = `${organization.name}-material-order-${project.clientId}.pdf`.replace(/[^a-zA-Z0-9.-]/g, "_");
+        const timestamp = Date.now();
+        const storageKey = `documents/${ctx.organizationId}/${project.clientId}/${timestamp}-${fileName}`;
+
+        const { url, key } = await storagePut(storageKey, pdfBytes, "application/pdf");
+
+        await db.createDocument({
+          clientId: project.clientId,
+          constructionProjectId: project.id,
+          organizationId: ctx.organizationId,
+          documentType: "MATERIAL_ORDER",
+          fileName,
+          fileUrl: url,
+          fileKey: key,
+          mimeType: "application/pdf",
+          fileSize: pdfBytes.length,
+          description: input.notes ?? null,
+          tags: null,
+          driveFileId: null,
+          uploadedBy: ctx.user.id,
+        });
+
+        const scopeItems = (() => {
+          if (input.scopeItems) return input.scopeItems;
+          try {
+            return project.scopeItems ? JSON.parse(project.scopeItems) : [];
+          } catch {
+            return [];
+          }
+        })();
+
+        const crewReportNumber = `CR-${project.id}-${orderDate.toISOString().slice(0, 10).replace(/-/g, "")}`;
+        const crewReportPdf = await generateCrewReportPdf({
+          organizationName: organization.name,
+          generatedBy,
+          reportNumber: crewReportNumber,
+          reportDate: orderDate.toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric" }),
+          clientName,
+          projectName: project.projectName,
+          propertyAddress: project.propertyAddress ?? client.propertyAddress ?? null,
+          roofType,
+          roofColor,
+          roofSquares,
+          scopeItems,
+          scopeOther: input.scopeOther ?? project.scopeOther ?? null,
+          materialItems: cleanedItems,
+          notes: input.notes ?? null,
+        });
+
+        const crewFileName = `${organization.name}-crew-report-${project.clientId}.pdf`.replace(/[^a-zA-Z0-9.-]/g, "_");
+        const crewKey = `documents/${ctx.organizationId}/${project.clientId}/${timestamp}-crew-${crewFileName}`;
+        const crewUpload = await storagePut(crewKey, crewReportPdf, "application/pdf");
+
+        await db.createDocument({
+          clientId: project.clientId,
+          constructionProjectId: project.id,
+          organizationId: ctx.organizationId,
+          documentType: "CREW_REPORT",
+          fileName: crewFileName,
+          fileUrl: crewUpload.url,
+          fileKey: crewUpload.key,
+          mimeType: "application/pdf",
+          fileSize: crewReportPdf.length,
+          description: "Crew report",
+          tags: null,
+          driveFileId: null,
+          uploadedBy: ctx.user.id,
+        });
+
+        return { success: true, url };
       }),
   }),
 

@@ -135,6 +135,8 @@ router.post('/documents', upload.array('files', 10), async (req: Request, res: R
                     | "ESTIMADO"
                     | "ESTIMADO_ASEGURANZA"
                     | "ESTIMADO_NUESTRO"
+                    | "MATERIAL_ORDER"
+                    | "CREW_REPORT"
                     | "FACTURA"
                     | "PERMISO"
                     | "OTRO" = "OTRO";
@@ -150,6 +152,10 @@ router.post('/documents', upload.array('files', 10), async (req: Request, res: R
                         docType = 'CONTRATO';
                     } else if (lowerName.includes('foto') || lowerName.includes('photo') || lowerName.includes('image')) {
                         docType = 'FOTO';
+                    } else if (lowerName.includes('material') || lowerName.includes('order')) {
+                        docType = 'MATERIAL_ORDER';
+                    } else if (lowerName.includes('crew') || lowerName.includes('field')) {
+                        docType = 'CREW_REPORT';
                     } else if (lowerName.includes('estimado') || lowerName.includes('estimate')) {
                         docType = 'ESTIMADO';
                     } else if (lowerName.includes('factura') || lowerName.includes('invoice')) {
