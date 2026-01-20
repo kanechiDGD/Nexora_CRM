@@ -477,6 +477,7 @@ export default function ClientEdit() {
                     <SelectItem value="AJUSTACION_TERMINADA">{t("dashboard.claimStatus.status.AJUSTACION_TERMINADA")}</SelectItem>
                     <SelectItem value="EN_PROCESO">{t("dashboard.claimStatus.status.EN_PROCESO")}</SelectItem>
                     <SelectItem value="APROVADA">{t("dashboard.claimStatus.status.APROBADA")}</SelectItem>
+                    <SelectItem value="LISTA_PARA_CONSTRUIR">{t("dashboard.claimStatus.status.LISTA_PARA_CONSTRUIR")}</SelectItem>
                     <SelectItem value="RECHAZADA">{t("dashboard.claimStatus.status.RECHAZADA")}</SelectItem>
                     <SelectItem value="CERRADA">{t("dashboard.claimStatus.status.CERRADA")}</SelectItem>
                     

@@ -331,8 +331,7 @@ export async function getClientsReadyForConstruction(organizationId: number) {
     .where(
       and(
         eq(clients.organizationId, organizationId),
-        eq(clients.claimStatus, "APROVADA"),
-        eq(clients.primerCheque, "OBTENIDO")
+        eq(clients.claimStatus, "LISTA_PARA_CONSTRUIR")
       )
     );
 }
@@ -456,6 +455,19 @@ export async function getConstructionProjectById(id: number, organizationId: num
   const result = await db.select().from(constructionProjects)
     .where(and(
       eq(constructionProjects.id, id),
+      eq(constructionProjects.organizationId, organizationId)
+    ))
+    .limit(1);
+  return result.length > 0 ? result[0] : undefined;
+}
+
+export async function getConstructionProjectByClientId(clientId: string, organizationId: number) {
+  const db = await getDb();
+  if (!db) return undefined;
+  const { and } = await import('drizzle-orm');
+  const result = await db.select().from(constructionProjects)
+    .where(and(
+      eq(constructionProjects.clientId, clientId),
       eq(constructionProjects.organizationId, organizationId)
     ))
     .limit(1);

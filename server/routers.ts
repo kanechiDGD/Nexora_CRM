@@ -123,6 +123,42 @@ const coAdminOrgProcedure = orgProcedure.use(({ ctx, next }) => {
   return next({ ctx });
 });
 
+const READY_FOR_CONSTRUCTION_STATUS = "LISTA_PARA_CONSTRUIR";
+
+const shouldMarkReadyForConstruction = (status?: string | null, primerCheque?: string | null) =>
+  primerCheque === "OBTENIDO" || status === "APROVADA" || status === READY_FOR_CONSTRUCTION_STATUS;
+
+const normalizeClaimStatusForConstruction = (status?: string | null, primerCheque?: string | null) => {
+  if (shouldMarkReadyForConstruction(status, primerCheque)) {
+    return READY_FOR_CONSTRUCTION_STATUS;
+  }
+  return status ?? null;
+};
+
+async function ensureConstructionProjectForClient(params: {
+  clientId: string;
+  organizationId: number;
+  createdBy: number;
+  updatedBy: number;
+  firstName?: string | null;
+  lastName?: string | null;
+  propertyAddress?: string | null;
+}) {
+  const existing = await db.getConstructionProjectByClientId(params.clientId, params.organizationId);
+  if (existing) return;
+
+  const fullName = [params.firstName, params.lastName].filter(Boolean).join(" ").trim();
+  const projectName = fullName || `Project ${params.clientId}`;
+  await db.createConstructionProject({
+    clientId: params.clientId,
+    projectName,
+    propertyAddress: params.propertyAddress ?? null,
+    organizationId: params.organizationId,
+    createdBy: params.createdBy,
+    updatedBy: params.updatedBy,
+  });
+}
+
 const clientImportRowSchema = z.object({
   rowNumber: z.number().optional(),
   firstName: z.string().optional(),
@@ -441,32 +477,50 @@ export const appRouter = router({
         internalNotes: z.string().optional().nullable(),
         constructionStatus: z.string().optional().nullable(),
       }))
-      .mutation(async ({ input, ctx }) => {
-        try {
-          const baseId = generateClientId(
-            input.city || "",
-            input.firstName,
-            input.lastName
-          );
+        .mutation(async ({ input, ctx }) => {
+          try {
+            const baseId = generateClientId(
+              input.city || "",
+              input.firstName,
+              input.lastName
+            );
 
           let customId = baseId;
           let suffix = 1;
-          while (await db.getClientById(customId, ctx.organizationId)) {
-            suffix += 1;
-            customId = `${baseId}-${suffix}`;
-            if (customId.length > 50) {
-              customId = `${baseId}-${Date.now().toString().slice(-4)}`;
-              break;
+            while (await db.getClientById(customId, ctx.organizationId)) {
+              suffix += 1;
+              customId = `${baseId}-${suffix}`;
+              if (customId.length > 50) {
+                customId = `${baseId}-${Date.now().toString().slice(-4)}`;
+                break;
+              }
             }
-          }
 
-          const result = await db.createClient({
-            ...input,
-            id: customId,
-            organizationId: ctx.organizationId,
-            createdBy: ctx.user.id,
-            updatedBy: ctx.user.id,
-          });
+            const claimStatus = normalizeClaimStatusForConstruction(
+              input.claimStatus,
+              input.primerCheque
+            );
+
+            const result = await db.createClient({
+              ...input,
+              claimStatus,
+              id: customId,
+              organizationId: ctx.organizationId,
+              createdBy: ctx.user.id,
+              updatedBy: ctx.user.id,
+            });
+
+            if (claimStatus === READY_FOR_CONSTRUCTION_STATUS) {
+              await ensureConstructionProjectForClient({
+                clientId: customId,
+                organizationId: ctx.organizationId,
+                createdBy: ctx.user.id,
+                updatedBy: ctx.user.id,
+                firstName: input.firstName,
+                lastName: input.lastName,
+                propertyAddress: input.propertyAddress ?? null,
+              });
+            }
 
           await db.createAuditLog({
             entityType: "CLIENT",
@@ -518,28 +572,45 @@ export const appRouter = router({
             }
           }
 
-          const { rowNumber: _rowNumber, ...clientData } = row;
+            const { rowNumber: _rowNumber, ...clientData } = row;
 
-          try {
-            await db.createClient({
-              ...clientData,
-              firstName,
-              lastName,
-              id: customId,
-              organizationId: ctx.organizationId,
-              createdBy: ctx.user.id,
-              updatedBy: ctx.user.id,
-            });
+            try {
+              const claimStatus = normalizeClaimStatusForConstruction(
+                clientData.claimStatus,
+                clientData.primerCheque
+              );
+              await db.createClient({
+                ...clientData,
+                claimStatus,
+                firstName,
+                lastName,
+                id: customId,
+                organizationId: ctx.organizationId,
+                createdBy: ctx.user.id,
+                updatedBy: ctx.user.id,
+              });
 
-            await db.createAuditLog({
-              entityType: "CLIENT",
-              entityId: 0,
-              action: "CREATE",
-              performedBy: ctx.user.id,
-            });
+              await db.createAuditLog({
+                entityType: "CLIENT",
+                entityId: 0,
+                action: "CREATE",
+                performedBy: ctx.user.id,
+              });
 
-            createdIds.push(customId);
-          } catch (error) {
+              if (claimStatus === READY_FOR_CONSTRUCTION_STATUS) {
+                await ensureConstructionProjectForClient({
+                  clientId: customId,
+                  organizationId: ctx.organizationId,
+                  createdBy: ctx.user.id,
+                  updatedBy: ctx.user.id,
+                  firstName,
+                  lastName,
+                  propertyAddress: clientData.propertyAddress ?? null,
+                });
+              }
+
+              createdIds.push(customId);
+            } catch (error) {
             console.error("[Clients] Failed to import client", error);
             errors.push({ row: rowNumber, message: "Failed to create client" });
           }
@@ -606,12 +677,35 @@ export const appRouter = router({
           internalNotes: z.string().optional().nullable(),
           constructionStatus: z.string().optional().nullable(),
         }),
-      }))
-      .mutation(async ({ input, ctx }) => {
-        const updated = await db.updateClient(input.id, ctx.organizationId, {
-          ...input.data,
-          updatedBy: ctx.user.id,
-        });
+        }))
+        .mutation(async ({ input, ctx }) => {
+          const existing = await db.getClientById(input.id, ctx.organizationId);
+          if (!existing) {
+            throw new TRPCError({ code: "NOT_FOUND", message: "Client not found" });
+          }
+
+          const claimStatus = normalizeClaimStatusForConstruction(
+            input.data.claimStatus ?? existing.claimStatus,
+            input.data.primerCheque ?? existing.primerCheque
+          );
+
+          const updated = await db.updateClient(input.id, ctx.organizationId, {
+            ...input.data,
+            claimStatus,
+            updatedBy: ctx.user.id,
+          });
+
+          if (claimStatus === READY_FOR_CONSTRUCTION_STATUS && updated) {
+            await ensureConstructionProjectForClient({
+              clientId: input.id,
+              organizationId: ctx.organizationId,
+              createdBy: ctx.user.id,
+              updatedBy: ctx.user.id,
+              firstName: updated.firstName,
+              lastName: updated.lastName,
+              propertyAddress: updated.propertyAddress ?? null,
+            });
+          }
 
         await db.createAuditLog({
           entityType: "CLIENT",

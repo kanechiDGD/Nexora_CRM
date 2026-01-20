@@ -230,6 +230,7 @@
         "AJUSTACION_TERMINADA": "Adjustment completed",
         "EN_PROCESO": "In Progress",
         "APROVADA": "Approved",
+        "LISTA_PARA_CONSTRUIR": "Ready for Construction",
         "RECHAZADA": "Denied",
         "CERRADA": "Closed",
         "APROBADA": "Approved"
@@ -1487,11 +1488,11 @@
       "pending": "Pending",
       "inProgress": "In Progress",
       "completed": "Completed",
-      "onHold": "On Hold"
+      "onHold": "On Hold",
+      "canceled": "Canceled"
     },
-    "searchPlaceholder": "Search by contractor or client ID...",
     "title": "Construction Projects",
-    "subtitle": "Clients approved for construction",
+    "subtitle": "Construction operations overview",
     "actions": {
       "newProject": "New Project",
       "createFirst": "Create First Project",
@@ -1504,16 +1505,44 @@
       "completed": "Completed",
       "totalValue": "Total Value"
     },
-    "searchTitle": "Search Projects",
+    "signals": {
+      "title": "Signals",
+      "missingContractor": "Missing contractor",
+      "missingPermit": "Permit not uploaded",
+      "missingStart": "Start date missing",
+      "overBudget": "Over budget"
+    },
+    "filters": {
+      "title": "Filters and search",
+      "all": "All",
+      "planning": "Planning",
+      "active": "Active",
+      "onHold": "On Hold",
+      "completed": "Completed",
+      "canceled": "Canceled"
+    },
+    "searchPlaceholder": "Search by project, contractor, or client...",
     "loading": "Loading projects...",
-    "empty": "No construction projects",
+    "emptySearch": "No projects match your filters yet.",
     "projectTitle": "Project #{{id}}",
     "clientId": "Client ID",
     "labels": {
       "contractor": "Contractor",
+      "projectManager": "Project Manager",
       "estimatedCost": "Estimated Cost",
       "startDate": "Start",
-      "completionDate": "Completion"
+      "completionDate": "Completion",
+      "onHoldNote": "On hold: review blockers and next steps."
+    },
+    "pipeline": {
+      "title": "Pipeline",
+      "empty": "No projects",
+      "planning": "Planning",
+      "in_progress": "In progress",
+      "on_hold": "On hold",
+      "completed": "Completed",
+      "canceled": "Canceled",
+      "noClient": "No client assigned"
     },
     "approval": {
       "title": "Construction Approval Criteria",

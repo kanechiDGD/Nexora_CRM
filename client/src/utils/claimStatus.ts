@@ -9,6 +9,7 @@ export const DEFAULT_CLAIM_STATUSES = [
   "AJUSTACION_TERMINADA",
   "EN_PROCESO",
   "APROVADA",
+  "LISTA_PARA_CONSTRUIR",
   "RECHAZADA",
   "CERRADA",
 ] as const;
@@ -30,6 +31,10 @@ const LEGACY_STATUS_MAP: Record<string, string> = {
   "scope pending": "SCOPE_PENDING",
   "estimate sended to insurance": "ESTIMATE_SENDED_TO_INSURANCE",
   "estimate sent to insurance": "ESTIMATE_SENDED_TO_INSURANCE",
+  "lista para construir": "LISTA_PARA_CONSTRUIR",
+  "ready for construction": "LISTA_PARA_CONSTRUIR",
+  "ready to build": "LISTA_PARA_CONSTRUIR",
+  "ready for build": "LISTA_PARA_CONSTRUIR",
 };
 
 const LEGACY_STATUS_LABELS: Record<string, { en: string; es: string }> = {

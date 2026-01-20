@@ -246,6 +246,7 @@ const DEFAULT_CLAIM_STATUSES = new Set([
   "AJUSTACION_TERMINADA",
   "EN_PROCESO",
   "APROVADA",
+  "LISTA_PARA_CONSTRUIR",
   "RECHAZADA",
   "CERRADA",
 ]);
@@ -281,6 +282,10 @@ const CLAIM_STATUS_MAP: Record<string, string> = {
   aprovado: "APROVADA",
   aprobados: "APROVADA",
   approved: "APROVADA",
+  "lista para construir": "LISTA_PARA_CONSTRUIR",
+  "ready for construction": "LISTA_PARA_CONSTRUIR",
+  "ready to build": "LISTA_PARA_CONSTRUIR",
+  "ready for build": "LISTA_PARA_CONSTRUIR",
   rechazada: "RECHAZADA",
   rechazado: "RECHAZADA",
   denied: "RECHAZADA",
@@ -473,6 +478,7 @@ export default function Clients() {
       "AJUSTACION_TERMINADA",
       "EN_PROCESO",
       "APROVADA",
+      "LISTA_PARA_CONSTRUIR",
       "RECHAZADA",
       "CERRADA",
     ];
@@ -522,7 +528,7 @@ export default function Clients() {
         break;
       case 'ready-construction':
         filtered = filtered.filter(
-          client => client.claimStatus === 'APROVADA' && client.primerCheque === 'OBTENIDO'
+          client => client.claimStatus === 'LISTA_PARA_CONSTRUIR'
         );
         break;
       case 'upcoming-contacts':
@@ -608,6 +614,7 @@ export default function Clients() {
       'AJUSTACION_TERMINADA': { variant: 'secondary' },
       'EN_PROCESO': { variant: 'secondary' },
       'APROVADA': { variant: 'default' },
+      'LISTA_PARA_CONSTRUIR': { variant: 'default' },
       'RECHAZADA': { variant: 'destructive' },
       'CERRADA': { variant: 'outline' },
     };

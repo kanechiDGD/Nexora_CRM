@@ -230,6 +230,7 @@
         "AJUSTACION_TERMINADA": "Ajustacion terminada",
         "EN_PROCESO": "En Proceso",
         "APROVADA": "Aprobada",
+        "LISTA_PARA_CONSTRUIR": "Lista para construir",
         "RECHAZADA": "Rechazada",
         "CERRADA": "Cerrada",
         "APROBADA": "Aprobada"
@@ -1487,11 +1488,11 @@
       "pending": "Pendiente",
       "inProgress": "En Progreso",
       "completed": "Completado",
-      "onHold": "En Espera"
+      "onHold": "En Espera",
+      "canceled": "Cancelado"
     },
-    "searchPlaceholder": "Buscar por contratista o ID de cliente...",
-    "title": "Proyectos de Construcci?n",
-    "subtitle": "Clientes aprobados para construcci?n",
+    "title": "Proyectos de Construccion",
+    "subtitle": "Resumen de operaciones de construccion",
     "actions": {
       "newProject": "Nuevo Proyecto",
       "createFirst": "Crear Primer Proyecto",
@@ -1504,28 +1505,57 @@
       "completed": "Completados",
       "totalValue": "Valor Total"
     },
-    "searchTitle": "Buscar Proyectos",
+    "signals": {
+      "title": "Senales",
+      "missingContractor": "Falta contratista",
+      "missingPermit": "Permiso no cargado",
+      "missingStart": "Falta fecha de inicio",
+      "overBudget": "Sobre presupuesto"
+    },
+    "filters": {
+      "title": "Filtros y busqueda",
+      "all": "Todos",
+      "planning": "Planeacion",
+      "active": "Activo",
+      "onHold": "En Espera",
+      "completed": "Completado",
+      "canceled": "Cancelado"
+    },
+    "searchPlaceholder": "Buscar por proyecto, contratista o cliente...",
     "loading": "Cargando proyectos...",
-    "empty": "No hay proyectos de construcci?n",
+    "emptySearch": "No hay proyectos que coincidan con los filtros.",
     "projectTitle": "Proyecto #{{id}}",
     "clientId": "Cliente ID",
     "labels": {
       "contractor": "Contratista",
+      "projectManager": "Responsable",
       "estimatedCost": "Costo Estimado",
       "startDate": "Inicio",
-      "completionDate": "Finalizaci?n"
+      "completionDate": "Finalizacion",
+      "onHoldNote": "En espera: revisar bloqueos y siguientes pasos."
+    },
+    "pipeline": {
+      "title": "Pipeline",
+      "empty": "Sin proyectos",
+      "planning": "Planeacion",
+      "in_progress": "En progreso",
+      "on_hold": "En espera",
+      "completed": "Completado",
+      "canceled": "Cancelado",
+      "noClient": "Sin cliente asignado"
     },
     "approval": {
-      "title": "Criterios de Aprobaci?n para Construcci?n",
+      "title": "Criterios de Aprobacion para Construccion",
       "items": {
         "claimApproved": "El reclamo debe estar aprobado por la aseguradora",
         "fundsAvailable": "Los fondos deben estar disponibles o el pago programado",
-        "contractSigned": "El cliente debe haber firmado el contrato de construcci?n",
+        "contractSigned": "El cliente debe haber firmado el contrato de construccion",
         "contractorSelected": "Se debe haber seleccionado un contratista certificado"
       }
     }
   },
-  "contractsPage": {
+  
+"contractsPage": {
     "status": {
       "signed": "Firmado",
       "pending": "Pendiente",

@@ -192,6 +192,7 @@ export default function ClientProfile() {
       AJUSTACION_TERMINADA: { variant: "secondary", label: t("dashboard.claimStatus.status.AJUSTACION_TERMINADA") },
       EN_PROCESO: { variant: "secondary", label: t("dashboard.claimStatus.status.EN_PROCESO") },
       APROVADA: { variant: "default", label: t("dashboard.claimStatus.status.APROBADA") },
+      LISTA_PARA_CONSTRUIR: { variant: "default", label: t("dashboard.claimStatus.status.LISTA_PARA_CONSTRUIR") },
       RECHAZADA: { variant: "destructive", label: t("dashboard.claimStatus.status.RECHAZADA") },
       CERRADA: { variant: "outline", label: t("dashboard.claimStatus.status.CERRADA") },
     };
@@ -947,6 +948,9 @@ export default function ClientProfile() {
                         </SelectItem>
                         <SelectItem value="APROVADA">
                           {t("dashboard.claimStatus.status.APROBADA")}
+                        </SelectItem>
+                        <SelectItem value="LISTA_PARA_CONSTRUIR">
+                          {t("dashboard.claimStatus.status.LISTA_PARA_CONSTRUIR")}
                         </SelectItem>
                         <SelectItem value="RECHAZADA">
                           {t("dashboard.claimStatus.status.RECHAZADA")}
