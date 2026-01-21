@@ -24,7 +24,7 @@ import {
   Trash2,
   File,
 } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { trpc } from "@/lib/trpc";
 import DashboardLayout from "@/components/DashboardLayout";
@@ -36,6 +36,7 @@ import { DeleteActivityDialog } from "@/components/DeleteActivityDialog";
 import { useTranslation } from "react-i18next";
 import { getClaimStatusDisplayName } from "@/utils/claimStatus";
 import { usePermissions } from "@/hooks/usePermissions";
+import { loadGoogleMapsScript } from "@/lib/googleMaps";
 
 type ActivityLog = {
   id: number;
@@ -146,6 +147,7 @@ export default function ClientProfile() {
     },
   });
   const [editingSection, setEditingSection] = useState<EditSection | null>(null);
+  const addressInputRef = useRef<HTMLInputElement | null>(null);
   const [formData, setFormData] = useState({
     firstName: "",
     lastName: "",
@@ -346,6 +348,8 @@ export default function ClientProfile() {
 
   const parseDate = (value: string) => (value ? new Date(value) : null);
   const parseNumber = (value: string) => (value ? parseFloat(value) : null);
+  const sanitizeAddressInput = (value: string) =>
+    value.replace(/[\u0000-\u001F\u007F]/g, "");
 
   const saveSection = async (section: EditSection) => {
     if (!canEdit || !clientId) return;
@@ -424,6 +428,70 @@ export default function ClientProfile() {
       setFormDataFromClient();
     }
   }, [client]);
+
+  useEffect(() => {
+    if (editingSection !== "property") return;
+    const apiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY as string | undefined;
+    if (!apiKey) return;
+
+    let autocomplete: any = null;
+    let listener: any = null;
+    const w = window as any;
+
+    loadGoogleMapsScript(apiKey)
+      .then(() => {
+        const input = addressInputRef.current;
+        if (!input || !w.google?.maps?.places) return;
+
+        autocomplete = new w.google.maps.places.Autocomplete(input, {
+          types: ["address"],
+          fields: ["address_components", "formatted_address"],
+        });
+
+        const getComponent = (type: string, useShort = false) => {
+          const place = autocomplete?.getPlace();
+          const components = place?.address_components || [];
+          const component = components.find((item: any) => item.types?.includes(type));
+          if (!component) return "";
+          return useShort ? component.short_name : component.long_name;
+        };
+
+        listener = autocomplete.addListener("place_changed", () => {
+          const place = autocomplete?.getPlace();
+          if (!place) return;
+
+          const streetNumber = getComponent("street_number");
+          const route = getComponent("route");
+          const streetLine = [streetNumber, route].filter(Boolean).join(" ").trim();
+          const city =
+            getComponent("locality") ||
+            getComponent("postal_town") ||
+            getComponent("sublocality") ||
+            getComponent("sublocality_level_1");
+          const state = getComponent("administrative_area_level_1", true) || getComponent("administrative_area_level_1");
+          const zipCode = getComponent("postal_code");
+          const formatted = place.formatted_address || streetLine;
+
+          setFormData((prev) => ({
+            ...prev,
+            propertyAddress: streetLine || formatted || prev.propertyAddress,
+            city: city || prev.city,
+            state: state || prev.state,
+            zipCode: zipCode || prev.zipCode,
+          }));
+        });
+      })
+      .catch(() => {});
+
+    return () => {
+      if (listener) {
+        listener.remove();
+      }
+      if (autocomplete) {
+        w.google?.maps?.event?.clearInstanceListeners(autocomplete);
+      }
+    };
+  }, [editingSection]);
 
   // AHORA los early returns DESPUÉS de todos los hooks y funciones
   if (isLoading) {
@@ -1207,8 +1275,11 @@ export default function ClientProfile() {
                   <div className="space-y-2 md:col-span-2">
                     <label className="text-sm text-muted-foreground">{t("clientProfile.labels.propertyAddress")}</label>
                     <Input
+                      ref={addressInputRef}
                       value={formData.propertyAddress}
-                      onChange={(e) => setFormData({ ...formData, propertyAddress: e.target.value })}
+                      onChange={(e) =>
+                        setFormData({ ...formData, propertyAddress: sanitizeAddressInput(e.target.value) })
+                      }
                     />
                   </div>
                   <div className="space-y-2">

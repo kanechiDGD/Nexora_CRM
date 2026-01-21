@@ -180,6 +180,9 @@ export default function ClientEdit() {
     };
   }, []);
 
+  const sanitizeAddressInput = (value: string) =>
+    value.replace(/[\u0000-\u001F\u007F]/g, "");
+
   // Funciones de validación
   const validateEmail = (email: string): boolean => {
     if (!email) return true;
@@ -386,7 +389,9 @@ export default function ClientEdit() {
                   id="propertyAddress"
                   ref={addressInputRef}
                   value={formData.propertyAddress}
-                  onChange={(e) => setFormData({ ...formData, propertyAddress: e.target.value })}
+                  onChange={(e) =>
+                    setFormData({ ...formData, propertyAddress: sanitizeAddressInput(e.target.value) })
+                  }
                 />
               </div>
               <div className="space-y-2">

@@ -288,8 +288,12 @@ export default function ClientNew() {
     createClientMutation.mutate(dataToSend);
   };
 
+  const sanitizeAddressInput = (value: string) =>
+    value.replace(/[\u0000-\u001F\u007F]/g, "");
+
   const handleChange = (field: string, value: string) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
+    const nextValue = field === "propertyAddress" ? sanitizeAddressInput(value) : value;
+    setFormData(prev => ({ ...prev, [field]: nextValue }));
   };
 
   return (
