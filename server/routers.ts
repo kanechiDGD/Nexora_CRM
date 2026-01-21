@@ -2943,6 +2943,21 @@ export const appRouter = router({
         return { success: true };
       }),
 
+    // Desvincular todos los usuarios de la organizacion (solo ADMIN)
+    releaseOrganization: orgProcedure
+      .mutation(async ({ ctx }) => {
+        if (ctx.memberRole !== 'ADMIN') {
+          throw new TRPCError({
+            code: 'FORBIDDEN',
+            message: 'Solo administradores pueden liberar la organizacion',
+          });
+        }
+
+        await db.deleteOrganizationInvitesByOrgId(ctx.organizationId);
+        await db.deleteOrganizationMembersByOrgId(ctx.organizationId);
+        return { success: true };
+      }),
+
     // Agregar nuevo miembro (solo ADMIN)
     addMember: orgProcedure
       .input(z.object({

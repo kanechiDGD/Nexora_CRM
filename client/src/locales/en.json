@@ -1137,6 +1137,7 @@
       "received": "Received"
     },
     "notFound": "Client not found",
+    "loading": "Loading client...",
     "labels": {
       "clientId": "Client ID",
       "fullName": "Full Name",
@@ -1152,14 +1153,18 @@
       "supplemented": "Supplemented",
       "estimatedLoss": "Estimated Loss",
       "firstCheck": "First Check",
+      "coverageAmount": "Coverage Amount",
+      "actualPayout": "Actual Payout",
       "damageType": "Damage Type",
       "damageDescription": "Damage Description",
       "propertyAddress": "Address",
+      "city": "City",
       "state": "State",
       "zipCode": "ZIP Code",
       "constructionStatus": "Status",
       "dateOfLoss": "Date of Loss",
       "claimSubmittedDate": "Claim Submission Date",
+      "scheduledVisit": "Scheduled Visit",
       "adjustmentDate": "Adjustment Date",
       "lastContactDate": "Last Contact",
       "nextContactDate": "Next Contact",
@@ -1172,7 +1177,8 @@
       "daysSince": "Days since last update"
     },
     "actions": {
-      "edit": "Edit Client"
+      "edit": "Edit Client",
+      "backToClients": "Back to Clients"
     },
     "quick": {
       "status": "Status",
@@ -1195,6 +1201,9 @@
       "contact": {
         "title": "Contact Information"
       },
+      "team": {
+        "title": "Assigned Team"
+      },
       "claim": {
         "title": "Claim Information"
       },
@@ -1210,6 +1219,14 @@
       "dates": {
         "title": "Important Dates"
       }
+    },
+    "activity": {
+      "title": "Contact History",
+      "viewAll": "View All",
+      "fullHistory": "Full History",
+      "empty": "No activity recorded",
+      "by": "by",
+      "userFallback": "User #{{id}}"
     }
   },
   "logsPage": {
@@ -1398,7 +1415,8 @@
       "passwordReset": "Password reset successfully",
       "inviteSent": "Invite sent",
       "inviteRevoked": "Invite revoked",
-      "inviteDeleted": "Invite deleted"
+      "inviteDeleted": "Invite deleted",
+      "organizationReleased": "Organization access removed"
     },
     "validation": {
       "completeAllFields": "Please complete all fields"
@@ -1482,6 +1500,19 @@
         "expired": "Expired",
         "revoked": "Revoked"
       }
+    },
+    "organization": {
+      "title": "Release organization access",
+      "description": "Remove all members from this organization without deleting its data.",
+      "warning": "All users will lose access to this organization. Client data remains stored but inaccessible.",
+      "action": "Release organization",
+      "confirmTitle": "Release organization access?",
+      "confirmDescription": "This will remove all members and invites from this organization. Client data will stay in the database.",
+      "confirmLabel": "Type the organization name to confirm",
+      "confirmPlaceholder": "Type \"{{name}}\"",
+      "confirm": "Release access",
+      "cancel": "Cancel",
+      "processing": "Releasing..."
     }
   },
   "constructionPage": {
@@ -1637,7 +1668,7 @@
       "plywoodSheets": "Plywood sheets",
       "generateScope": "Generate scope from estimate",
       "generatingScope": "Generating...",
-      "missingEstimate": "Upload our estimate (ESTIMADO_NUESTRO) to enable"
+      "missingEstimate": "Add the 'Our Estimate' document to enable auto-generation."
     },
     "scope": {
       "roof": "Roof",

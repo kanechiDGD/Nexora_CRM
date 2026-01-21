@@ -1077,6 +1077,12 @@ export async function deleteOrganizationMember(id: number) {
   await db.delete(organizationMembers).where(eq(organizationMembers.id, id));
 }
 
+export async function deleteOrganizationMembersByOrgId(organizationId: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  await db.delete(organizationMembers).where(eq(organizationMembers.organizationId, organizationId));
+}
+
 export async function getOrganizationMemberCount(organizationId: number): Promise<number> {
   const db = await getDb();
   if (!db) return 0;
@@ -1140,6 +1146,12 @@ export async function deleteOrganizationInvite(id: number) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
   await db.delete(organizationInvites).where(eq(organizationInvites.id, id));
+}
+
+export async function deleteOrganizationInvitesByOrgId(organizationId: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  await db.delete(organizationInvites).where(eq(organizationInvites.organizationId, organizationId));
 }
 
 // ==================== Password Reset Tokens ====================

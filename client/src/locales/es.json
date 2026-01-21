@@ -966,6 +966,7 @@
     "title": "Editar Cliente",
     "loading": "Cargando cliente...",
     "notFound": "Cliente no encontrado",
+    "loading": "Cargando cliente...",
     "backToClients": "Volver a Clientes",
     "sections": {
       "personal": {
@@ -1152,14 +1153,18 @@
       "supplemented": "Suplementado",
       "estimatedLoss": "P?rdida Estimada",
       "firstCheck": "Primer Cheque",
+      "coverageAmount": "Monto de Cobertura",
+      "actualPayout": "Pago Real",
       "damageType": "Tipo de Da?o",
       "damageDescription": "Descripci?n del Da?o",
       "propertyAddress": "Direcci?n",
+      "city": "Ciudad",
       "state": "Estado",
       "zipCode": "C?digo Postal",
       "constructionStatus": "Estado",
       "dateOfLoss": "Fecha de P?rdida",
       "claimSubmittedDate": "Fecha de Sometimiento",
+      "scheduledVisit": "Visita Programada",
       "adjustmentDate": "Fecha de Ajuste",
       "lastContactDate": "?ltimo Contacto",
       "nextContactDate": "Pr?ximo Contacto",
@@ -1172,7 +1177,8 @@
       "daysSince": "Dias desde la ultima actualizacion"
     },
     "actions": {
-      "edit": "Editar Cliente"
+      "edit": "Editar Cliente",
+      "backToClients": "Volver a Clientes"
     },
     "quick": {
       "status": "Estado",
@@ -1195,6 +1201,9 @@
       "contact": {
         "title": "Informaci?n de Contacto"
       },
+      "team": {
+        "title": "Equipo Asignado"
+      },
       "claim": {
         "title": "Informaci?n del Reclamo"
       },
@@ -1210,6 +1219,14 @@
       "dates": {
         "title": "Fechas Importantes"
       }
+    },
+    "activity": {
+      "title": "Historial de Contactos",
+      "viewAll": "Ver Todos",
+      "fullHistory": "Historial Completo",
+      "empty": "No hay actividad registrada",
+      "by": "por",
+      "userFallback": "Usuario #{{id}}"
     }
   },
   "logsPage": {
@@ -1398,7 +1415,8 @@
       "passwordReset": "Contrase?a reseteada correctamente",
       "inviteSent": "Invitacion enviada",
       "inviteRevoked": "Invitacion revocada",
-      "inviteDeleted": "Invitacion eliminada"
+      "inviteDeleted": "Invitacion eliminada",
+      "organizationReleased": "Acceso a la organizacion eliminado"
     },
     "validation": {
       "completeAllFields": "Por favor completa todos los campos"
@@ -1482,6 +1500,19 @@
         "expired": "Expirada",
         "revoked": "Revocada"
       }
+    },
+    "organization": {
+      "title": "Liberar acceso a la organizacion",
+      "description": "Elimina todos los miembros de la organizacion sin borrar sus datos.",
+      "warning": "Todos los usuarios perderan acceso a esta organizacion. Los datos de clientes se conservan.",
+      "action": "Liberar organizacion",
+      "confirmTitle": "?Liberar acceso a la organizacion?",
+      "confirmDescription": "Esto eliminara miembros e invitaciones. Los datos permanecen en la base.",
+      "confirmLabel": "Escribe el nombre de la organizacion para confirmar",
+      "confirmPlaceholder": "Escribe \"{{name}}\"",
+      "confirm": "Liberar acceso",
+      "cancel": "Cancelar",
+      "processing": "Liberando..."
     }
   },
   "constructionPage": {
@@ -1637,7 +1668,7 @@
       "plywoodSheets": "Sheets de plywood",
       "generateScope": "Generar scope desde estimado",
       "generatingScope": "Generando...",
-      "missingEstimate": "Sube nuestro estimado (ESTIMADO_NUESTRO) para habilitar"
+      "missingEstimate": "Sube el documento \"Estimado nuestro\" para habilitar la generacion automatica."
     },
     "scope": {
       "roof": "Techo",

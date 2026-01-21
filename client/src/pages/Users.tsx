@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
+import { useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import {
@@ -29,7 +30,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Loader2, UserPlus, Trash2, KeyRound, AlertCircle, MailPlus, XCircle, RotateCcw } from "lucide-react";
+import { Loader2, UserPlus, Trash2, KeyRound, AlertCircle, AlertTriangle, MailPlus, XCircle, RotateCcw } from "lucide-react";
 import { trpc } from "@/lib/trpc";
 import { toast } from "sonner";
 import { format } from "date-fns";
@@ -55,11 +56,14 @@ type OrgInvite = {
 
 export default function Users() {
   const { t, i18n } = useTranslation();
+  const [, setLocation] = useLocation();
   const [showAddDialog, setShowAddDialog] = useState(false);
   const [showInviteDialog, setShowInviteDialog] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [showResetDialog, setShowResetDialog] = useState(false);
   const [showSeatDialog, setShowSeatDialog] = useState(false);
+  const [showReleaseDialog, setShowReleaseDialog] = useState(false);
+  const [releaseConfirmName, setReleaseConfirmName] = useState("");
   const [seatCoupon, setSeatCoupon] = useState("");
   const [selectedMember, setSelectedMember] = useState<any>(null);
   const [newPassword, setNewPassword] = useState("");
@@ -199,6 +203,21 @@ export default function Users() {
     },
   });
 
+  const releaseOrganizationMutation = trpc.organizations.releaseOrganization.useMutation({
+    onSuccess: () => {
+      toast.success(t("usersPage.toasts.organizationReleased"));
+      utils.organizations.checkMembership.invalidate();
+      utils.organizations.getMembers.invalidate();
+      utils.organizations.listInvites.invalidate();
+      setShowReleaseDialog(false);
+      setReleaseConfirmName("");
+      setLocation("/onboarding");
+    },
+    onError: (error) => {
+      toast.error(error.message);
+    },
+  });
+
   const handleRoleChange = (memberId: number, newRole: "ADMIN" | "CO_ADMIN" | "VENDEDOR") => {
     updateRoleMutation.mutate({ memberId, newRole });
   };
@@ -277,6 +296,12 @@ export default function Users() {
     }
     applySeatCouponMutation.mutate({ code: seatCoupon });
   };
+
+  const handleReleaseOrganization = () => {
+    releaseOrganizationMutation.mutate();
+  };
+
+  const releaseNameMatches = releaseConfirmName.trim() === (membership?.organization?.name ?? "");
 
   const getRoleBadge = (role: string) => {
     const variants: Record<string, { variant: "default" | "secondary" | "outline"; label: string }> = {
@@ -496,6 +521,29 @@ export default function Users() {
                   </TableBody>
                 </Table>
               )}
+            </CardContent>
+          </Card>
+        )}
+
+        {membership?.member?.role === "ADMIN" && (
+          <Card className="border-destructive/40">
+            <CardHeader>
+              <CardTitle>{t("usersPage.organization.title")}</CardTitle>
+              <CardDescription>{t("usersPage.organization.description")}</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <Alert className="border-destructive/40">
+                <AlertTriangle className="h-4 w-4" />
+                <AlertDescription>
+                  {t("usersPage.organization.warning")}
+                </AlertDescription>
+              </Alert>
+              <Button
+                variant="destructive"
+                onClick={() => setShowReleaseDialog(true)}
+              >
+                {t("usersPage.organization.action")}
+              </Button>
             </CardContent>
           </Card>
         )}
@@ -755,6 +803,41 @@ export default function Users() {
                   )}
                 </Button>
               )}
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* Dialog: Liberar organizacion */}
+        <Dialog open={showReleaseDialog} onOpenChange={setShowReleaseDialog}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>{t("usersPage.organization.confirmTitle")}</DialogTitle>
+              <DialogDescription>{t("usersPage.organization.confirmDescription")}</DialogDescription>
+            </DialogHeader>
+            <div className="space-y-2">
+              <Label htmlFor="releaseOrgName">{t("usersPage.organization.confirmLabel")}</Label>
+              <Input
+                id="releaseOrgName"
+                value={releaseConfirmName}
+                onChange={(e) => setReleaseConfirmName(e.target.value)}
+                placeholder={t("usersPage.organization.confirmPlaceholder", {
+                  name: membership?.organization?.name ?? "",
+                })}
+              />
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setShowReleaseDialog(false)}>
+                {t("usersPage.organization.cancel")}
+              </Button>
+              <Button
+                variant="destructive"
+                onClick={handleReleaseOrganization}
+                disabled={releaseOrganizationMutation.isPending || !releaseNameMatches}
+              >
+                {releaseOrganizationMutation.isPending
+                  ? t("usersPage.organization.processing")
+                  : t("usersPage.organization.confirm")}
+              </Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>

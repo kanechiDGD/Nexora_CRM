@@ -219,14 +219,17 @@ export default function ClientProfile() {
 
   const formatCurrency = (amount: number | null) => {
     if (!amount) return "-";
-    return new Intl.NumberFormat("es-US", {
+    const locale = i18n.language.startsWith("es") ? "es-US" : "en-US";
+    return new Intl.NumberFormat(locale, {
       style: "currency",
       currency: "USD",
     }).format(amount);
   };
 
   const getPerformedByLabel = (log: ActivityLog) =>
-    log.performedByName || log.performedByEmail || `Usuario #${log.performedBy}`;
+    log.performedByName ||
+    log.performedByEmail ||
+    t("clientProfile.activity.userFallback", { id: log.performedBy });
 
 
 
@@ -239,7 +242,7 @@ export default function ClientProfile() {
         <div className="flex items-center gap-3 mb-2">
           <Badge variant="outline">{getActivityTypeLabel(log.activityType)}</Badge>
           <span className="text-sm font-medium">
-            {new Date(log.performedAt).toLocaleDateString("es-ES", {
+            {new Date(log.performedAt).toLocaleDateString(i18n.language.startsWith("es") ? "es-ES" : "en-US", {
               year: "numeric",
               month: "short",
               day: "numeric",
@@ -247,7 +250,9 @@ export default function ClientProfile() {
               minute: "2-digit",
             })}
           </span>
-          <span className="text-sm text-muted-foreground">por {getPerformedByLabel(log)}</span>
+          <span className="text-sm text-muted-foreground">
+            {t("clientProfile.activity.by")} {getPerformedByLabel(log)}
+          </span>
         </div>
         {log.subject && <p className="font-medium mb-1">{log.subject}</p>}
         {log.description && <p className="text-sm text-muted-foreground">{log.description}</p>}
@@ -425,7 +430,7 @@ export default function ClientProfile() {
     return (
       <DashboardLayout>
         <div className="flex items-center justify-center min-h-[400px]">
-          <p className="text-muted-foreground">Cargando cliente...</p>
+          <p className="text-muted-foreground">{t("clientProfile.loading")}</p>
         </div>
       </DashboardLayout>
     );
@@ -438,7 +443,7 @@ export default function ClientProfile() {
           <AlertCircle className="h-12 w-12 text-muted-foreground" />
           <p className="text-muted-foreground">{t("clientProfile.notFound")}</p>
           <Button onClick={() => setLocation("/clients")}>
-            Volver a Clientes
+            {t("clientProfile.actions.backToClients")}
           </Button>
         </div>
       </DashboardLayout>
@@ -764,7 +769,7 @@ export default function ClientProfile() {
               <CardHeader className="flex flex-row items-center justify-between">
                 <CardTitle className="flex items-center gap-2">
                   <User className="h-5 w-5" />
-                  Equipo Asignado
+                  {t("clientProfile.sections.team.title")}
                 </CardTitle>
                 {canEdit && (
                   <div className="flex items-center gap-2">
@@ -976,7 +981,9 @@ export default function ClientProfile() {
                     />
                   </div>
                   <div className="space-y-2">
-                    <label className="text-sm text-muted-foreground">Monto de Cobertura</label>
+                    <label className="text-sm text-muted-foreground">
+                      {t("clientProfile.labels.coverageAmount")}
+                    </label>
                     <Input
                       type="number"
                       step="0.01"
@@ -1024,7 +1031,9 @@ export default function ClientProfile() {
                     />
                   </div>
                   <div className="space-y-2">
-                    <label className="text-sm text-muted-foreground">Pago Real</label>
+                    <label className="text-sm text-muted-foreground">
+                      {t("clientProfile.labels.actualPayout")}
+                    </label>
                     <Input
                       type="number"
                       step="0.01"
@@ -1056,7 +1065,9 @@ export default function ClientProfile() {
                     <p className="font-medium mt-1">{formatCurrency(client.deductible)}</p>
                   </div>
                   <div>
-                    <label className="text-sm text-muted-foreground">Monto de Cobertura</label>
+                    <label className="text-sm text-muted-foreground">
+                      {t("clientProfile.labels.coverageAmount")}
+                    </label>
                     <p className="font-medium mt-1">{formatCurrency(client.coverageAmount)}</p>
                   </div>
                   <div>
@@ -1078,7 +1089,9 @@ export default function ClientProfile() {
                     <p className="font-medium mt-1">{formatCurrency(client.estimatedLoss)}</p>
                   </div>
                   <div>
-                    <label className="text-sm text-muted-foreground">Pago Real</label>
+                    <label className="text-sm text-muted-foreground">
+                      {t("clientProfile.labels.actualPayout")}
+                    </label>
                     <p className="font-medium mt-1">{formatCurrency(client.actualPayout)}</p>
                   </div>
                 </CardContent>
@@ -1199,7 +1212,7 @@ export default function ClientProfile() {
                     />
                   </div>
                   <div className="space-y-2">
-                    <label className="text-sm text-muted-foreground">Ciudad</label>
+                    <label className="text-sm text-muted-foreground">{t("clientProfile.labels.city")}</label>
                     <Input
                       value={formData.city}
                       onChange={(e) => setFormData({ ...formData, city: e.target.value })}
@@ -1234,7 +1247,7 @@ export default function ClientProfile() {
                     <p className="font-medium mt-1">{client.propertyAddress || "-"}</p>
                   </div>
                   <div>
-                    <label className="text-sm text-muted-foreground">Ciudad</label>
+                    <label className="text-sm text-muted-foreground">{t("clientProfile.labels.city")}</label>
                     <p className="font-medium mt-1">{client.city || "-"}</p>
                   </div>
                   <div>
@@ -1362,7 +1375,9 @@ export default function ClientProfile() {
                     />
                   </div>
                   <div className="space-y-2">
-                    <label className="text-sm text-muted-foreground">Visita Programada</label>
+                    <label className="text-sm text-muted-foreground">
+                      {t("clientProfile.labels.scheduledVisit")}
+                    </label>
                     <Input
                       type="date"
                       value={formData.scheduledVisit}
@@ -1407,7 +1422,9 @@ export default function ClientProfile() {
                     <p className="font-medium mt-1">{formatDate(client.claimSubmittedDate)}</p>
                   </div>
                   <div>
-                    <label className="text-sm text-muted-foreground">Visita Programada</label>
+                    <label className="text-sm text-muted-foreground">
+                      {t("clientProfile.labels.scheduledVisit")}
+                    </label>
                     <p className="font-medium mt-1">{formatDate(client.scheduledVisit)}</p>
                   </div>
                   <div>
@@ -1433,7 +1450,7 @@ export default function ClientProfile() {
             <Card className="border-border">
               <CardHeader>
                 <div className="flex items-center justify-between">
-                  <CardTitle>Historial de Contactos</CardTitle>
+                  <CardTitle>{t("clientProfile.activity.title")}</CardTitle>
                   <div className="flex items-center gap-2">
                     <NewActivityDialog
                       clientId={client.id}
@@ -1452,7 +1469,7 @@ export default function ClientProfile() {
                         }
                       }}
                     >
-                      Ver Todos
+                      {t("clientProfile.activity.viewAll")}
                     </Button>
                   </div>
                 </div>
@@ -1473,14 +1490,16 @@ export default function ClientProfile() {
                       style={{ display: "none" }}
                       className="space-y-4 mt-4 pt-4 border-t border-border"
                     >
-                      <h4 className="font-semibold mb-3">Historial Completo</h4>
+                      <h4 className="font-semibold mb-3">{t("clientProfile.activity.fullHistory")}</h4>
                       {(activityLogs as ActivityLog[]).slice(4).map((log) => (
                         renderActivityLog(log)
                       ))}
                     </div>
                   </>
                 ) : (
-                  <p className="text-center text-muted-foreground py-8">No hay actividad registrada</p>
+                  <p className="text-center text-muted-foreground py-8">
+                    {t("clientProfile.activity.empty")}
+                  </p>
                 )}
               </CardContent>
             </Card>

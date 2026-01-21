@@ -286,6 +286,8 @@ const CLAIM_STATUS_MAP: Record<string, string> = {
   "ready for construction": "LISTA_PARA_CONSTRUIR",
   "ready to build": "LISTA_PARA_CONSTRUIR",
   "ready for build": "LISTA_PARA_CONSTRUIR",
+  construction: "LISTA_PARA_CONSTRUIR",
+  construccion: "LISTA_PARA_CONSTRUIR",
   rechazada: "RECHAZADA",
   rechazado: "RECHAZADA",
   denied: "RECHAZADA",

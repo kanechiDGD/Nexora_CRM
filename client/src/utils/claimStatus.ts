@@ -16,7 +16,7 @@ export const DEFAULT_CLAIM_STATUSES = [
 
 const LEGACY_STATUS_MAP: Record<string, string> = {
   construida: "CONSTRUIDA",
-  construction: "CONSTRUCTION",
+  construction: "LISTA_PARA_CONSTRUIR",
   liberado: "LIBERADO",
   released: "LIBERADO",
   reinspeccion: "REINSPECCION",
@@ -39,7 +39,6 @@ const LEGACY_STATUS_MAP: Record<string, string> = {
 
 const LEGACY_STATUS_LABELS: Record<string, { en: string; es: string }> = {
   CONSTRUIDA: { en: "Constructed", es: "Construida" },
-  CONSTRUCTION: { en: "Construction", es: "Construccion" },
   LIBERADO: { en: "Released", es: "Liberado" },
   REINSPECCION: { en: "Reinspection", es: "Reinspeccion" },
   REINSPECCION_NO_S: { en: "Reinspection No/S", es: "Reinspeccion No/S" },
@@ -80,6 +79,12 @@ export function getClaimStatusMeta(
 
   const normalized = normalizeKey(status);
   const legacyKey = LEGACY_STATUS_MAP[normalized];
+  if (legacyKey && DEFAULT_CLAIM_STATUSES.includes(legacyKey as (typeof DEFAULT_CLAIM_STATUSES)[number])) {
+    return {
+      key: `legacy:${legacyKey}`,
+      displayName: opts.t(`dashboard.claimStatus.status.${legacyKey}`),
+    };
+  }
   if (legacyKey && LEGACY_STATUS_LABELS[legacyKey]) {
     const label = LEGACY_STATUS_LABELS[legacyKey];
     return {
