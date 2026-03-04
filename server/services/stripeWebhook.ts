@@ -25,11 +25,42 @@ export async function handleStripeWebhook(payload: Buffer, signature: string | u
       const organizationId = Number(session.metadata?.organizationId || 0);
 
       if (organizationId && customerId) {
-        const updates: Record<string, string | null> = {
+        const updates: Record<string, string | number | null> = {
           stripeCustomerId: customerId,
         };
         if (session.mode === "subscription") {
           updates.stripeSubscriptionId = subscriptionId ?? null;
+          if (subscriptionId) {
+            const subscription = await stripe.subscriptions.retrieve(subscriptionId);
+            const items = subscription.items.data;
+            let planItemId: string | null = null;
+            let extraItemId: string | null = null;
+            let planTier = typeof session.metadata?.planTier === "string" ? session.metadata.planTier : null;
+            let extraSeats = 0;
+
+            for (const item of items) {
+              const priceId =
+                typeof item.price === "string" ? item.price : item.price?.id;
+              if (!priceId) continue;
+              const tier = resolvePlanTierFromPriceId(priceId);
+              if (tier) {
+                planTier = tier;
+                planItemId = item.id;
+                continue;
+              }
+              if (priceId === ENV.stripePriceExtraSeat) {
+                extraItemId = item.id;
+                extraSeats = item.quantity ?? 0;
+              }
+            }
+
+            updates.stripeSubscriptionStatus = subscription.status;
+            updates.planStatus = subscription.status;
+            updates.planTier = planTier ?? "starter";
+            updates.stripePlanItemId = planItemId;
+            updates.stripeExtraItemId = extraItemId;
+            updates.extraSeats = extraSeats;
+          }
         }
         await db.updateOrganization(organizationId, updates);
       }

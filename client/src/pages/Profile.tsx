@@ -164,15 +164,20 @@ export default function Profile() {
 
   const hasPaymentMethod = membership?.billing?.hasPaymentMethod === true;
   const isComped = membership?.billing?.isComped === true;
+  const hasStripeSubscription = Boolean(membership?.organization?.stripeSubscriptionId);
   const trialDaysLeft = membership?.billing?.trialDaysLeft ?? null;
   const showTrialCountdown = Boolean(
     trialDaysLeft !== null &&
       trialDaysLeft > 0 &&
       !hasPaymentMethod &&
-      !isComped
+      !isComped &&
+      !hasStripeSubscription
   );
   const showNoPaymentMethod = Boolean(
-    membership?.hasMembership && !hasPaymentMethod && !isComped
+    membership?.hasMembership &&
+      !hasPaymentMethod &&
+      !isComped &&
+      !hasStripeSubscription
   );
   const handleAddPaymentMethod = () => {
     setupMutation.mutate({ successPath: "/profile", cancelPath: "/profile" });

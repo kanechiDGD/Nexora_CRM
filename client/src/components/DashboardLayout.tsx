@@ -177,12 +177,14 @@ function DashboardLayoutContent({
     [notifications]
   );
   const isComped = membership?.billing?.isComped === true;
+  const hasStripeSubscription = Boolean(membership?.organization?.stripeSubscriptionId);
   const trialDaysLeft = membership?.billing?.trialDaysLeft ?? null;
   const showTrialCountdown = Boolean(
     trialDaysLeft !== null &&
       trialDaysLeft > 0 &&
       !membership?.billing?.hasPaymentMethod &&
-      !isComped
+      !isComped &&
+      !hasStripeSubscription
   );
   const returnPath = `${location}${window.location.search || ""}`;
   const handleAddPaymentMethod = () => {

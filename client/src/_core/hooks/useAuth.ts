@@ -14,16 +14,12 @@ export function useAuth(options?: UseAuthOptions) {
   const utils = trpc.useUtils();
 
   const meQuery = trpc.auth.me.useQuery(undefined, {
-    retry: 3, // Retry 3 times before failing to handle transient network issues
+    retry: 3,
     retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
-    refetchOnWindowFocus: false, // Keep disabled to avoid race conditions on tab switch
-    // Validación periódica de sesión cada 2 minutos para mantenerla activa
-    refetchInterval: 1000 * 60 * 2, // 2 minutos
-    // Mantener la query activa incluso en background
+    refetchOnWindowFocus: false,
+    refetchInterval: 1000 * 60 * 2,
     refetchIntervalInBackground: true,
-    // Datos frescos por 5 minutos
     staleTime: 1000 * 60 * 5,
-    // Caché por 30 minutos
     gcTime: 1000 * 60 * 30,
   });
 
@@ -45,7 +41,6 @@ export function useAuth(options?: UseAuthOptions) {
       }
       throw error;
     } finally {
-      localStorage.removeItem("manus-runtime-user-info");
       utils.auth.me.setData(undefined, null);
       await utils.auth.me.invalidate();
     }
@@ -73,7 +68,7 @@ export function useAuth(options?: UseAuthOptions) {
     if (typeof window === "undefined") return;
     if (window.location.pathname === redirectPath) return;
 
-    window.location.href = redirectPath
+    window.location.href = redirectPath;
   }, [
     redirectOnUnauthenticated,
     redirectPath,

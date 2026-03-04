@@ -10,7 +10,9 @@ import { sdk } from "./sdk";
 
 const GOOGLE_AUTH_URL = "https://accounts.google.com/o/oauth2/v2/auth";
 const GOOGLE_TOKEN_URL = "https://oauth2.googleapis.com/token";
-const GOOGLE_JWKS = createRemoteJWKSet(new URL("https://www.googleapis.com/oauth2/v3/certs"));
+const GOOGLE_JWKS = createRemoteJWKSet(
+  new URL("https://www.googleapis.com/oauth2/v3/certs")
+);
 
 function getQueryParam(req: Request, key: string): string | undefined {
   const value = req.query[key];
@@ -33,7 +35,9 @@ function getGoogleRedirectUri(req: Request) {
 
 function requireGoogleConfig() {
   if (!ENV.googleClientId || !ENV.googleClientSecret) {
-    throw new Error("Google OAuth is not configured: set GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET");
+    throw new Error(
+      "Google OAuth is not configured: set GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET"
+    );
   }
 }
 
@@ -50,49 +54,10 @@ function parseStateParam(state: string | undefined) {
 }
 
 export function registerOAuthRoutes(app: Express) {
-  app.get("/api/oauth/callback", async (req: Request, res: Response) => {
-    const code = getQueryParam(req, "code");
-    const state = getQueryParam(req, "state");
-
-    if (!code || !state) {
-      res.status(400).json({ error: "code and state are required" });
-      return;
-    }
-
-    try {
-      const tokenResponse = await sdk.exchangeCodeForToken(code, state);
-      const userInfo = await sdk.getUserInfo(tokenResponse.accessToken);
-
-      if (!userInfo.openId) {
-        res.status(400).json({ error: "openId missing from user info" });
-        return;
-      }
-
-      await db.upsertUser({
-        openId: userInfo.openId,
-        name: userInfo.name || null,
-        email: userInfo.email ?? null,
-        loginMethod: userInfo.loginMethod ?? userInfo.platform ?? null,
-        lastSignedIn: new Date(),
-      });
-
-      const sessionToken = await sdk.createSessionToken(userInfo.openId, {
-        name: userInfo.name || "",
-        expiresInMs: ONE_YEAR_MS,
-      });
-
-      const cookieOptions = getSessionCookieOptions(req);
-      // Establecer maxAge de 1 año para que la cookie persista
-      res.cookie(COOKIE_NAME, sessionToken, { ...cookieOptions, maxAge: ONE_YEAR_MS });
-
-      res.redirect(302, "/dashboard");
-    } catch (error) {
-      console.error("[OAuth] Callback failed", error);
-      res.status(500).json({ error: "OAuth callback failed" });
-    }
+  app.get("/api/oauth/callback", async (_req: Request, res: Response) => {
+    res.redirect(302, "/login");
   });
 
-  // ===== Google OAuth 2.0 =====
   app.get("/api/oauth/google/start", (req: Request, res: Response) => {
     try {
       requireGoogleConfig();
@@ -104,7 +69,9 @@ export function registerOAuthRoutes(app: Express) {
         nonce: randomUUID(),
       };
 
-      const state = Buffer.from(JSON.stringify(statePayload)).toString("base64url");
+      const state = Buffer.from(JSON.stringify(statePayload)).toString(
+        "base64url"
+      );
 
       const params = new URLSearchParams({
         client_id: ENV.googleClientId,
@@ -152,10 +119,15 @@ export function registerOAuthRoutes(app: Express) {
         }
       );
 
-      const { id_token: idToken } = tokenResponse.data as { id_token?: string };
+      const { id_token: idToken } = tokenResponse.data as {
+        id_token?: string;
+      };
 
       if (!idToken) {
-        console.error("[OAuth] Google token response missing id_token", tokenResponse.data);
+        console.error(
+          "[OAuth] Google token response missing id_token",
+          tokenResponse.data
+        );
         res.status(500).json({ error: "Google OAuth token missing id_token" });
         return;
       }
@@ -167,7 +139,8 @@ export function registerOAuthRoutes(app: Express) {
 
       const sub = payload.sub;
       const email = typeof payload.email === "string" ? payload.email : null;
-      const name = typeof payload.name === "string" ? payload.name : email || "Google User";
+      const name =
+        typeof payload.name === "string" ? payload.name : email || "Google User";
 
       if (!sub) {
         console.error("[OAuth] Google token missing sub", payload);
@@ -199,7 +172,10 @@ export function registerOAuthRoutes(app: Express) {
       });
 
       const cookieOptions = getSessionCookieOptions(req);
-      res.cookie(COOKIE_NAME, sessionToken, { ...cookieOptions, maxAge: ONE_YEAR_MS });
+      res.cookie(COOKIE_NAME, sessionToken, {
+        ...cookieOptions,
+        maxAge: ONE_YEAR_MS,
+      });
 
       res.redirect(302, returnTo);
     } catch (error) {
