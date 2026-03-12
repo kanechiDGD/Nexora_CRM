@@ -192,6 +192,10 @@ export function ManageClaimStatusesDialog({ trigger }: ManageClaimStatusesDialog
                 { name: "AJUSTACION_TERMINADA", displayName: t('dashboard.claimStatus.status.AJUSTACION_TERMINADA') },
                 { name: "EN_PROCESO", displayName: t('dashboard.claimStatus.status.EN_PROCESO') },
                 { name: "APROVADA", displayName: t('dashboard.claimStatus.status.APROVADA') },
+                { name: "RELEASE_LETTER_REQUIRED", displayName: t('dashboard.claimStatus.status.RELEASE_LETTER_REQUIRED') },
+                { name: "CHECK_SENT_TO_MORTGAGE", displayName: t('dashboard.claimStatus.status.CHECK_SENT_TO_MORTGAGE') },
+                { name: "CLIENT_HAS_CHECK", displayName: t('dashboard.claimStatus.status.CLIENT_HAS_CHECK') },
+                { name: "LISTA_PARA_CONSTRUIR", displayName: t('dashboard.claimStatus.status.LISTA_PARA_CONSTRUIR') },
                 { name: "RECHAZADA", displayName: t('dashboard.claimStatus.status.RECHAZADA') },
                 { name: "CERRADA", displayName: t('dashboard.claimStatus.status.CERRADA') },
               ].map((status) => (

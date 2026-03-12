@@ -454,6 +454,7 @@ export const tasks = mysqlTable("tasks", {
   category: mysqlEnum("category", ["DOCUMENTACION", "SEGUIMIENTO", "ESTIMADO", "REUNION", "REVISION", "OTRO"]).default("OTRO").notNull(),
   priority: mysqlEnum("priority", ["ALTA", "MEDIA", "BAJA"]).default("MEDIA").notNull(),
   status: mysqlEnum("status", ["PENDIENTE", "EN_PROGRESO", "COMPLETADA", "CANCELADA"]).default("PENDIENTE").notNull(),
+  departmentId: int("departmentId").references(() => workflowRoles.id, { onDelete: "set null" }),
   assignedTo: int("assignedTo"), // userId
   dueDate: timestamp("dueDate"),
   completedAt: timestamp("completedAt"),
@@ -473,6 +474,44 @@ export const tasks = mysqlTable("tasks", {
 
 export type Task = typeof tasks.$inferSelect;
 export type InsertTask = typeof tasks.$inferInsert;
+
+export const taskAssignees = mysqlTable("taskAssignees", {
+  id: int("id").autoincrement().primaryKey(),
+  taskId: int("taskId").notNull().references(() => tasks.id, { onDelete: "cascade" }),
+  userId: int("userId").notNull().references(() => users.id),
+  organizationId: int("organizationId").notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+export type TaskAssignee = typeof taskAssignees.$inferSelect;
+export type InsertTaskAssignee = typeof taskAssignees.$inferInsert;
+
+export const workflowTaskTemplates = mysqlTable("workflowTaskTemplates", {
+  id: int("id").autoincrement().primaryKey(),
+  organizationId: int("organizationId").notNull(),
+  title: varchar("title", { length: 200 }).notNull(),
+  description: text("description"),
+  departmentId: int("departmentId").references(() => workflowRoles.id, { onDelete: "set null" }),
+  departmentName: varchar("departmentName", { length: 100 }),
+  isActive: int("isActive").default(1).notNull(),
+  createdBy: int("createdBy").notNull().references(() => users.id),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type WorkflowTaskTemplate = typeof workflowTaskTemplates.$inferSelect;
+export type InsertWorkflowTaskTemplate = typeof workflowTaskTemplates.$inferInsert;
+
+export const workflowTaskTemplateAssignees = mysqlTable("workflowTaskTemplateAssignees", {
+  id: int("id").autoincrement().primaryKey(),
+  templateId: int("templateId").notNull().references(() => workflowTaskTemplates.id, { onDelete: "cascade" }),
+  userId: int("userId").notNull().references(() => users.id),
+  organizationId: int("organizationId").notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+export type WorkflowTaskTemplateAssignee = typeof workflowTaskTemplateAssignees.$inferSelect;
+export type InsertWorkflowTaskTemplateAssignee = typeof workflowTaskTemplateAssignees.$inferInsert;
 
 /**
  * Tabla de estados de reclamo personalizados
@@ -505,6 +544,7 @@ export const workflowRoles = mysqlTable("workflowRoles", {
   id: int("id").autoincrement().primaryKey(),
   name: varchar("name", { length: 100 }).notNull(),
   description: text("description"),
+  ownerUserId: int("ownerUserId").references(() => users.id),
   isActive: int("isActive").default(1).notNull(),
 
   organizationId: int("organizationId").notNull(),
@@ -571,6 +611,23 @@ export const activityAutomationRules = mysqlTable("activityAutomationRules", {
 
 export type ActivityAutomationRule = typeof activityAutomationRules.$inferSelect;
 export type InsertActivityAutomationRule = typeof activityAutomationRules.$inferInsert;
+
+export const scheduledTasks = mysqlTable("scheduledTasks", {
+  id: int("id").autoincrement().primaryKey(),
+  organizationId: int("organizationId").notNull(),
+  clientId: varchar("clientId", { length: 50 }),
+  taskType: varchar("taskType", { length: 80 }).notNull(),
+  runAt: timestamp("runAt").notNull(),
+  status: mysqlEnum("status", ["PENDING", "COMPLETED"]).default("PENDING").notNull(),
+  payload: text("payload"),
+  dedupeKey: varchar("dedupeKey", { length: 120 }),
+  createdBy: int("createdBy").notNull().references(() => users.id),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  completedAt: timestamp("completedAt"),
+});
+
+export type ScheduledTask = typeof scheduledTasks.$inferSelect;
+export type InsertScheduledTask = typeof scheduledTasks.$inferInsert;
 
 /**
  * Gmail accounts linked by users for claim email tracking

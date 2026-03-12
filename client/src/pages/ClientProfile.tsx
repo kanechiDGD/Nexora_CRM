@@ -194,6 +194,9 @@ export default function ClientProfile() {
       AJUSTACION_TERMINADA: { variant: "secondary", label: t("dashboard.claimStatus.status.AJUSTACION_TERMINADA") },
       EN_PROCESO: { variant: "secondary", label: t("dashboard.claimStatus.status.EN_PROCESO") },
       APROVADA: { variant: "default", label: t("dashboard.claimStatus.status.APROBADA") },
+      RELEASE_LETTER_REQUIRED: { variant: "secondary", label: t("dashboard.claimStatus.status.RELEASE_LETTER_REQUIRED") },
+      CHECK_SENT_TO_MORTGAGE: { variant: "secondary", label: t("dashboard.claimStatus.status.CHECK_SENT_TO_MORTGAGE") },
+      CLIENT_HAS_CHECK: { variant: "default", label: t("dashboard.claimStatus.status.CLIENT_HAS_CHECK") },
       LISTA_PARA_CONSTRUIR: { variant: "default", label: t("dashboard.claimStatus.status.LISTA_PARA_CONSTRUIR") },
       RECHAZADA: { variant: "destructive", label: t("dashboard.claimStatus.status.RECHAZADA") },
       CERRADA: { variant: "outline", label: t("dashboard.claimStatus.status.CERRADA") },
@@ -1021,6 +1024,15 @@ export default function ClientProfile() {
                         </SelectItem>
                         <SelectItem value="APROVADA">
                           {t("dashboard.claimStatus.status.APROBADA")}
+                        </SelectItem>
+                        <SelectItem value="RELEASE_LETTER_REQUIRED">
+                          {t("dashboard.claimStatus.status.RELEASE_LETTER_REQUIRED")}
+                        </SelectItem>
+                        <SelectItem value="CHECK_SENT_TO_MORTGAGE">
+                          {t("dashboard.claimStatus.status.CHECK_SENT_TO_MORTGAGE")}
+                        </SelectItem>
+                        <SelectItem value="CLIENT_HAS_CHECK">
+                          {t("dashboard.claimStatus.status.CLIENT_HAS_CHECK")}
                         </SelectItem>
                         <SelectItem value="LISTA_PARA_CONSTRUIR">
                           {t("dashboard.claimStatus.status.LISTA_PARA_CONSTRUIR")}

@@ -9,6 +9,9 @@ export const DEFAULT_CLAIM_STATUSES = [
   "AJUSTACION_TERMINADA",
   "EN_PROCESO",
   "APROVADA",
+  "RELEASE_LETTER_REQUIRED",
+  "CHECK_SENT_TO_MORTGAGE",
+  "CLIENT_HAS_CHECK",
   "LISTA_PARA_CONSTRUIR",
   "RECHAZADA",
   "CERRADA",
@@ -35,6 +38,15 @@ const LEGACY_STATUS_MAP: Record<string, string> = {
   "ready for construction": "LISTA_PARA_CONSTRUIR",
   "ready to build": "LISTA_PARA_CONSTRUIR",
   "ready for build": "LISTA_PARA_CONSTRUIR",
+  aprobada: "APROVADA",
+  "carta de release requerida": "RELEASE_LETTER_REQUIRED",
+  "release letter requerida": "RELEASE_LETTER_REQUIRED",
+  "release letter required": "RELEASE_LETTER_REQUIRED",
+  "cheque enviado al mortgage": "CHECK_SENT_TO_MORTGAGE",
+  "check sent to mortgage": "CHECK_SENT_TO_MORTGAGE",
+  "cheque en posesion del cliente": "CLIENT_HAS_CHECK",
+  "cliente tiene el cheque": "CLIENT_HAS_CHECK",
+  "client has check": "CLIENT_HAS_CHECK",
 };
 
 const LEGACY_STATUS_LABELS: Record<string, { en: string; es: string }> = {

@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import DashboardLayout from "@/components/DashboardLayout";
 import { usePermissions } from "@/hooks/usePermissions";
 import { trpc } from "@/lib/trpc";
@@ -7,24 +7,25 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { toast } from "sonner";
+import { cn } from "@/lib/utils";
 
-const activityTypeOptions = [
-  { value: "AJUSTACION_REALIZADA", labelKey: "activityDialog.new.types.adjustmentCompleted" },
-  { value: "SCOPE_SOLICITADO", labelKey: "activityDialog.new.types.scopeRequested" },
-  { value: "SCOPE_RECIBIDO", labelKey: "activityDialog.new.types.scopeReceived" },
-  { value: "SCOPE_ENVIADO", labelKey: "activityDialog.new.types.scopeSent" },
-  { value: "RESPUESTA_FAVORABLE", labelKey: "activityDialog.new.types.responseFavorable" },
-  { value: "RESPUESTA_NEGATIVA", labelKey: "activityDialog.new.types.responseNegative" },
-  { value: "INICIO_APPRAISAL", labelKey: "activityDialog.new.types.appraisalStarted" },
-  { value: "CARTA_APPRAISAL_ENVIADA", labelKey: "activityDialog.new.types.appraisalLetterSent" },
-  { value: "RELEASE_LETTER_REQUERIDA", labelKey: "activityDialog.new.types.releaseLetterRequired" },
-  { value: "ITEL_SOLICITADO", labelKey: "activityDialog.new.types.itelRequested" },
-  { value: "REINSPECCION_SOLICITADA", labelKey: "activityDialog.new.types.reinspectionRequested" },
-];
+const DEFAULT_DEPARTMENTS = ["Office", "Public Adjuster", "Construction"];
+
+const DEPARTMENT_STYLES: Record<string, { accent: string; badge: string; text: string }> = {
+  office: { accent: "border-amber-300", badge: "bg-amber-100 text-amber-900", text: "text-amber-800" },
+  "public adjuster": { accent: "border-sky-300", badge: "bg-sky-100 text-sky-900", text: "text-sky-800" },
+  construction: { accent: "border-emerald-300", badge: "bg-emerald-100 text-emerald-900", text: "text-emerald-800" },
+};
+
+type DepartmentDraft = {
+  ownerUserId: string;
+  supervisorUserId: string;
+  memberUserIds: number[];
+};
 
 export default function WorkflowSettings() {
   const { t } = useTranslation();
@@ -34,87 +35,52 @@ export default function WorkflowSettings() {
   const { data: members = [] } = trpc.organizations.getMembers.useQuery(undefined, {
     enabled: canEdit,
   });
-  const { data: roles = [] } = trpc.workflowRoles.list.useQuery(undefined, {
+  const { data: departments = [] } = trpc.workflowRoles.list.useQuery(undefined, {
     enabled: canEdit,
   });
   const { data: roleMembers = [] } = trpc.workflowRoles.listAllMembers.useQuery(undefined, {
     enabled: canEdit,
   });
-  const { data: rules = [] } = trpc.activityAutomationRules.list.useQuery(undefined, {
+  const { data: tasksData } = trpc.workflowTaskTemplates.list.useQuery(undefined, {
     enabled: canEdit,
   });
 
-  const createRole = trpc.workflowRoles.create.useMutation({
-    onSuccess: () => {
-      toast.success(t("workflowSettings.roles.createSuccess"));
-      utils.workflowRoles.list.invalidate();
-      utils.workflowRoles.listAllMembers.invalidate();
-      setRoleForm({
-        name: "",
-        description: "",
-        primaryUserId: "sin_asignar",
-        secondaryUserIds: [],
-      });
-    },
-    onError: (error) => {
-      toast.error(error.message || t("workflowSettings.roles.createError"));
-    },
-  });
-
-  const updateRole = trpc.workflowRoles.update.useMutation({
-    onSuccess: () => {
-      toast.success(t("workflowSettings.roles.updateSuccess"));
-      utils.workflowRoles.list.invalidate();
-      utils.workflowRoles.listAllMembers.invalidate();
-    },
-    onError: (error) => {
-      toast.error(error.message || t("workflowSettings.roles.updateError"));
-    },
-  });
-
-  const createRule = trpc.activityAutomationRules.create.useMutation({
-    onSuccess: () => {
-      toast.success(t("workflowSettings.rules.createSuccess"));
-      utils.activityAutomationRules.list.invalidate();
-      setRuleForm({
-        activityType: "SCOPE_RECIBIDO",
-        taskTitle: "",
-        taskDescription: "",
-        roleId: "sin_asignar",
-        category: "OTRO",
-        priority: "MEDIA",
-        dueInDays: "",
-      });
-    },
-    onError: (error) => {
-      toast.error(error.message || t("workflowSettings.rules.createError"));
-    },
-  });
-
-  const updateRule = trpc.activityAutomationRules.update.useMutation({
-    onSuccess: () => {
-      utils.activityAutomationRules.list.invalidate();
-    },
-    onError: (error) => {
-      toast.error(error.message || t("workflowSettings.rules.updateError"));
-    },
-  });
-
-  const [roleForm, setRoleForm] = useState({
+  const [departmentForm, setDepartmentForm] = useState({
     name: "",
-    description: "",
-    primaryUserId: "sin_asignar",
-    secondaryUserIds: [] as number[],
+    ownerUserId: "",
+  });
+  const [departmentDrafts, setDepartmentDrafts] = useState<Record<number, DepartmentDraft>>({});
+  const [selectedTemplateId, setSelectedTemplateId] = useState<number | null>(null);
+
+  const createDepartment = trpc.workflowRoles.create.useMutation({
+    onSuccess: () => {
+      toast.success(t("workflowSettings.departments.createSuccess"));
+      utils.workflowRoles.list.invalidate();
+      setDepartmentForm({ name: "", ownerUserId: "" });
+    },
+    onError: (error) => {
+      toast.error(error.message || t("workflowSettings.departments.createError"));
+    },
   });
 
-  const [ruleForm, setRuleForm] = useState({
-    activityType: "SCOPE_RECIBIDO",
-    taskTitle: "",
-    taskDescription: "",
-    roleId: "sin_asignar",
-    category: "OTRO",
-    priority: "MEDIA",
-    dueInDays: "",
+  const updateDepartment = trpc.workflowRoles.update.useMutation({
+    onSuccess: () => {
+      toast.success(t("workflowSettings.departments.updateSuccess"));
+      utils.workflowRoles.list.invalidate();
+      utils.workflowRoles.listAllMembers.invalidate();
+    },
+    onError: (error) => {
+      toast.error(error.message || t("workflowSettings.departments.updateError"));
+    },
+  });
+
+  const updateTemplate = trpc.workflowTaskTemplates.update.useMutation({
+    onSuccess: () => {
+      utils.workflowTaskTemplates.list.invalidate();
+    },
+    onError: (error) => {
+      toast.error(error.message || t("workflowSettings.tasks.updateError"));
+    },
   });
 
   const memberOptions = useMemo(
@@ -126,15 +92,184 @@ export default function WorkflowSettings() {
     [members]
   );
 
+  const tasks = tasksData?.templates ?? [];
+  const assignees = tasksData?.assignees ?? [];
+
+  const assigneesByTaskId = useMemo(() => {
+    const map = new Map<number, number[]>();
+    assignees.forEach((assignment: any) => {
+      const list = map.get(assignment.templateId) || [];
+      list.push(assignment.userId);
+      map.set(assignment.templateId, list);
+    });
+    return map;
+  }, [assignees]);
+
   const membersByRoleId = useMemo(() => {
-    const map = new Map<number, any[]>();
+    const map = new Map<number, { supervisorId: number | null; memberIds: number[] }>();
     roleMembers.forEach((member: any) => {
-      const list = map.get(member.roleId) || [];
-      list.push(member);
-      map.set(member.roleId, list);
+      const existing = map.get(member.roleId) || { supervisorId: null, memberIds: [] };
+      if (member.isPrimary === 1) {
+        existing.supervisorId = member.userId;
+      } else {
+        existing.memberIds.push(member.userId);
+      }
+      map.set(member.roleId, existing);
     });
     return map;
   }, [roleMembers]);
+
+  const getTaskAssignees = (task: any) => assigneesByTaskId.get(task.id) || [];
+  const selectedTemplate = selectedTemplateId
+    ? tasks.find((task: any) => task.id === selectedTemplateId)
+    : null;
+  const selectedAssignees = selectedTemplate
+    ? getTaskAssignees(selectedTemplate)
+    : [];
+
+  const allowedDepartments = useMemo(
+    () => new Set(DEFAULT_DEPARTMENTS.map((name) => name.toLowerCase())),
+    []
+  );
+
+  const visibleDepartments = useMemo(
+    () => departments.filter((dept: any) => allowedDepartments.has((dept.name || "").toLowerCase())),
+    [departments, allowedDepartments]
+  );
+
+  const departmentOrder = useMemo(() => {
+    const baseOrder = DEFAULT_DEPARTMENTS.map((name) => name.toLowerCase());
+    return [...visibleDepartments].sort((a: any, b: any) => {
+      const aKey = (a.name || "").toLowerCase();
+      const bKey = (b.name || "").toLowerCase();
+      const aIndex = baseOrder.indexOf(aKey);
+      const bIndex = baseOrder.indexOf(bKey);
+      if (aIndex === -1 && bIndex === -1) return a.name.localeCompare(b.name);
+      if (aIndex === -1) return 1;
+      if (bIndex === -1) return -1;
+      return aIndex - bIndex;
+    });
+  }, [visibleDepartments]);
+
+  const getDeptStyle = (name: string) =>
+    DEPARTMENT_STYLES[name.toLowerCase()] || {
+      accent: "border-slate-200",
+      badge: "bg-slate-100 text-slate-900",
+      text: "text-slate-700",
+    };
+
+  const masterTasks = [...tasks]
+    .filter((task: any) => {
+      const deptName = visibleDepartments.find((dept: any) => dept.id === task.departmentId)?.name;
+      return deptName ? allowedDepartments.has(deptName.toLowerCase()) : false;
+    })
+    .sort((a: any, b: any) => {
+      const aDept = visibleDepartments.find((dept: any) => dept.id === a.departmentId)?.name || "";
+      const bDept = visibleDepartments.find((dept: any) => dept.id === b.departmentId)?.name || "";
+      if (aDept !== bDept) return aDept.localeCompare(bDept);
+      return a.title.localeCompare(b.title);
+    });
+
+  const templatesByDept = useMemo(() => {
+    const map = new Map<number, any[]>();
+    masterTasks.forEach((task: any) => {
+      const list = map.get(task.departmentId) || [];
+      list.push(task);
+      map.set(task.departmentId, list);
+    });
+    return map;
+  }, [masterTasks]);
+
+  useEffect(() => {
+    const nextDrafts: Record<number, DepartmentDraft> = {};
+    departments.forEach((dept: any) => {
+      const membersInfo = membersByRoleId.get(dept.id) || { supervisorId: null, memberIds: [] };
+      nextDrafts[dept.id] = {
+        ownerUserId: dept.ownerUserId ? String(dept.ownerUserId) : "",
+        supervisorUserId: membersInfo.supervisorId ? String(membersInfo.supervisorId) : "",
+        memberUserIds: membersInfo.memberIds,
+      };
+    });
+
+    setDepartmentDrafts((prev) => {
+      let changed = false;
+      const keys = Object.keys(nextDrafts);
+      if (Object.keys(prev).length !== keys.length) {
+        changed = true;
+      } else {
+        for (const key of keys) {
+          const next = nextDrafts[Number(key)];
+          const current = prev[Number(key)];
+          if (!current) {
+            changed = true;
+            break;
+          }
+          const sameOwner = current.ownerUserId === next.ownerUserId;
+          const sameSupervisor = current.supervisorUserId === next.supervisorUserId;
+          const sameMembers =
+            current.memberUserIds.length === next.memberUserIds.length &&
+            current.memberUserIds.every((id) => next.memberUserIds.includes(id));
+          if (!(sameOwner && sameSupervisor && sameMembers)) {
+            changed = true;
+            break;
+          }
+        }
+      }
+
+      return changed ? nextDrafts : prev;
+    });
+  }, [departments, membersByRoleId]);
+
+  const saveDepartment = (deptId: number) => {
+    const draft = departmentDrafts[deptId];
+    if (!draft) return;
+    updateDepartment.mutate({
+      id: deptId,
+      ownerUserId: draft.ownerUserId ? Number(draft.ownerUserId) : null,
+      supervisorUserId: draft.supervisorUserId ? Number(draft.supervisorUserId) : null,
+      memberUserIds: draft.memberUserIds,
+    });
+  };
+
+  const toggleDepartmentMember = (deptId: number, userId: number) => {
+    setDepartmentDrafts((prev) => {
+      const draft = prev[deptId];
+      if (!draft) return prev;
+      const exists = draft.memberUserIds.includes(userId);
+      const nextMembers = exists
+        ? draft.memberUserIds.filter((id) => id !== userId)
+        : [...draft.memberUserIds, userId];
+      return {
+        ...prev,
+        [deptId]: {
+          ...draft,
+          memberUserIds: nextMembers,
+        },
+      };
+    });
+  };
+
+  const assignTemplateToMember = (templateId: number, userId: number) => {
+    updateTemplate.mutate({ id: templateId, assigneeIds: [userId] });
+  };
+
+  const clearTemplateAssignment = (templateId: number) => {
+    updateTemplate.mutate({ id: templateId, assigneeIds: [] });
+  };
+
+  const assignTaskDepartment = (taskId: number, departmentId: number | null) => {
+    updateTemplate.mutate({ id: taskId, departmentId });
+  };
+
+  const ensureDepartmentDraft = (deptId: number): DepartmentDraft => {
+    return (
+      departmentDrafts[deptId] || {
+        ownerUserId: "",
+        supervisorUserId: "",
+        memberUserIds: [],
+      }
+    );
+  };
 
   if (!canEdit) {
     return (
@@ -159,29 +294,35 @@ export default function WorkflowSettings() {
 
         <Card>
           <CardHeader>
-            <CardTitle>{t("workflowSettings.roles.title")}</CardTitle>
-            <CardDescription>{t("workflowSettings.roles.subtitle")}</CardDescription>
+            <CardTitle>{t("workflowSettings.departments.title")}</CardTitle>
+            <CardDescription>{t("workflowSettings.departments.subtitle")}</CardDescription>
           </CardHeader>
-          <CardContent className="space-y-6">
-            <div className="grid gap-4 md:grid-cols-2">
+          <CardContent className="space-y-4">
+            <div className="grid gap-4 md:grid-cols-[1.5fr_1fr_auto]">
               <div className="space-y-2">
-                <Label>{t("workflowSettings.roles.fields.name")}</Label>
+                <Label>{t("workflowSettings.departments.fields.name")}</Label>
                 <Input
-                  value={roleForm.name}
-                  onChange={(e) => setRoleForm({ ...roleForm, name: e.target.value })}
+                  value={departmentForm.name}
+                  onChange={(e) => setDepartmentForm({ ...departmentForm, name: e.target.value })}
+                  placeholder={t("workflowSettings.departments.fields.namePlaceholder")}
                 />
               </div>
               <div className="space-y-2">
-                <Label>{t("workflowSettings.roles.fields.primary")}</Label>
+                <Label>{t("workflowSettings.departments.fields.owner")}</Label>
                 <Select
-                  value={roleForm.primaryUserId}
-                  onValueChange={(value) => setRoleForm({ ...roleForm, primaryUserId: value })}
+                  value={departmentForm.ownerUserId}
+                  onValueChange={(value) =>
+                    setDepartmentForm({
+                      ...departmentForm,
+                      ownerUserId: value === "unassigned" ? "" : value,
+                    })
+                  }
                 >
                   <SelectTrigger>
-                    <SelectValue placeholder={t("workflowSettings.roles.fields.primaryPlaceholder")} />
+                    <SelectValue placeholder={t("workflowSettings.departments.fields.ownerPlaceholder")} />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="sin_asignar">{t("workflowSettings.roles.unassigned")}</SelectItem>
+                    <SelectItem value="unassigned">{t("workflowSettings.departments.unassigned")}</SelectItem>
                     {memberOptions.map((member) => (
                       <SelectItem key={member.id} value={String(member.id)}>
                         {member.label}
@@ -190,266 +331,340 @@ export default function WorkflowSettings() {
                   </SelectContent>
                 </Select>
               </div>
-            </div>
-
-            <div className="space-y-2">
-              <Label>{t("workflowSettings.roles.fields.description")}</Label>
-              <Textarea
-                rows={3}
-                value={roleForm.description}
-                onChange={(e) => setRoleForm({ ...roleForm, description: e.target.value })}
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label>{t("workflowSettings.roles.fields.secondary")}</Label>
-              <div className="grid gap-2 md:grid-cols-2">
-                {memberOptions.map((member) => {
-                  const checked = roleForm.secondaryUserIds.includes(member.id);
-                  return (
-                    <label key={member.id} className="flex items-center gap-2 text-sm">
-                      <Checkbox
-                        checked={checked}
-                        onCheckedChange={(value) => {
-                          const next = value
-                            ? [...roleForm.secondaryUserIds, member.id]
-                            : roleForm.secondaryUserIds.filter((id) => id !== member.id);
-                          setRoleForm({ ...roleForm, secondaryUserIds: next });
-                        }}
-                      />
-                      <span>{member.label}</span>
-                    </label>
-                  );
-                })}
+              <div className="flex items-end">
+                <Button
+                  onClick={() =>
+                    createDepartment.mutate({
+                      name: departmentForm.name.trim(),
+                      ownerUserId: departmentForm.ownerUserId ? Number(departmentForm.ownerUserId) : null,
+                    })
+                  }
+                  disabled={!departmentForm.name.trim() || createDepartment.isPending}
+                >
+                  {t("workflowSettings.departments.createButton")}
+                </Button>
               </div>
             </div>
 
-            <Button
-              onClick={() =>
-                createRole.mutate({
-                  name: roleForm.name.trim(),
-                  description: roleForm.description || null,
-                  primaryUserId:
-                    roleForm.primaryUserId === "sin_asignar"
-                      ? null
-                      : Number(roleForm.primaryUserId),
-                  secondaryUserIds: roleForm.secondaryUserIds,
-                })
-              }
-              disabled={!roleForm.name.trim() || createRole.isPending}
-            >
-              {t("workflowSettings.roles.createButton")}
-            </Button>
+            <div className="text-xs text-muted-foreground">
+              {t("workflowSettings.departments.defaultHint", { list: DEFAULT_DEPARTMENTS.join(", ") })}
+            </div>
+          </CardContent>
+        </Card>
 
-            <div className="space-y-3">
-              {roles.map((role: any) => {
-                const membersList = membersByRoleId.get(role.id) || [];
-                const primary = membersList.find((member: any) => member.isPrimary === 1);
-                const secondary = membersList.filter((member: any) => member.isPrimary === 0);
-                const primaryLabel = memberOptions.find((m) => m.id === primary?.userId)?.label || "-";
-                const secondaryLabels = secondary
-                  .map((member: any) => memberOptions.find((m) => m.id === member.userId)?.label || `ID ${member.userId}`)
-                  .join(", ");
-
-                return (
-                  <Card key={role.id}>
-                    <CardContent className="p-4 space-y-2">
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <p className="font-medium">{role.name}</p>
-                          <p className="text-xs text-muted-foreground">{role.description || "-"}</p>
+        <div className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>{t("workflowSettings.tasks.masterTitle")}</CardTitle>
+              <CardDescription>{t("workflowSettings.tasks.masterSubtitle")}</CardDescription>
+            </CardHeader>
+            <CardContent>
+              {masterTasks.length === 0 ? (
+                <p className="text-sm text-muted-foreground">{t("workflowSettings.tasks.empty")}</p>
+              ) : (
+                <div className="space-y-6">
+                  {departmentOrder.map((dept: any) => {
+                    const deptTasks = templatesByDept.get(dept.id) || [];
+                    const style = getDeptStyle(dept.name);
+                    if (deptTasks.length === 0) return null;
+                    return (
+                      <div key={dept.id} className="space-y-3">
+                        <div className="flex items-center gap-2">
+                          <span className={cn("text-xs font-semibold px-2 py-1 rounded-full", style.badge)}>
+                            {dept.name}
+                          </span>
+                          <span className="text-xs text-muted-foreground">
+                            {t("workflowSettings.tasks.masterPick")}
+                          </span>
                         </div>
-                        <label className="flex items-center gap-2 text-sm text-muted-foreground">
-                          <Checkbox
-                            checked={role.isActive === 1}
-                            onCheckedChange={(value) =>
-                              updateRole.mutate({ id: role.id, isActive: value ? 1 : 0 })
-                            }
-                          />
-                          {t("workflowSettings.roles.active")}
-                        </label>
+                        <div className="flex flex-wrap gap-2">
+                          {deptTasks.map((task: any) => {
+                            const isUnassigned = getTaskAssignees(task).length === 0;
+                            return (
+                              <button
+                                key={task.id}
+                                type="button"
+                                onClick={() => setSelectedTemplateId(task.id)}
+                                className={cn(
+                                  "px-3 py-2 rounded-full text-xs border transition font-medium bg-white text-slate-900 border-muted",
+                                  isUnassigned ? "bg-red-100 border-red-200 text-slate-900" : ""
+                                )}
+                              >
+                                {task.title}
+                              </button>
+                            );
+                          })}
+                        </div>
                       </div>
-                      <div className="text-sm text-muted-foreground">
-                        {t("workflowSettings.roles.primaryLabel")}: {primaryLabel}
+                    );
+                  })}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          <div className="grid gap-6 lg:grid-cols-3">
+            {departmentOrder.map((dept: any) => {
+              const style = getDeptStyle(dept.name);
+              const draft = ensureDepartmentDraft(dept.id);
+              const membersInfo = membersByRoleId.get(dept.id) || { supervisorId: null, memberIds: [] };
+            const memberIds = draft.memberUserIds;
+            const deptTasks = tasks.filter((task: any) => task.departmentId === dept.id);
+
+            return (
+              <Card key={dept.id} className={cn("border-2", style.accent)}>
+                <CardHeader>
+                  <CardTitle className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <span>{dept.name}</span>
+                      <span className={cn("text-xs font-semibold px-2 py-1 rounded-full", style.badge)}>
+                        {t("workflowSettings.departments.department")}
+                      </span>
+                    </div>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => saveDepartment(dept.id)}
+                      disabled={updateDepartment.isPending}
+                    >
+                      {t("workflowSettings.departments.saveButton")}
+                    </Button>
+                  </CardTitle>
+                  <CardDescription>
+                    {t("workflowSettings.departments.ownerLabel")}: {memberOptions.find((m) => m.id === dept.ownerUserId)?.label || "-"}
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                  <div className="grid gap-4 md:grid-cols-2">
+                    <div className="space-y-2">
+                      <Label>{t("workflowSettings.departments.fields.owner")}</Label>
+                      <Select
+                      value={draft.ownerUserId || "unassigned"}
+                        onValueChange={(value) =>
+                          setDepartmentDrafts((prev) => ({
+                            ...prev,
+                            [dept.id]: { ...draft, ownerUserId: value === "unassigned" ? "" : value },
+                          }))
+                        }
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder={t("workflowSettings.departments.fields.ownerPlaceholder")} />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="unassigned">{t("workflowSettings.departments.unassigned")}</SelectItem>
+                          {memberOptions.map((member) => (
+                            <SelectItem key={member.id} value={String(member.id)}>
+                              {member.label}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-2">
+                      <Label>{t("workflowSettings.departments.fields.supervisor")}</Label>
+                      <Select
+                        value={draft.supervisorUserId || "unassigned"}
+                        onValueChange={(value) =>
+                          setDepartmentDrafts((prev) => ({
+                            ...prev,
+                            [dept.id]: { ...draft, supervisorUserId: value === "unassigned" ? "" : value },
+                          }))
+                        }
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder={t("workflowSettings.departments.fields.supervisorPlaceholder")} />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="unassigned">{t("workflowSettings.departments.unassigned")}</SelectItem>
+                          {memberOptions.map((member) => (
+                            <SelectItem key={member.id} value={String(member.id)}>
+                              {member.label}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label>{t("workflowSettings.departments.fields.members")}</Label>
+                    <div className="grid gap-2 md:grid-cols-2">
+                      {memberOptions.map((member) => {
+                        const checked = memberIds.includes(member.id);
+                        return (
+                          <label key={member.id} className="flex items-center gap-2 text-sm">
+                            <Checkbox
+                              checked={checked}
+                              onCheckedChange={() => toggleDepartmentMember(dept.id, member.id)}
+                            />
+                            <span>{member.label}</span>
+                          </label>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-sm font-semibold">{t("workflowSettings.tasks.title")}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {t("workflowSettings.tasks.subtitle")}
+                        </p>
                       </div>
-                      <div className="text-sm text-muted-foreground">
-                        {t("workflowSettings.roles.secondaryLabel")}: {secondaryLabels || "-"}
+                    </div>
+
+                    {deptTasks.length === 0 ? (
+                      <p className="text-sm text-muted-foreground">
+                        {t("workflowSettings.tasks.empty")}
+                      </p>
+                    ) : (
+                      <div className="space-y-3">
+                        {deptTasks.map((task: any) => {
+                          const taskAssignees = getTaskAssignees(task);
+                          const isUnassigned = taskAssignees.length === 0;
+                          const assignedLabels = taskAssignees
+                            .map((id) => memberOptions.find((member) => member.id === id)?.label)
+                            .filter(Boolean);
+                          return (
+                            <div
+                              key={task.id}
+                              className={cn("rounded-lg border p-3 space-y-2", style.accent)}
+                            >
+                              <div className="flex items-center justify-between">
+                                <button
+                                  type="button"
+                                  onClick={() => setSelectedTemplateId(task.id)}
+                                  className="text-left"
+                                >
+                                  <p
+                                    className={cn(
+                                      "font-medium",
+                                      isUnassigned ? "text-red-700" : "text-foreground"
+                                    )}
+                                  >
+                                    {task.title}
+                                  </p>
+                                  {task.description && (
+                                    <p className="text-xs text-muted-foreground">{task.description}</p>
+                                  )}
+                                </button>
+                                <span
+                                  className={cn(
+                                    "text-xs font-semibold",
+                                    isUnassigned ? "text-red-600" : style.text
+                                  )}
+                                >
+                                  {isUnassigned
+                                    ? t("workflowSettings.tasks.unassigned")
+                                    : t("workflowSettings.tasks.assigned")}
+                                </span>
+                              </div>
+                              {assignedLabels.length > 0 && (
+                                <div className="flex flex-wrap gap-2">
+                                  {assignedLabels.map((label) => (
+                                    <span key={label} className="px-2 py-1 rounded-full text-xs bg-slate-900 text-white">
+                                      {label}
+                                    </span>
+                                  ))}
+                                </div>
+                              )}
+                              {assignedLabels.length === 0 && (
+                                <p className="text-xs text-muted-foreground">
+                                  {t("workflowSettings.tasks.noMembers")}
+                                </p>
+                              )}
+                            </div>
+                          );
+                        })}
                       </div>
-                    </CardContent>
-                  </Card>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+            );
+          })}
+          </div>
+
+          {tasks.some((task: any) => !task.departmentId) && (
+            <Card>
+              <CardHeader>
+                <CardTitle>{t("workflowSettings.tasks.unassignedDeptTitle")}</CardTitle>
+                <CardDescription>{t("workflowSettings.tasks.unassignedDeptSubtitle")}</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                {tasks.filter((task: any) => !task.departmentId).map((task: any) => (
+                  <div key={task.id} className="rounded-lg border p-3 space-y-2">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="font-medium">{task.title}</p>
+                        {task.description && (
+                          <p className="text-xs text-muted-foreground">{task.description}</p>
+                        )}
+                      </div>
+                      <Select
+                        value={task.departmentId ? String(task.departmentId) : "unassigned"}
+                        onValueChange={(value) =>
+                          assignTaskDepartment(task.id, value === "unassigned" ? null : Number(value))
+                        }
+                      >
+                        <SelectTrigger className="w-[200px]">
+                          <SelectValue placeholder={t("workflowSettings.tasks.assignDepartment")} />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="unassigned">{t("workflowSettings.departments.unassigned")}</SelectItem>
+                          {visibleDepartments.map((dept: any) => (
+                            <SelectItem key={dept.id} value={String(dept.id)}>
+                              {dept.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                ))}
+              </CardContent>
+            </Card>
+          )}
+        </div>
+      </div>
+      <Dialog open={selectedTemplateId !== null} onOpenChange={(open) => !open && setSelectedTemplateId(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{selectedTemplate?.title || t("workflowSettings.tasks.masterAssign")}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3">
+            <p className="text-sm text-muted-foreground">{t("workflowSettings.tasks.masterPick")}</p>
+            <div className="flex flex-wrap gap-2">
+              {memberOptions.map((member) => {
+                const active = selectedAssignees.includes(member.id);
+                return (
+                  <button
+                    key={member.id}
+                    type="button"
+                    onClick={() => selectedTemplate && assignTemplateToMember(selectedTemplate.id, member.id)}
+                    className={cn(
+                      "px-2 py-1 rounded-full text-xs border",
+                      active ? "bg-emerald-600 text-white border-emerald-600" : "bg-white text-foreground border-muted"
+                    )}
+                  >
+                    {member.label}
+                  </button>
                 );
               })}
             </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>{t("workflowSettings.rules.title")}</CardTitle>
-            <CardDescription>{t("workflowSettings.rules.subtitle")}</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-6">
-            <div className="grid gap-4 md:grid-cols-2">
-              <div className="space-y-2">
-                <Label>{t("workflowSettings.rules.fields.activityType")}</Label>
-                <Select
-                  value={ruleForm.activityType}
-                  onValueChange={(value) => setRuleForm({ ...ruleForm, activityType: value })}
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {activityTypeOptions.map((option) => (
-                      <SelectItem key={option.value} value={option.value}>
-                        {t(option.labelKey)}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-2">
-                <Label>{t("workflowSettings.rules.fields.role")}</Label>
-                <Select
-                  value={ruleForm.roleId}
-                  onValueChange={(value) => setRuleForm({ ...ruleForm, roleId: value })}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder={t("workflowSettings.rules.fields.rolePlaceholder")} />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="sin_asignar">{t("workflowSettings.roles.unassigned")}</SelectItem>
-                    {roles.map((role: any) => (
-                      <SelectItem key={role.id} value={String(role.id)}>
-                        {role.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-
-            <div className="space-y-2">
-              <Label>{t("workflowSettings.rules.fields.taskTitle")}</Label>
-              <Input
-                value={ruleForm.taskTitle}
-                onChange={(e) => setRuleForm({ ...ruleForm, taskTitle: e.target.value })}
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label>{t("workflowSettings.rules.fields.taskDescription")}</Label>
-              <Textarea
-                rows={3}
-                value={ruleForm.taskDescription}
-                onChange={(e) => setRuleForm({ ...ruleForm, taskDescription: e.target.value })}
-              />
-            </div>
-
-            <div className="grid gap-4 md:grid-cols-3">
-              <div className="space-y-2">
-                <Label>{t("workflowSettings.rules.fields.category")}</Label>
-                <Select
-                  value={ruleForm.category}
-                  onValueChange={(value) => setRuleForm({ ...ruleForm, category: value })}
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="DOCUMENTACION">{t("tasksPage.categories.documentation")}</SelectItem>
-                    <SelectItem value="SEGUIMIENTO">{t("taskDialogs.edit.categories.followUp")}</SelectItem>
-                    <SelectItem value="ESTIMADO">{t("taskDialogs.edit.categories.estimate")}</SelectItem>
-                    <SelectItem value="REUNION">{t("tasksPage.categories.meeting")}</SelectItem>
-                    <SelectItem value="REVISION">{t("tasksPage.categories.review")}</SelectItem>
-                    <SelectItem value="OTRO">{t("taskDialogs.edit.categories.other")}</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-2">
-                <Label>{t("workflowSettings.rules.fields.priority")}</Label>
-                <Select
-                  value={ruleForm.priority}
-                  onValueChange={(value) => setRuleForm({ ...ruleForm, priority: value })}
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="ALTA">{t("tasksPage.priority.high")}</SelectItem>
-                    <SelectItem value="MEDIA">{t("tasksPage.priority.medium")}</SelectItem>
-                    <SelectItem value="BAJA">{t("tasksPage.priority.low")}</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-2">
-                <Label>{t("workflowSettings.rules.fields.dueInDays")}</Label>
-                <Input
-                  type="number"
-                  min="0"
-                  value={ruleForm.dueInDays}
-                  onChange={(e) => setRuleForm({ ...ruleForm, dueInDays: e.target.value })}
-                />
-              </div>
-            </div>
-
-            <Button
-              onClick={() =>
-                createRule.mutate({
-                  activityType: ruleForm.activityType as any,
-                  taskTitle: ruleForm.taskTitle.trim(),
-                  taskDescription: ruleForm.taskDescription || null,
-                  roleId: ruleForm.roleId === "sin_asignar" ? null : Number(ruleForm.roleId),
-                  category: ruleForm.category as any,
-                  priority: ruleForm.priority as any,
-                  dueInDays: ruleForm.dueInDays ? Number(ruleForm.dueInDays) : null,
-                })
-              }
-              disabled={!ruleForm.taskTitle.trim() || createRule.isPending}
-            >
-              {t("workflowSettings.rules.createButton")}
-            </Button>
-
-            <div className="space-y-3">
-              {rules.map((rule: any) => (
-                <Card key={rule.id}>
-                  <CardContent className="p-4 space-y-2">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <p className="font-medium">{rule.taskTitle}</p>
-                        <p className="text-xs text-muted-foreground">
-                          {t(
-                            activityTypeOptions.find((option) => option.value === rule.activityType)?.labelKey ||
-                              "workflowSettings.rules.unknownActivity"
-                          )}
-                        </p>
-                      </div>
-                      <label className="flex items-center gap-2 text-sm text-muted-foreground">
-                        <Checkbox
-                          checked={rule.isActive === 1}
-                          onCheckedChange={(value) =>
-                            updateRule.mutate({ id: rule.id, isActive: value ? 1 : 0 })
-                          }
-                        />
-                        {t("workflowSettings.rules.active")}
-                      </label>
-                    </div>
-                    <div className="text-sm text-muted-foreground">
-                      {t("workflowSettings.rules.roleLabel")}:{" "}
-                      {roles.find((role: any) => role.id === rule.roleId)?.name ||
-                        t("workflowSettings.roles.unassigned")}
-                    </div>
-                    <div className="text-sm text-muted-foreground">
-                      {t("workflowSettings.rules.dueLabel")}:{" "}
-                      {rule.dueInDays ?? "-"}
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+            {selectedTemplate && selectedAssignees.length > 0 && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => clearTemplateAssignment(selectedTemplate.id)}
+              >
+                {t("workflowSettings.tasks.clearAssignment")}
+              </Button>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
     </DashboardLayout>
   );
 }

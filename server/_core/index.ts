@@ -13,6 +13,8 @@ import { apiLimiter, authLimiter } from "./rateLimiting";
 import { logger } from "./logger";
 import { uploadRouter } from "../upload";
 import { handleStripeWebhook } from "../services/stripeWebhook";
+import { processScheduledTasks } from "../services/scheduledTasks";
+import { seedWorkflowTemplatesForAllOrganizations } from "../services/workflowTemplates";
 
 function isPortAvailable(port: number): Promise<boolean> {
   return new Promise(resolve => {
@@ -107,6 +109,18 @@ async function startServer() {
       nodeVersion: process.version,
     });
   });
+
+  seedWorkflowTemplatesForAllOrganizations().catch((error) => {
+    logger.error("[WorkflowTemplates] Seed error", error);
+  });
+
+  setInterval(async () => {
+    try {
+      await processScheduledTasks();
+    } catch (error) {
+      logger.error("[ScheduledTasks] Runner error", error);
+    }
+  }, 60 * 1000);
 }
 
 startServer().catch((error) => {

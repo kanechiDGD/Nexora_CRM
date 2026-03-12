@@ -20,6 +20,8 @@ import { storagePut } from "./storage";
 import { generateMaterialOrderPdf } from "./utils/materialOrderPdf";
 import { generateCrewReportPdf } from "./utils/crewReportPdf";
 import { extractEstimateWithOpenAI } from "./utils/openaiEstimate";
+import { scheduleTaskIfMissing } from "./services/scheduledTasks";
+import { seedWorkflowTemplatesForOrg } from "./services/workflowTemplates";
 import type { InsertUser } from "../drizzle/schema";
 import {
   getAllowedSeats,
@@ -128,6 +130,14 @@ const coAdminOrgProcedure = orgProcedure.use(({ ctx, next }) => {
 });
 
 const READY_FOR_CONSTRUCTION_STATUS = "LISTA_PARA_CONSTRUIR";
+const RELEASE_LETTER_REQUIRED_STATUS = "RELEASE_LETTER_REQUIRED";
+const CHECK_SENT_TO_MORTGAGE_STATUS = "CHECK_SENT_TO_MORTGAGE";
+const CLIENT_HAS_CHECK_STATUS = "CLIENT_HAS_CHECK";
+
+const OFFICE_DEPARTMENT = "Office";
+const PUBLIC_ADJUSTER_DEPARTMENT = "Public Adjuster";
+const CONSTRUCTION_DEPARTMENT = "Construction";
+
 
 const shouldMarkReadyForConstruction = (status?: string | null, primerCheque?: string | null) =>
   primerCheque === "OBTENIDO" || status === "APROVADA" || status === READY_FOR_CONSTRUCTION_STATUS;
@@ -161,6 +171,243 @@ async function ensureConstructionProjectForClient(params: {
     createdBy: params.createdBy,
     updatedBy: params.updatedBy,
   });
+}
+
+async function ensureDepartmentId(params: {
+  organizationId: number;
+  name: string;
+  createdBy: number;
+}) {
+  const existing = await db.getWorkflowRoleByName(params.name, params.organizationId);
+  if (existing) return existing.id;
+  const result = await db.createWorkflowRole({
+    name: params.name,
+    description: null,
+    ownerUserId: null,
+    organizationId: params.organizationId,
+    createdBy: params.createdBy,
+    isActive: 1,
+  } as any);
+  return (result as any)?.insertId ? Number((result as any).insertId) : null;
+}
+
+async function createClientTaskIfMissing(params: {
+  organizationId: number;
+  clientId: string;
+  title: string;
+  description?: string | null;
+  departmentName?: string | null;
+  dueDate?: Date | null;
+  category?: "DOCUMENTACION" | "SEGUIMIENTO" | "ESTIMADO" | "REUNION" | "REVISION" | "OTRO";
+  priority?: "ALTA" | "MEDIA" | "BAJA";
+  attachments?: string | null;
+  createdBy: number;
+}) {
+  const existing = await db.getTasksByClientId(params.clientId, params.organizationId);
+  if (existing.some((task: any) => task.title === params.title)) {
+    return;
+  }
+  const departmentId = params.departmentName
+    ? await ensureDepartmentId({
+        organizationId: params.organizationId,
+        name: params.departmentName,
+        createdBy: params.createdBy,
+      })
+    : null;
+  const template = await db.getWorkflowTaskTemplateByTitle(params.organizationId, params.title);
+  const templateAssignees = template
+    ? await db.getWorkflowTaskTemplateAssigneesByTemplateId(template.id, params.organizationId)
+    : [];
+  const assigneeIds = templateAssignees.map((row: any) => row.userId);
+  const primaryAssignee = assigneeIds.length ? assigneeIds[0] : null;
+  await db.createTask({
+    clientId: params.clientId,
+    title: params.title,
+    description: params.description ?? null,
+    category: params.category ?? "SEGUIMIENTO",
+    priority: params.priority ?? "MEDIA",
+    status: "PENDIENTE",
+    departmentId,
+    assignedTo: primaryAssignee,
+    dueDate: params.dueDate ?? null,
+    completedAt: null,
+    attachments: params.attachments ?? null,
+    organizationId: params.organizationId,
+    createdBy: params.createdBy,
+    updatedBy: params.createdBy,
+  });
+  if (assigneeIds.length) {
+    const taskRow = await db.getTasksByClientId(params.clientId, params.organizationId);
+    const created = taskRow.find((task: any) => task.title === params.title);
+    if (created) {
+      await db.replaceTaskAssignees(created.id, params.organizationId, assigneeIds);
+    }
+  }
+}
+
+async function handleClaimStatusAutomation(params: {
+  organizationId: number;
+  clientId: string;
+  newStatus: string | null;
+  previousStatus?: string | null;
+  createdBy: number;
+  nextContactDate?: Date | null;
+  adjustmentDate?: Date | null;
+}) {
+  const status = params.newStatus;
+  const statusChanged = status && status !== params.previousStatus;
+
+  if (statusChanged && status === "NO_SOMETIDA") {
+    await createClientTaskIfMissing({
+      organizationId: params.organizationId,
+      clientId: params.clientId,
+      title: "Submit claim",
+      description: "Submit the claim to the carrier.",
+      departmentName: PUBLIC_ADJUSTER_DEPARTMENT,
+      createdBy: params.createdBy,
+    });
+  }
+
+  if (statusChanged && status === "SOMETIDA") {
+    await createClientTaskIfMissing({
+      organizationId: params.organizationId,
+      clientId: params.clientId,
+      title: "Get adjustment date",
+      description: "Schedule the adjustment date with the carrier.",
+      departmentName: PUBLIC_ADJUSTER_DEPARTMENT,
+      createdBy: params.createdBy,
+    });
+  }
+
+  if (statusChanged && status === "AJUSTACION_PROGRAMADA") {
+    await createClientTaskIfMissing({
+      organizationId: params.organizationId,
+      clientId: params.clientId,
+      title: "Attend adjustment",
+      description: "Attend the scheduled adjustment and document results.",
+      departmentName: PUBLIC_ADJUSTER_DEPARTMENT,
+      dueDate: params.adjustmentDate ?? null,
+      createdBy: params.createdBy,
+    });
+  }
+
+  if (statusChanged && status === "AJUSTACION_TERMINADA") {
+    await scheduleTaskIfMissing({
+      organizationId: params.organizationId,
+      clientId: params.clientId,
+      taskType: "PA_GET_ADJUSTMENT_RESULTS",
+      runAt: new Date(Date.now() + 2 * 60 * 60 * 1000),
+      dedupeKey: `${params.clientId}:pa-adjustment-results`,
+      createdBy: params.createdBy,
+      payload: {
+        title: "Get adjustment results",
+        description: "Confirm the outcome and update status accordingly.",
+        departmentName: PUBLIC_ADJUSTER_DEPARTMENT,
+        clientId: params.clientId,
+        createdBy: params.createdBy,
+      },
+    });
+  }
+
+  if (statusChanged && status === RELEASE_LETTER_REQUIRED_STATUS) {
+    await createClientTaskIfMissing({
+      organizationId: params.organizationId,
+      clientId: params.clientId,
+      title: "Obtain release letter",
+      description: "Request and collect the release letter from the client.",
+      departmentName: OFFICE_DEPARTMENT,
+      createdBy: params.createdBy,
+    });
+  }
+
+  if (statusChanged && status === "APROVADA") {
+    await createClientTaskIfMissing({
+      organizationId: params.organizationId,
+      clientId: params.clientId,
+      title: "Send check to mortgage",
+      description: "Send the check to the mortgage company.",
+      departmentName: OFFICE_DEPARTMENT,
+      createdBy: params.createdBy,
+    });
+
+    await scheduleTaskIfMissing({
+      organizationId: params.organizationId,
+      clientId: params.clientId,
+      taskType: "OFFICE_TRACK_CHECK",
+      runAt: new Date(Date.now() + 5 * 24 * 60 * 60 * 1000),
+      dedupeKey: `${params.clientId}:office-track-check-approved`,
+      createdBy: params.createdBy,
+      payload: {
+        title: "Track mortgage check",
+        description: "Follow up on the mortgage check status.",
+        departmentName: OFFICE_DEPARTMENT,
+        clientId: params.clientId,
+        createdBy: params.createdBy,
+      },
+    });
+  }
+
+  if (statusChanged && status === CHECK_SENT_TO_MORTGAGE_STATUS) {
+    await scheduleTaskIfMissing({
+      organizationId: params.organizationId,
+      clientId: params.clientId,
+      taskType: "OFFICE_TRACK_CHECK",
+      runAt: new Date(Date.now() + 5 * 24 * 60 * 60 * 1000),
+      dedupeKey: `${params.clientId}:office-track-check-mortgage`,
+      createdBy: params.createdBy,
+      payload: {
+        title: "Track mortgage check",
+        description: "Follow up on the mortgage check status.",
+        departmentName: OFFICE_DEPARTMENT,
+        clientId: params.clientId,
+        createdBy: params.createdBy,
+      },
+    });
+  }
+
+  if (statusChanged && status === CLIENT_HAS_CHECK_STATUS) {
+    await createClientTaskIfMissing({
+      organizationId: params.organizationId,
+      clientId: params.clientId,
+      title: "Obtain client check",
+      description: "Coordinate with the client to collect the check.",
+      departmentName: OFFICE_DEPARTMENT,
+      createdBy: params.createdBy,
+    });
+  }
+
+  if (statusChanged && status === READY_FOR_CONSTRUCTION_STATUS) {
+    const taskPayloads = [
+      { title: "Create material order", description: "Build the material order for the project." },
+      { title: "Coordinate construction crew", description: "Confirm crew availability and lead." },
+      { title: "Take pre-construction photos", description: "Document property condition before work starts." },
+      { title: "Review materials", description: "Verify quantities and specs before ordering." },
+      { title: "Set construction date", description: "Confirm the construction start date with the client." },
+    ];
+
+    for (const task of taskPayloads) {
+      await createClientTaskIfMissing({
+        organizationId: params.organizationId,
+        clientId: params.clientId,
+        title: task.title,
+        description: task.description,
+        departmentName: CONSTRUCTION_DEPARTMENT,
+        createdBy: params.createdBy,
+      });
+    }
+  }
+
+  if (params.nextContactDate) {
+    await createClientTaskIfMissing({
+      organizationId: params.organizationId,
+      clientId: params.clientId,
+      title: "Upcoming calls",
+      description: "Contact the client on the scheduled follow-up date.",
+      departmentName: OFFICE_DEPARTMENT,
+      dueDate: params.nextContactDate,
+      createdBy: params.createdBy,
+    });
+  }
 }
 
 const clientImportRowSchema = z.object({
@@ -571,6 +818,16 @@ export const appRouter = router({
               });
             }
 
+            await handleClaimStatusAutomation({
+              organizationId: ctx.organizationId,
+              clientId: customId,
+              newStatus: claimStatus,
+              previousStatus: null,
+              createdBy: ctx.user.id,
+              nextContactDate: input.nextContactDate ?? null,
+              adjustmentDate: input.adjustmentDate ?? null,
+            });
+
           await db.createAuditLog({
             entityType: "CLIENT",
             entityId: 0,
@@ -602,14 +859,16 @@ export const appRouter = router({
       .mutation(async ({ input, ctx }) => {
         const errors: Array<{ row: number; message: string }> = [];
         const createdIds: string[] = [];
+        const sanitizeString = (value: string) => value.replace(/[\u0000-\u001F\u007F]/g, "").trim();
 
         for (let index = 0; index < input.rows.length; index += 1) {
           const row = input.rows[index];
           const rowNumber = row.rowNumber ?? index + 1;
-          const firstName = row.firstName?.trim() || "Unknown";
-          const lastName = row.lastName?.trim() || "Non";
+          const firstName = row.firstName ? sanitizeString(row.firstName) : "Unknown";
+          const lastName = row.lastName ? sanitizeString(row.lastName) : "Non";
 
-          const baseId = generateClientId(row.city || "", firstName, lastName);
+          const cityForId = row.city ? sanitizeString(row.city) : "";
+          const baseId = generateClientId(cityForId, firstName, lastName);
           let customId = baseId;
           let suffix = 1;
           while (await db.getClientById(customId, ctx.organizationId)) {
@@ -622,14 +881,22 @@ export const appRouter = router({
           }
 
             const { rowNumber: _rowNumber, ...clientData } = row;
+            const sanitizedData = Object.fromEntries(
+              Object.entries(clientData).map(([key, value]) => {
+                if (typeof value === "string") {
+                  return [key, sanitizeString(value)];
+                }
+                return [key, value];
+              })
+            );
 
             try {
               const claimStatus = normalizeClaimStatusForConstruction(
-                clientData.claimStatus,
-                clientData.primerCheque
+                sanitizedData.claimStatus as string | undefined,
+                sanitizedData.primerCheque as string | undefined
               );
               await db.createClient({
-                ...clientData,
+                ...sanitizedData,
                 claimStatus,
                 firstName,
                 lastName,
@@ -654,9 +921,19 @@ export const appRouter = router({
                   updatedBy: ctx.user.id,
                   firstName,
                   lastName,
-                  propertyAddress: clientData.propertyAddress ?? null,
+                  propertyAddress: (sanitizedData.propertyAddress as string | null | undefined) ?? null,
                 });
               }
+
+              await handleClaimStatusAutomation({
+                organizationId: ctx.organizationId,
+                clientId: customId,
+                newStatus: claimStatus ?? null,
+                previousStatus: null,
+                createdBy: ctx.user.id,
+                nextContactDate: (sanitizedData.nextContactDate as Date | null | undefined) ?? null,
+                adjustmentDate: (sanitizedData.adjustmentDate as Date | null | undefined) ?? null,
+              });
 
               createdIds.push(customId);
             } catch (error) {
@@ -755,6 +1032,16 @@ export const appRouter = router({
               propertyAddress: updated.propertyAddress ?? null,
             });
           }
+
+          await handleClaimStatusAutomation({
+            organizationId: ctx.organizationId,
+            clientId: input.id,
+            newStatus: claimStatus ?? null,
+            previousStatus: existing.claimStatus ?? null,
+            createdBy: ctx.user.id,
+            nextContactDate: updated?.nextContactDate ?? input.data.nextContactDate ?? null,
+            adjustmentDate: updated?.adjustmentDate ?? input.data.adjustmentDate ?? null,
+          });
 
         await db.createAuditLog({
           entityType: "CLIENT",
@@ -1167,6 +1454,46 @@ export const appRouter = router({
             }
           }
 
+          if (input.clientId && input.activityType === "SCOPE_ENVIADO") {
+            await scheduleTaskIfMissing({
+              organizationId: ctx.organizationId,
+              clientId: input.clientId,
+              taskType: "PA_REVIEW_ESTIMATE_RESPONSE",
+              runAt: new Date(Date.now() + 10 * 24 * 60 * 60 * 1000),
+              dedupeKey: `${input.clientId}:pa-review-estimate-response`,
+              createdBy: ctx.user.id,
+              payload: {
+                title: "Review estimate response",
+                description: "Follow up on the carrier response to our scope.",
+                departmentName: PUBLIC_ADJUSTER_DEPARTMENT,
+                clientId: input.clientId,
+                createdBy: ctx.user.id,
+              },
+            });
+          }
+
+          if (input.clientId && input.activityType === "RESPUESTA_NEGATIVA") {
+            await createClientTaskIfMissing({
+              organizationId: ctx.organizationId,
+              clientId: input.clientId,
+              title: "Request reinspection",
+              description: "Decide the next step after a negative response.",
+              departmentName: PUBLIC_ADJUSTER_DEPARTMENT,
+              createdBy: ctx.user.id,
+            });
+          }
+
+          if (input.clientId && input.activityType === "REINSPECCION_SOLICITADA") {
+            await createClientTaskIfMissing({
+              organizationId: ctx.organizationId,
+              clientId: input.clientId,
+              title: "Attend reinspection",
+              description: "Coordinate and attend the reinspection.",
+              departmentName: PUBLIC_ADJUSTER_DEPARTMENT,
+              createdBy: ctx.user.id,
+            });
+          }
+
           const client = input.clientId
             ? await db.getClientById(input.clientId, ctx.organizationId)
             : null;
@@ -1371,9 +1698,20 @@ export const appRouter = router({
         });
 
         if (input.clientId) {
+          const previousClient = await db.getClientById(input.clientId, ctx.organizationId);
           await db.updateClient(input.clientId, ctx.organizationId, {
             claimStatus: READY_FOR_CONSTRUCTION_STATUS,
             updatedBy: ctx.user.id,
+          });
+
+          await handleClaimStatusAutomation({
+            organizationId: ctx.organizationId,
+            clientId: input.clientId,
+            newStatus: READY_FOR_CONSTRUCTION_STATUS,
+            previousStatus: previousClient?.claimStatus ?? null,
+            createdBy: ctx.user.id,
+            nextContactDate: previousClient?.nextContactDate ?? null,
+            adjustmentDate: previousClient?.adjustmentDate ?? null,
           });
         }
 
@@ -1456,40 +1794,55 @@ export const appRouter = router({
           updatedBy: ctx.user.id,
         });
 
-        if (
-          existing.projectStatus !== "EN_PROGRESO" &&
-          (normalized.projectStatus === "EN_PROGRESO" || input.data.projectStatus === "EN_PROGRESO")
-        ) {
-          const clientId = updated?.clientId ?? existing.clientId;
-          if (clientId) {
-            const tasks = await db.getTasksByClientId(clientId, ctx.organizationId);
-            const existingTitles = new Set(tasks.map((task: any) => task.title));
-            const now = Date.now();
-            const dueDate = new Date(now + 7 * 24 * 60 * 60 * 1000);
-            const taskPayloads = [
-              { title: "Construction permit in progress", description: "Track permit submission and approval." },
-              { title: "Order materials", description: "Confirm supplier, quantities, and ETA." },
-              { title: "Assign crew", description: "Confirm crew lead and schedule." },
-              { title: "Set construction start date", description: "Confirm start date with client and crew." },
-            ];
-            for (const task of taskPayloads) {
-              if (existingTitles.has(task.title)) continue;
-              await db.createTask({
+        const clientId = updated?.clientId ?? existing.clientId;
+        if (clientId) {
+          if (!existing.startDate && updated?.startDate) {
+            await createClientTaskIfMissing({
+              organizationId: ctx.organizationId,
+              clientId,
+              title: "Inform construction date to client",
+              description: "Notify the client of the confirmed construction start date.",
+              departmentName: OFFICE_DEPARTMENT,
+              dueDate: updated.startDate,
+              createdBy: ctx.user.id,
+            });
+
+            await scheduleTaskIfMissing({
+              organizationId: ctx.organizationId,
+              clientId,
+              taskType: "CONSTRUCTION_PHOTOS_DURING",
+              runAt: updated.startDate,
+              dedupeKey: `${clientId}:construction-photos-during`,
+              createdBy: ctx.user.id,
+              payload: {
+                title: "Construction day photos",
+                description: "Document progress on the day construction starts.",
+                departmentName: CONSTRUCTION_DEPARTMENT,
                 clientId,
-                title: task.title,
-                description: task.description,
-                category: "SEGUIMIENTO",
-                priority: "MEDIA",
-                status: "PENDIENTE",
-                assignedTo: null,
-                dueDate,
-                completedAt: null,
-                attachments: null,
-                organizationId: ctx.organizationId,
+                dueDate: updated.startDate.toISOString(),
                 createdBy: ctx.user.id,
-                updatedBy: ctx.user.id,
-              });
-            }
+              },
+            });
+          }
+
+          if (existing.projectStatus !== "COMPLETADO" && updated?.projectStatus === "COMPLETADO") {
+            await createClientTaskIfMissing({
+              organizationId: ctx.organizationId,
+              clientId,
+              title: "Completion certificate",
+              description: "Generate and file the completion certificate.",
+              departmentName: CONSTRUCTION_DEPARTMENT,
+              createdBy: ctx.user.id,
+            });
+
+            await createClientTaskIfMissing({
+              organizationId: ctx.organizationId,
+              clientId,
+              title: "Review and issue invoices",
+              description: "Review final costs and issue invoices.",
+              departmentName: CONSTRUCTION_DEPARTMENT,
+              createdBy: ctx.user.id,
+            });
           }
         }
 
@@ -1599,6 +1952,16 @@ export const appRouter = router({
           tags: null,
           driveFileId: null,
           uploadedBy: ctx.user.id,
+        });
+
+        await createClientTaskIfMissing({
+          organizationId: ctx.organizationId,
+          clientId: project.clientId,
+          title: "Order materials",
+          description: "Place the material order using the attached PDF.",
+          departmentName: OFFICE_DEPARTMENT,
+          attachments: url,
+          createdBy: ctx.user.id,
         });
 
         const scopeItems = (() => {
@@ -1940,6 +2303,18 @@ export const appRouter = router({
           );
         }
 
+        if (input.clientId && input.eventType === "ADJUSTMENT") {
+          await createClientTaskIfMissing({
+            organizationId: ctx.organizationId,
+            clientId: input.clientId,
+            title: "Attend adjustment",
+            description: "Attend the adjustment appointment and document outcomes.",
+            departmentName: PUBLIC_ADJUSTER_DEPARTMENT,
+            dueDate: input.eventDate ?? null,
+            createdBy: ctx.user.id,
+          });
+        }
+
         await db.createActivityLog({
           clientId: input.clientId ?? null,
           activityType: "NOTA",
@@ -1995,6 +2370,18 @@ export const appRouter = router({
           await db.replaceEventAttendees(id, ctx.organizationId, attendeeIds);
         }
 
+        if (input.clientId && input.eventType === "ADJUSTMENT") {
+          await createClientTaskIfMissing({
+            organizationId: ctx.organizationId,
+            clientId: input.clientId,
+            title: "Attend adjustment",
+            description: "Attend the adjustment appointment and document outcomes.",
+            departmentName: PUBLIC_ADJUSTER_DEPARTMENT,
+            dueDate: input.eventDate ?? null,
+            createdBy: ctx.user.id,
+          });
+        }
+
         return updated;
       }),
 
@@ -2047,17 +2434,27 @@ export const appRouter = router({
         category: z.enum(["DOCUMENTACION", "SEGUIMIENTO", "ESTIMADO", "REUNION", "REVISION", "OTRO"]).optional(),
         priority: z.enum(["ALTA", "MEDIA", "BAJA"]).optional(),
         status: z.enum(["PENDIENTE", "EN_PROGRESO", "COMPLETADA", "CANCELADA"]).optional(),
+        departmentId: z.number().optional().nullable(),
         assignedTo: z.number().optional().nullable(),
+        assigneeIds: z.array(z.number()).optional(),
         dueDate: z.date().optional().nullable(),
         attachments: z.string().optional().nullable(),
       }))
       .mutation(async ({ input, ctx }) => {
+        const assignees = input.assigneeIds ?? [];
+        const primaryAssignee = assignees[0] ?? input.assignedTo ?? null;
         const result = await db.createTask({
           ...input,
+          assignedTo: primaryAssignee,
           organizationId: ctx.organizationId,
           createdBy: ctx.user.id,
           updatedBy: ctx.user.id,
         });
+
+        const taskId = (result as any)?.insertId ? Number((result as any).insertId) : null;
+        if (taskId && assignees.length) {
+          await db.replaceTaskAssignees(taskId, ctx.organizationId, assignees);
+        }
 
         await db.createActivityLog({
           clientId: input.clientId ?? null,
@@ -2090,17 +2487,35 @@ export const appRouter = router({
         category: z.enum(["DOCUMENTACION", "SEGUIMIENTO", "ESTIMADO", "REUNION", "REVISION", "OTRO"]).optional(),
         priority: z.enum(["ALTA", "MEDIA", "BAJA"]).optional(),
         status: z.enum(["PENDIENTE", "EN_PROGRESO", "COMPLETADA", "CANCELADA"]).optional(),
+        departmentId: z.number().optional().nullable(),
         assignedTo: z.number().optional().nullable(),
+        assigneeIds: z.array(z.number()).optional(),
         dueDate: z.date().optional().nullable(),
         completedAt: z.date().optional().nullable(),
         attachments: z.string().optional().nullable(),
       }))
       .mutation(async ({ input, ctx }) => {
         const { id, ...data } = input;
-        return await db.updateTask(id, ctx.organizationId, {
+        const assignees = input.assigneeIds ?? null;
+        const primaryAssignee = assignees && assignees.length ? assignees[0] : input.assignedTo;
+        const updated = await db.updateTask(id, ctx.organizationId, {
           ...data,
+          assignedTo: primaryAssignee ?? null,
           updatedBy: ctx.user.id,
         });
+
+        if (assignees) {
+          await db.replaceTaskAssignees(id, ctx.organizationId, assignees);
+        }
+
+        return updated;
+      }),
+
+    listWithAssignees: orgProcedure
+      .query(async ({ ctx }) => {
+        const tasks = await db.getAllTasks(ctx.organizationId);
+        const assignees = await db.getTaskAssigneesByOrg(ctx.organizationId);
+        return { tasks, assignees };
       }),
 
     // Eliminar tarea (solo admin)
@@ -2138,6 +2553,9 @@ export const appRouter = router({
           name: z.string().min(1).max(100),
           description: z.string().optional().nullable(),
           isActive: z.number().optional(),
+          ownerUserId: z.number().optional().nullable(),
+          supervisorUserId: z.number().optional().nullable(),
+          memberUserIds: z.array(z.number()).optional(),
           primaryUserId: z.number().optional().nullable(),
           secondaryUserIds: z.array(z.number()).optional(),
         }))
@@ -2146,6 +2564,7 @@ export const appRouter = router({
             name: input.name,
             description: input.description || null,
             isActive: input.isActive ?? 1,
+            ownerUserId: input.ownerUserId ?? null,
             organizationId: ctx.organizationId,
             createdBy: ctx.user.id,
           });
@@ -2153,11 +2572,13 @@ export const appRouter = router({
           const roleId = (result as any)?.insertId;
           if (roleId) {
             const members: Array<{ userId: number; isPrimary: number }> = [];
-            if (input.primaryUserId) {
-              members.push({ userId: input.primaryUserId, isPrimary: 1 });
+            const supervisorId = input.supervisorUserId ?? input.primaryUserId ?? null;
+            const memberIds = input.memberUserIds ?? input.secondaryUserIds ?? [];
+            if (supervisorId) {
+              members.push({ userId: supervisorId, isPrimary: 1 });
             }
-            (input.secondaryUserIds || []).forEach((userId) => {
-              if (userId !== input.primaryUserId) {
+            memberIds.forEach((userId) => {
+              if (userId !== supervisorId) {
                 members.push({ userId, isPrimary: 0 });
               }
             });
@@ -2182,6 +2603,9 @@ export const appRouter = router({
           name: z.string().min(1).max(100).optional(),
           description: z.string().optional().nullable(),
           isActive: z.number().optional(),
+          ownerUserId: z.number().optional().nullable(),
+          supervisorUserId: z.number().optional().nullable(),
+          memberUserIds: z.array(z.number()).optional(),
           primaryUserId: z.number().optional().nullable(),
           secondaryUserIds: z.array(z.number()).optional(),
         }))
@@ -2190,16 +2614,24 @@ export const appRouter = router({
             name: input.name,
             description: input.description ?? undefined,
             isActive: input.isActive,
+            ownerUserId: input.ownerUserId ?? undefined,
           });
 
-          if (input.primaryUserId !== undefined || input.secondaryUserIds !== undefined) {
+          if (
+            input.supervisorUserId !== undefined ||
+            input.memberUserIds !== undefined ||
+            input.primaryUserId !== undefined ||
+            input.secondaryUserIds !== undefined
+          ) {
             await db.deleteWorkflowRoleMembers(input.id, ctx.organizationId);
             const members: Array<{ userId: number; isPrimary: number }> = [];
-            if (input.primaryUserId) {
-              members.push({ userId: input.primaryUserId, isPrimary: 1 });
+            const supervisorId = input.supervisorUserId ?? input.primaryUserId ?? null;
+            const memberIds = input.memberUserIds ?? input.secondaryUserIds ?? [];
+            if (supervisorId) {
+              members.push({ userId: supervisorId, isPrimary: 1 });
             }
-            (input.secondaryUserIds || []).forEach((userId) => {
-              if (userId !== input.primaryUserId) {
+            memberIds.forEach((userId) => {
+              if (userId !== supervisorId) {
                 members.push({ userId, isPrimary: 0 });
               }
             });
@@ -2222,6 +2654,46 @@ export const appRouter = router({
         .input(z.object({ id: z.number() }))
         .mutation(async ({ input, ctx }) => {
           await db.deleteWorkflowRole(input.id, ctx.organizationId);
+          return { success: true };
+        }),
+    }),
+
+    workflowTaskTemplates: router({
+      list: orgProcedure.query(async ({ ctx }) => {
+        await seedWorkflowTemplatesForOrg({
+          organizationId: ctx.organizationId,
+          createdBy: ctx.user.id,
+        });
+
+        const templates = await db.getWorkflowTaskTemplates(ctx.organizationId);
+        const assignees = await db.getWorkflowTaskTemplateAssigneesByOrg(ctx.organizationId);
+        return { templates, assignees };
+      }),
+
+      update: coAdminOrgProcedure
+        .input(z.object({
+          id: z.number(),
+          title: z.string().optional(),
+          description: z.string().optional().nullable(),
+          departmentId: z.number().optional().nullable(),
+          assigneeIds: z.array(z.number()).optional(),
+        }))
+        .mutation(async ({ input, ctx }) => {
+          const { id, assigneeIds, ...data } = input;
+          const updatePayload = {
+            title: data.title,
+            description: data.description ?? undefined,
+            departmentId: data.departmentId ?? undefined,
+          };
+          const hasUpdateFields = Object.values(updatePayload).some((value) => value !== undefined);
+          if (hasUpdateFields) {
+            await db.updateWorkflowTaskTemplate(id, ctx.organizationId, updatePayload);
+          }
+
+          if (assigneeIds) {
+            await db.replaceWorkflowTaskTemplateAssignees(id, ctx.organizationId, assigneeIds);
+          }
+
           return { success: true };
         }),
     }),
