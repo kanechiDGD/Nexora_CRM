@@ -1,4 +1,4 @@
-import { and, eq } from "drizzle-orm";
+import { and, eq, lte } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
 import mysql from "mysql2/promise";
 import {
@@ -22,6 +22,14 @@ import {
   InsertNotification,
   tasks,
   InsertTask,
+  taskAssignees,
+  InsertTaskAssignee,
+  workflowTaskTemplates,
+  InsertWorkflowTaskTemplate,
+  workflowTaskTemplateAssignees,
+  InsertWorkflowTaskTemplateAssignee,
+  scheduledTasks,
+  InsertScheduledTask,
   organizations,
   InsertOrganization,
   organizationMembers,
@@ -64,11 +72,9 @@ export async function getDb() {
         waitForConnections: true,
         queueLimit: 0,
         enableKeepAlive: true,
-        keepAliveInitialDelay: 0,
+        keepAliveInitialDelay: 10000, // send keepalive after 10s idle
         connectTimeout: 30000,
-        // acquireTimeout is not a valid option for createPool in some mysql2 versions or when passed this way
-        // It belongs to pool.getConnection() options usually, or maybe it's just deprecated/invalid here.
-        // Removing it to fix the warning.
+        idleTimeout: 60000, // remove idle connections after 60s (before server kills them)
         multipleStatements: false,
       });
 
@@ -95,6 +101,25 @@ export async function closeDb() {
     _pool = null;
     _db = null;
     console.log("[Database] Connection pool closed");
+  }
+}
+
+// Retry wrapper for transient connection errors (e.g. ECONNRESET from stale pool connections)
+async function withRetry<T>(fn: () => Promise<T>, retries = 1): Promise<T> {
+  try {
+    return await fn();
+  } catch (error: any) {
+    if (retries > 0 && error?.cause?.code === 'ECONNRESET') {
+      console.warn("[Database] ECONNRESET detected, resetting pool and retrying...");
+      // Destroy the stale pool so getDb() creates a fresh one on next call
+      if (_pool) {
+        try { await _pool.end(); } catch {}
+        _pool = null;
+        _db = null;
+      }
+      return withRetry(fn, retries - 1);
+    }
+    throw error;
   }
 }
 
@@ -148,9 +173,9 @@ export async function upsertUser(user: InsertUser): Promise<void> {
       updateSet.lastSignedIn = new Date();
     }
 
-    await db.insert(users).values(values).onDuplicateKeyUpdate({
-      set: updateSet,
-    });
+    await withRetry(() =>
+      db.insert(users).values(values).onDuplicateKeyUpdate({ set: updateSet })
+    );
   } catch (error) {
     console.error("[Database] Failed to upsert user:", error);
     throw error;
@@ -878,6 +903,164 @@ export async function createTask(data: InsertTask) {
   return result;
 }
 
+export async function getTaskAssigneesByOrg(organizationId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  return await db.select().from(taskAssignees)
+    .where(eq(taskAssignees.organizationId, organizationId));
+}
+
+export async function getTaskAssigneesByTaskId(taskId: number, organizationId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  const { and } = await import('drizzle-orm');
+  return await db.select().from(taskAssignees)
+    .where(and(eq(taskAssignees.taskId, taskId), eq(taskAssignees.organizationId, organizationId)));
+}
+
+export async function replaceTaskAssignees(taskId: number, organizationId: number, userIds: number[]) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  const { and } = await import('drizzle-orm');
+  await db.delete(taskAssignees).where(and(
+    eq(taskAssignees.taskId, taskId),
+    eq(taskAssignees.organizationId, organizationId)
+  ));
+  if (!userIds.length) return;
+  const rows: InsertTaskAssignee[] = userIds.map((userId) => ({
+    taskId,
+    userId,
+    organizationId,
+    createdAt: new Date(),
+  }));
+  await db.insert(taskAssignees).values(rows);
+}
+
+// ============ WORKFLOW TASK TEMPLATES ============
+
+export async function getWorkflowTaskTemplates(organizationId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  return await db.select().from(workflowTaskTemplates)
+    .where(eq(workflowTaskTemplates.organizationId, organizationId))
+    .orderBy(workflowTaskTemplates.createdAt);
+}
+
+export async function getWorkflowTaskTemplateByTitle(organizationId: number, title: string) {
+  const db = await getDb();
+  if (!db) return undefined;
+  const result = await db.select().from(workflowTaskTemplates)
+    .where(and(
+      eq(workflowTaskTemplates.organizationId, organizationId),
+      eq(workflowTaskTemplates.title, title)
+    ))
+    .limit(1);
+  return result.length > 0 ? result[0] : undefined;
+}
+
+export async function createWorkflowTaskTemplate(data: InsertWorkflowTaskTemplate) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  return await db.insert(workflowTaskTemplates).values(data);
+}
+
+export async function updateWorkflowTaskTemplate(
+  id: number,
+  organizationId: number,
+  data: Partial<InsertWorkflowTaskTemplate>
+) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  const { and } = await import('drizzle-orm');
+  await db.update(workflowTaskTemplates).set(data).where(and(
+    eq(workflowTaskTemplates.id, id),
+    eq(workflowTaskTemplates.organizationId, organizationId)
+  ));
+  return { id, ...data };
+}
+
+export async function getWorkflowTaskTemplateAssigneesByOrg(organizationId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  return await db.select().from(workflowTaskTemplateAssignees)
+    .where(eq(workflowTaskTemplateAssignees.organizationId, organizationId));
+}
+
+export async function getWorkflowTaskTemplateAssigneesByTemplateId(templateId: number, organizationId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  const { and } = await import('drizzle-orm');
+  return await db.select().from(workflowTaskTemplateAssignees)
+    .where(and(
+      eq(workflowTaskTemplateAssignees.templateId, templateId),
+      eq(workflowTaskTemplateAssignees.organizationId, organizationId)
+    ));
+}
+
+export async function replaceWorkflowTaskTemplateAssignees(
+  templateId: number,
+  organizationId: number,
+  userIds: number[]
+) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  const { and } = await import('drizzle-orm');
+  await db.delete(workflowTaskTemplateAssignees).where(and(
+    eq(workflowTaskTemplateAssignees.templateId, templateId),
+    eq(workflowTaskTemplateAssignees.organizationId, organizationId)
+  ));
+  if (!userIds.length) return;
+  const rows: InsertWorkflowTaskTemplateAssignee[] = userIds.map((userId) => ({
+    templateId,
+    userId,
+    organizationId,
+    createdAt: new Date(),
+  }));
+  await db.insert(workflowTaskTemplateAssignees).values(rows);
+}
+
+// ============ SCHEDULED TASKS ============
+
+export async function getScheduledTaskByDedupeKey(organizationId: number, dedupeKey: string) {
+  const db = await getDb();
+  if (!db) return undefined;
+  const result = await db.select().from(scheduledTasks)
+    .where(and(
+      eq(scheduledTasks.organizationId, organizationId),
+      eq(scheduledTasks.dedupeKey, dedupeKey),
+      eq(scheduledTasks.status, "PENDING")
+    ))
+    .limit(1);
+  return result.length > 0 ? result[0] : undefined;
+}
+
+export async function createScheduledTask(data: InsertScheduledTask) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  return await db.insert(scheduledTasks).values(data);
+}
+
+export async function getPendingScheduledTasks(runAt: Date, limit: number = 50) {
+  const db = await getDb();
+  if (!db) return [];
+  const result = await db.select().from(scheduledTasks)
+    .where(and(
+      eq(scheduledTasks.status, "PENDING"),
+      lte(scheduledTasks.runAt, runAt)
+    ))
+    .orderBy(scheduledTasks.runAt)
+    .limit(limit);
+  return result;
+}
+
+export async function markScheduledTaskCompleted(id: number, organizationId: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  await db.update(scheduledTasks)
+    .set({ status: "COMPLETED", completedAt: new Date() })
+    .where(and(eq(scheduledTasks.id, id), eq(scheduledTasks.organizationId, organizationId)));
+}
+
 // ============ NOTIFICATIONS ============
 
 export async function createNotifications(data: InsertNotification[]) {
@@ -972,6 +1155,12 @@ export async function getOrganizationBySlug(slug: string) {
   const result = await db.select().from(organizations)
     .where(eq(organizations.slug, slug)).limit(1);
   return result.length > 0 ? result[0] : undefined;
+}
+
+export async function getAllOrganizations() {
+  const db = await getDb();
+  if (!db) return [];
+  return await db.select().from(organizations);
 }
 
 export async function updateOrganization(id: number, data: Partial<InsertOrganization>) {
@@ -1221,6 +1410,15 @@ export async function getWorkflowRoleById(id: number, organizationId: number) {
   if (!db) return undefined;
   const result = await db.select().from(workflowRoles)
     .where(and(eq(workflowRoles.id, id), eq(workflowRoles.organizationId, organizationId)))
+    .limit(1);
+  return result.length > 0 ? result[0] : undefined;
+}
+
+export async function getWorkflowRoleByName(name: string, organizationId: number) {
+  const db = await getDb();
+  if (!db) return undefined;
+  const result = await db.select().from(workflowRoles)
+    .where(and(eq(workflowRoles.name, name), eq(workflowRoles.organizationId, organizationId)))
     .limit(1);
   return result.length > 0 ? result[0] : undefined;
 }
