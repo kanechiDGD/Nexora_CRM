@@ -1,4 +1,4 @@
-import { and, eq, lte } from "drizzle-orm";
+import { and, eq, isNotNull, lte, sql } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
 import mysql from "mysql2/promise";
 import {
@@ -51,7 +51,8 @@ import {
   gmailThreads,
   InsertGmailThread,
   gmailMessages,
-  InsertGmailMessage
+  InsertGmailMessage,
+  clientShares,
 } from "../drizzle/schema";
 import { ENV } from './_core/env';
 
@@ -230,12 +231,24 @@ export async function getUserByEmail(email: string) {
 
 // ============ CLIENTS ============
 
-export async function getAllClients(organizationId: number) {
+export async function getAllClients(organizationId: number, year?: number) {
   const db = await getDb();
   if (!db) return [];
+  const yearFilter = year ? sql`YEAR(${clients.dateOfLoss}) = ${year}` : undefined;
   return await db.select().from(clients)
-    .where(eq(clients.organizationId, organizationId))
+    .where(and(eq(clients.organizationId, organizationId), yearFilter))
     .orderBy(clients.createdAt);
+}
+
+export async function getAvailableClientYears(organizationId: number): Promise<number[]> {
+  const db = await getDb();
+  if (!db) return [];
+  const rows = await db
+    .selectDistinct({ year: sql<number>`YEAR(${clients.dateOfLoss})` })
+    .from(clients)
+    .where(and(eq(clients.organizationId, organizationId), isNotNull(clients.dateOfLoss)))
+    .orderBy(sql`YEAR(${clients.dateOfLoss}) DESC`);
+  return rows.map((r: { year: number }) => r.year).filter(Boolean) as number[];
 }
 
 export async function getClientById(id: string, organizationId: number) {
@@ -312,71 +325,74 @@ export async function deleteClient(id: string, organizationId: number) {
 }
 
 // KPI Queries
-export async function getClientsWithLateContact(organizationId: number, daysThreshold: number = 7) {
+export async function getClientsWithLateContact(organizationId: number, daysThreshold: number = 7, year?: number) {
   const db = await getDb();
   if (!db) return [];
-  const { sql, lt, and } = await import('drizzle-orm');
+  const { lt } = await import('drizzle-orm');
   const thresholdDate = new Date();
   thresholdDate.setDate(thresholdDate.getDate() - daysThreshold);
+  const yearFilter = year ? sql`YEAR(${clients.dateOfLoss}) = ${year}` : undefined;
 
   return await db.select().from(clients)
     .where(and(
       eq(clients.organizationId, organizationId),
-      lt(clients.lastContactDate, thresholdDate)
+      lt(clients.lastContactDate, thresholdDate),
+      yearFilter,
     ));
 }
 
-export async function getClientsNotSupplemented(organizationId: number) {
+export async function getClientsNotSupplemented(organizationId: number, year?: number) {
   const db = await getDb();
   if (!db) return [];
-  const { and } = await import('drizzle-orm');
+  const yearFilter = year ? sql`YEAR(${clients.dateOfLoss}) = ${year}` : undefined;
   return await db.select().from(clients)
     .where(and(
       eq(clients.organizationId, organizationId),
-      eq(clients.suplementado, "no")
+      eq(clients.suplementado, "no"),
+      yearFilter,
     ));
 }
 
-export async function getClientsPendingSubmission(organizationId: number) {
+export async function getClientsPendingSubmission(organizationId: number, year?: number) {
   const db = await getDb();
   if (!db) return [];
-  const { and } = await import('drizzle-orm');
+  const yearFilter = year ? sql`YEAR(${clients.dateOfLoss}) = ${year}` : undefined;
   return await db.select().from(clients)
     .where(and(
       eq(clients.organizationId, organizationId),
-      eq(clients.claimStatus, "NO_SOMETIDA")
+      eq(clients.claimStatus, "NO_SOMETIDA"),
+      yearFilter,
     ));
 }
 
-export async function getClientsReadyForConstruction(organizationId: number) {
+export async function getClientsReadyForConstruction(organizationId: number, year?: number) {
   const db = await getDb();
   if (!db) return [];
-  const { and } = await import('drizzle-orm');
+  const yearFilter = year ? sql`YEAR(${clients.dateOfLoss}) = ${year}` : undefined;
   return await db.select().from(clients)
-    .where(
-      and(
-        eq(clients.organizationId, organizationId),
-        eq(clients.claimStatus, "LISTA_PARA_CONSTRUIR")
-      )
-    );
+    .where(and(
+      eq(clients.organizationId, organizationId),
+      eq(clients.claimStatus, "LISTA_PARA_CONSTRUIR"),
+      yearFilter,
+    ));
 }
 
-export async function getClientsWithUpcomingContact(organizationId: number, daysAhead: number = 7) {
+export async function getClientsWithUpcomingContact(organizationId: number, daysAhead: number = 7, year?: number) {
   const db = await getDb();
   if (!db) return [];
-  const { and, gte, lte } = await import('drizzle-orm');
+  const { gte } = await import('drizzle-orm');
   const today = new Date();
   const futureDate = new Date();
   futureDate.setDate(futureDate.getDate() + daysAhead);
+  const yearFilter = year ? sql`YEAR(${clients.dateOfLoss}) = ${year}` : undefined;
 
   return await db.select().from(clients)
-    .where(
-      and(
-        eq(clients.organizationId, organizationId),
-        gte(clients.nextContactDate, today),
-        lte(clients.nextContactDate, futureDate)
-      )
-    );
+    .where(and(
+      eq(clients.organizationId, organizationId),
+      gte(clients.nextContactDate, today),
+      lte(clients.nextContactDate, futureDate),
+      yearFilter,
+    ));
 }
 
 export async function deleteAllClients(organizationId: number) {
@@ -1528,14 +1544,15 @@ export async function deleteActivityAutomationRule(id: number, organizationId: n
 
 // ==================== Claim Status Statistics ====================
 
-export async function getClientCountByClaimStatus(organizationId: number) {
+export async function getClientCountByClaimStatus(organizationId: number, year?: number) {
   const db = await getDb();
   if (!db) return [];
 
   type ClientRecord = typeof clients.$inferSelect;
 
+  const yearFilter = year ? sql`YEAR(${clients.dateOfLoss}) = ${year}` : undefined;
   const allClients = await db.select().from(clients)
-    .where(eq(clients.organizationId, organizationId)) as ClientRecord[];
+    .where(and(eq(clients.organizationId, organizationId), yearFilter)) as ClientRecord[];
 
   type StatusEntry = {
     status: string;
@@ -1570,4 +1587,47 @@ export async function getClientCountByClaimStatus(organizationId: number) {
   }, {});
 
   return Object.values(statusCounts);
+}
+
+// ==================== Client Shares ====================
+
+export async function upsertClientShare(
+  clientId: string,
+  organizationId: number,
+  createdBy: number,
+  token: string
+) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  // Delete existing share for this client first (one share per client)
+  await db.delete(clientShares).where(
+    and(eq(clientShares.clientId, clientId), eq(clientShares.organizationId, organizationId))
+  );
+  await db.insert(clientShares).values({ clientId, organizationId, createdBy, shareToken: token });
+}
+
+export async function getClientShareByToken(token: string) {
+  const db = await getDb();
+  if (!db) return undefined;
+  const result = await db.select().from(clientShares)
+    .where(eq(clientShares.shareToken, token))
+    .limit(1);
+  return result.length > 0 ? result[0] : undefined;
+}
+
+export async function getClientShareByClientId(clientId: string, organizationId: number) {
+  const db = await getDb();
+  if (!db) return null;
+  const result = await db.select().from(clientShares)
+    .where(and(eq(clientShares.clientId, clientId), eq(clientShares.organizationId, organizationId)))
+    .limit(1);
+  return result.length > 0 ? result[0] : null;
+}
+
+export async function deleteClientShare(clientId: string, organizationId: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  await db.delete(clientShares).where(
+    and(eq(clientShares.clientId, clientId), eq(clientShares.organizationId, organizationId))
+  );
 }

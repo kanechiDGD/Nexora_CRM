@@ -91,6 +91,42 @@
       "email": "Correo"
     }
   },
+  "share": {
+    "button": "Compartir",
+    "title": "Compartir cliente",
+    "description": "Cualquiera con este link puede ver la información del cliente y descargar documentos.",
+    "loading": "Cargando...",
+    "noLink": "No hay link generado todavía.",
+    "generate": "Generar link",
+    "regenerate": "Regenerar",
+    "revoke": "Revocar link",
+    "copyLink": "Copiar link",
+    "copied": "¡Copiado!",
+    "publicNote": "Cualquiera con este link puede ver la info y descargar documentos. Puedes revocarlo en cualquier momento.",
+    "publicView": "Vista compartida",
+    "generalInfo": "Información general",
+    "claimInfo": "Información del reclamo",
+    "documents": "Documentos",
+    "noDocuments": "No hay documentos disponibles.",
+    "download": "Descargar",
+    "notFound": "Link no disponible",
+    "notFoundDescription": "Este link no existe o fue revocado.",
+    "footer": "Esta es una vista de solo lectura. Para hacer cambios, contacta al gestor del caso.",
+    "fields": {
+      "name": "Nombre completo",
+      "phone": "Teléfono",
+      "alternatePhone": "Teléfono alterno",
+      "email": "Correo",
+      "address": "Dirección de la propiedad",
+      "insuranceCompany": "Aseguradora",
+      "policyNumber": "Número de póliza",
+      "claimNumber": "Número de reclamo",
+      "claimStatus": "Estado del reclamo",
+      "dateOfLoss": "Fecha de pérdida",
+      "deductible": "Deducible",
+      "coverageAmount": "Monto de cobertura"
+    }
+  },
   "dashboard": {
     "title": "Dashboard",
     "subtitle": "Vista general de métricas y KPIs del CRM",
@@ -223,6 +259,14 @@
       "close": "Cerrar",
       "oneClient": "1 cliente en este estado",
       "manyClients": "{{count}} clientes en este estado",
+      "breakdown": "Detalle por estado",
+      "kpi": {
+        "total": "Total clientes",
+        "approved": "Aprobadas",
+        "active": "Activas",
+        "rejected": "Rechazadas",
+        "ofTotal": "del total"
+      },
       "status": {
         "NO_SOMETIDA": "No Sometida",
         "SOMETIDA": "Sometida",
@@ -238,6 +282,10 @@
         "CERRADA": "Cerrada",
         "APROBADA": "Aprobada"
       }
+    },
+    "yearFilter": {
+      "all": "Todos los años",
+      "label": "Año"
     },
     "workflowKpis": {
       "title": "Alertas de workflow",

@@ -698,3 +698,17 @@ export const gmailMessages = mysqlTable("gmailMessages", {
 
 export type GmailMessage = typeof gmailMessages.$inferSelect;
 export type InsertGmailMessage = typeof gmailMessages.$inferInsert;
+
+// ==================== Client Shares ====================
+
+export const clientShares = mysqlTable("clientShares", {
+  id: int("id").autoincrement().primaryKey(),
+  clientId: varchar("clientId", { length: 50 }).notNull().references(() => clients.id, { onDelete: "cascade" }),
+  organizationId: int("organizationId").notNull(),
+  shareToken: varchar("shareToken", { length: 100 }).notNull().unique(),
+  createdBy: int("createdBy").notNull().references(() => users.id),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+export type ClientShare = typeof clientShares.$inferSelect;
+export type InsertClientShare = typeof clientShares.$inferInsert;

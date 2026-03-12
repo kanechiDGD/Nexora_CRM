@@ -1,6 +1,6 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { trpc } from "@/lib/trpc";
-import { FileText, Users } from "lucide-react";
+import { CheckCircle2, Clock, FileText, Users, XCircle } from "lucide-react";
 import { useMemo, useState } from "react";
 import {
   Dialog,
@@ -15,7 +15,24 @@ import { Badge } from "@/components/ui/badge";
 import { useTranslation } from "react-i18next";
 import { getClaimStatusMeta } from "@/utils/claimStatus";
 
-export function ClaimStatusCards() {
+const APPROVED_KEYS = new Set([
+  "default:APROVADA",
+  "default:RELEASE_LETTER_REQUIRED",
+  "default:CHECK_SENT_TO_MORTGAGE",
+  "default:CLIENT_HAS_CHECK",
+  "default:LISTA_PARA_CONSTRUIR",
+]);
+
+const REJECTED_KEYS = new Set([
+  "default:RECHAZADA",
+  "legacy:NEGADA",
+]);
+
+const CLOSED_KEYS = new Set([
+  "default:CERRADA",
+]);
+
+export function ClaimStatusCards({ year }: { year?: number }) {
   const { t, i18n } = useTranslation();
   const [, setLocation] = useLocation();
   const [selectedStatus, setSelectedStatus] = useState<{
@@ -24,10 +41,7 @@ export function ClaimStatusCards() {
     clients: any[];
   } | null>(null);
 
-  // Obtener conteo de clientes por estado
-  const { data: statusData = [], isLoading } = trpc.dashboard.clientsByClaimStatus.useQuery();
-  
-  // Obtener estados personalizados para obtener sus displayNames
+  const { data: statusData = [], isLoading } = trpc.dashboard.clientsByClaimStatus.useQuery({ year });
   const { data: customStatuses = [] } = trpc.customClaimStatuses.list.useQuery();
 
   const groupedStatusData = useMemo(() => {
@@ -52,8 +66,30 @@ export function ClaimStatusCards() {
         entry.displayName = meta.displayName;
       }
     });
-    return Array.from(map.values());
+    return Array.from(map.values()).sort((a, b) => b.count - a.count);
   }, [statusData, customStatuses, i18n.language, t]);
+
+  const kpis = useMemo(() => {
+    const allClients = groupedStatusData.flatMap((s) => s.clients);
+    const approvedClients = groupedStatusData.filter((s) => APPROVED_KEYS.has(s.status)).flatMap((s) => s.clients);
+    const rejectedClients = groupedStatusData.filter((s) => REJECTED_KEYS.has(s.status)).flatMap((s) => s.clients);
+    const closedClients = groupedStatusData.filter((s) => CLOSED_KEYS.has(s.status)).flatMap((s) => s.clients);
+    const activeClients = allClients.filter(
+      (c) => !approvedClients.find((a) => a.id === c.id) &&
+             !rejectedClients.find((r) => r.id === c.id) &&
+             !closedClients.find((cl) => cl.id === c.id)
+    );
+    return {
+      total: allClients.length,
+      approved: approvedClients.length,
+      rejected: rejectedClients.length,
+      active: activeClients.length,
+      allClients,
+      approvedClients,
+      rejectedClients,
+      activeClients,
+    };
+  }, [groupedStatusData]);
 
   const handleCardClick = (statusInfo: any) => {
     setSelectedStatus({
@@ -70,17 +106,19 @@ export function ClaimStatusCards() {
 
   if (isLoading) {
     return (
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-        {[1, 2, 3, 4].map((i) => (
-          <Card key={i} className="animate-pulse">
-            <CardHeader className="pb-2">
-              <div className="h-4 bg-muted rounded w-3/4"></div>
-            </CardHeader>
-            <CardContent>
-              <div className="h-8 bg-muted rounded w-1/2"></div>
-            </CardContent>
-          </Card>
-        ))}
+      <div className="space-y-4">
+        <div className="grid gap-4 grid-cols-2 lg:grid-cols-4">
+          {[1, 2, 3, 4].map((i) => (
+            <Card key={i} className="animate-pulse">
+              <CardHeader className="pb-2">
+                <div className="h-4 bg-muted rounded w-3/4"></div>
+              </CardHeader>
+              <CardContent>
+                <div className="h-8 bg-muted rounded w-1/2"></div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
       </div>
     );
   }
@@ -90,39 +128,131 @@ export function ClaimStatusCards() {
       <Card>
         <CardContent className="pt-6">
           <p className="text-sm text-muted-foreground text-center">
-            {t('dashboard.claimStatus.noClients')}
+            {t("dashboard.claimStatus.noClients")}
           </p>
         </CardContent>
       </Card>
     );
   }
 
+  const total = kpis.total;
+
   return (
     <>
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-        {groupedStatusData.map((statusInfo: any) => (
-          <Card
-            key={statusInfo.status}
-            className="cursor-pointer hover:shadow-lg transition-shadow"
-            onClick={() => handleCardClick(statusInfo)}
-          >
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">
-                {statusInfo.displayName}
-              </CardTitle>
-              <FileText className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{statusInfo.count}</div>
-              <p className="text-xs text-muted-foreground">
-                {statusInfo.count === 1 ? t('dashboard.claimStatus.client') : t('dashboard.claimStatus.clients')}
-              </p>
-            </CardContent>
-          </Card>
-        ))}
+      {/* KPI Cards */}
+      <div className="grid gap-4 grid-cols-2 lg:grid-cols-4">
+        <Card
+          className="border-l-4 border-l-blue-500 cursor-pointer hover:shadow-md transition-shadow"
+          onClick={() => setSelectedStatus({ status: "kpi:total", displayName: t("dashboard.claimStatus.kpi.total"), clients: kpis.allClients })}
+        >
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground flex items-center justify-between">
+              {t("dashboard.claimStatus.kpi.total")}
+              <Users className="h-4 w-4 text-blue-500" />
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-3xl font-bold text-blue-600">{kpis.total}</div>
+            <p className="text-xs text-muted-foreground mt-1">
+              {t("dashboard.claimStatus.clients")}
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card
+          className="border-l-4 border-l-green-500 cursor-pointer hover:shadow-md transition-shadow"
+          onClick={() => setSelectedStatus({ status: "kpi:approved", displayName: t("dashboard.claimStatus.kpi.approved"), clients: kpis.approvedClients })}
+        >
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground flex items-center justify-between">
+              {t("dashboard.claimStatus.kpi.approved")}
+              <CheckCircle2 className="h-4 w-4 text-green-500" />
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-3xl font-bold text-green-600">{kpis.approved}</div>
+            <p className="text-xs text-muted-foreground mt-1">
+              {kpis.total > 0 ? `${Math.round((kpis.approved / kpis.total) * 100)}%` : "0%"}{" "}
+              {t("dashboard.claimStatus.kpi.ofTotal")}
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card
+          className="border-l-4 border-l-amber-500 cursor-pointer hover:shadow-md transition-shadow"
+          onClick={() => setSelectedStatus({ status: "kpi:active", displayName: t("dashboard.claimStatus.kpi.active"), clients: kpis.activeClients })}
+        >
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground flex items-center justify-between">
+              {t("dashboard.claimStatus.kpi.active")}
+              <Clock className="h-4 w-4 text-amber-500" />
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-3xl font-bold text-amber-600">{kpis.active}</div>
+            <p className="text-xs text-muted-foreground mt-1">
+              {kpis.total > 0 ? `${Math.round((kpis.active / kpis.total) * 100)}%` : "0%"}{" "}
+              {t("dashboard.claimStatus.kpi.ofTotal")}
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card
+          className="border-l-4 border-l-red-500 cursor-pointer hover:shadow-md transition-shadow"
+          onClick={() => setSelectedStatus({ status: "kpi:rejected", displayName: t("dashboard.claimStatus.kpi.rejected"), clients: kpis.rejectedClients })}
+        >
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground flex items-center justify-between">
+              {t("dashboard.claimStatus.kpi.rejected")}
+              <XCircle className="h-4 w-4 text-red-500" />
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-3xl font-bold text-red-600">{kpis.rejected}</div>
+            <p className="text-xs text-muted-foreground mt-1">
+              {kpis.total > 0 ? `${Math.round((kpis.rejected / kpis.total) * 100)}%` : "0%"}{" "}
+              {t("dashboard.claimStatus.kpi.ofTotal")}
+            </p>
+          </CardContent>
+        </Card>
       </div>
 
-      {/* Diálogo para mostrar lista de clientes */}
+      {/* Status Breakdown */}
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle className="text-sm font-medium flex items-center gap-2">
+            <FileText className="h-4 w-4" />
+            {t("dashboard.claimStatus.breakdown")}
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid gap-1 sm:grid-cols-2 lg:grid-cols-3">
+            {groupedStatusData.map((statusInfo) => {
+              const pct = total > 0 ? Math.round((statusInfo.count / total) * 100) : 0;
+              return (
+                <button
+                  key={statusInfo.status}
+                  className="flex items-center justify-between px-3 py-2 rounded-lg hover:bg-accent text-left transition-colors w-full"
+                  onClick={() => handleCardClick(statusInfo)}
+                >
+                  <div className="flex items-center gap-2 min-w-0">
+                    <span className="h-2 w-2 rounded-full bg-primary/50 flex-shrink-0" />
+                    <span className="text-sm truncate">{statusInfo.displayName}</span>
+                  </div>
+                  <div className="flex items-center gap-2 flex-shrink-0 ml-2">
+                    <span className="text-xs text-muted-foreground">{pct}%</span>
+                    <Badge variant="secondary" className="text-xs font-semibold min-w-[2rem] justify-center">
+                      {statusInfo.count}
+                    </Badge>
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Client list dialog */}
       <Dialog open={!!selectedStatus} onOpenChange={() => setSelectedStatus(null)}>
         <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
           <DialogHeader>
@@ -131,16 +261,16 @@ export function ClaimStatusCards() {
               {selectedStatus?.displayName}
             </DialogTitle>
             <DialogDescription>
-              {selectedStatus?.clients.length === 1 
-                ? t('dashboard.claimStatus.oneClient')
-                : t('dashboard.claimStatus.manyClients', { count: selectedStatus?.clients.length })}
+              {selectedStatus?.clients.length === 1
+                ? t("dashboard.claimStatus.oneClient")
+                : t("dashboard.claimStatus.manyClients", { count: selectedStatus?.clients.length })}
             </DialogDescription>
           </DialogHeader>
 
           <div className="space-y-2">
             {selectedStatus?.clients.length === 0 ? (
               <p className="text-sm text-muted-foreground text-center py-4">
-                {t('dashboard.claimStatus.noClientsInStatus')}
+                {t("dashboard.claimStatus.noClientsInStatus")}
               </p>
             ) : (
               selectedStatus?.clients.map((client: any) => (
@@ -164,7 +294,7 @@ export function ClaimStatusCards() {
                         </div>
                       </div>
                     </div>
-                    <Badge variant="outline">{t('dashboard.claimStatus.viewProfile')}</Badge>
+                    <Badge variant="outline">{t("dashboard.claimStatus.viewProfile")}</Badge>
                   </CardContent>
                 </Card>
               ))
@@ -173,7 +303,7 @@ export function ClaimStatusCards() {
 
           <div className="flex justify-end mt-4">
             <Button variant="outline" onClick={() => setSelectedStatus(null)}>
-              {t('dashboard.claimStatus.close')}
+              {t("dashboard.claimStatus.close")}
             </Button>
           </div>
         </DialogContent>

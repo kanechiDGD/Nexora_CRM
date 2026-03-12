@@ -35,15 +35,21 @@ export default function Dashboard() {
   const [selectedClient, setSelectedClient] = useState<{ id: string; name: string } | null>(null);
   const [selectedEvent, setSelectedEvent] = useState<any>(null);
   const [eventDetailsOpen, setEventDetailsOpen] = useState(false);
+  const [selectedYear, setSelectedYear] = useState<number | null>(new Date().getFullYear());
+
+  // Años disponibles detectados de los clientes
+  const { data: availableYears = [] } = trpc.dashboard.availableYears.useQuery();
+
+  const yearInput = { year: selectedYear ?? undefined };
 
   // Obtener datos de KPIs
-  const { data: totalClients, isLoading: loadingTotal } = trpc.dashboard.totalClients.useQuery();
-  const { data: lateContact, isLoading: loadingLate } = trpc.dashboard.lateContact.useQuery();
-  const { data: notSupplemented, isLoading: loadingSupp } = trpc.dashboard.notSupplemented.useQuery();
-  const { data: pendingSubmission, isLoading: loadingPending } = trpc.dashboard.pendingSubmission.useQuery();
-  const { data: readyForConstruction, isLoading: loadingReady } = trpc.dashboard.readyForConstruction.useQuery();
-  const { data: upcomingContacts, isLoading: loadingUpcoming } = trpc.dashboard.upcomingContacts.useQuery();
-  const { data: workflowKpis, isLoading: loadingWorkflow } = trpc.dashboard.workflowKpis.useQuery();
+  const { data: totalClients, isLoading: loadingTotal } = trpc.dashboard.totalClients.useQuery(yearInput);
+  const { data: lateContact, isLoading: loadingLate } = trpc.dashboard.lateContact.useQuery(yearInput);
+  const { data: notSupplemented, isLoading: loadingSupp } = trpc.dashboard.notSupplemented.useQuery(yearInput);
+  const { data: pendingSubmission, isLoading: loadingPending } = trpc.dashboard.pendingSubmission.useQuery(yearInput);
+  const { data: readyForConstruction, isLoading: loadingReady } = trpc.dashboard.readyForConstruction.useQuery(yearInput);
+  const { data: upcomingContacts, isLoading: loadingUpcoming } = trpc.dashboard.upcomingContacts.useQuery(yearInput);
+  const { data: workflowKpis, isLoading: loadingWorkflow } = trpc.dashboard.workflowKpis.useQuery(yearInput);
 
   const actionTargets: Record<string, { tab: string; activityType?: string }> = {
     completeAdjustment: { tab: "activity", activityType: "AJUSTACION_REALIZADA" },
@@ -69,6 +75,19 @@ export default function Dashboard() {
   const pendingTasks = tasks?.filter((task: any) =>
     task.status === 'PENDIENTE' || task.status === 'EN_PROGRESO'
   ).slice(0, 5) || []; // Mostrar solo las primeras 5
+
+  // Mapa clientId -> año de pérdida para badge en tareas de clientes de otro año
+  const clientYearMap = new Map<string, number>();
+  clientsNeedingContact?.forEach((client: any) => {
+    if (client.id && client.dateOfLoss) {
+      clientYearMap.set(client.id, new Date(client.dateOfLoss).getFullYear());
+    }
+  });
+
+  const getTaskClientYear = (task: any): number | null => {
+    if (!task.clientId) return null;
+    return clientYearMap.get(task.clientId) ?? null;
+  };
 
   // Calcular alertas de contacto con sistema progresivo (aparecen 2 días antes)
   const contactAlerts = clientsNeedingContact?.filter((client: any) => {
@@ -138,11 +157,41 @@ export default function Dashboard() {
 
         {/* Sección de Estados de Reclamo */}
         <div>
-          <h2 className="text-2xl font-bold text-foreground mb-4">{t('dashboard.claimStatus.title')}</h2>
-          <p className="text-muted-foreground mb-6">
-            {t('dashboard.claimStatus.subtitle')}
-          </p>
-          <ClaimStatusCards />
+          <div className="flex flex-wrap items-center justify-between gap-4 mb-4">
+            <div>
+              <h2 className="text-2xl font-bold text-foreground">{t('dashboard.claimStatus.title')}</h2>
+              <p className="text-muted-foreground text-sm mt-1">
+                {t('dashboard.claimStatus.subtitle')}
+              </p>
+            </div>
+            {/* Selector de año */}
+            <div className="flex items-center gap-1 flex-wrap">
+              <button
+                onClick={() => setSelectedYear(null)}
+                className={`px-3 py-1.5 rounded-full text-sm font-medium transition-colors ${
+                  selectedYear === null
+                    ? 'bg-primary text-primary-foreground'
+                    : 'bg-muted text-muted-foreground hover:bg-accent hover:text-accent-foreground'
+                }`}
+              >
+                {t('dashboard.yearFilter.all')}
+              </button>
+              {availableYears.map((year: number) => (
+                <button
+                  key={year}
+                  onClick={() => setSelectedYear(year)}
+                  className={`px-3 py-1.5 rounded-full text-sm font-medium transition-colors ${
+                    selectedYear === year
+                      ? 'bg-primary text-primary-foreground'
+                      : 'bg-muted text-muted-foreground hover:bg-accent hover:text-accent-foreground'
+                  }`}
+                >
+                  {year}
+                </button>
+              ))}
+            </div>
+          </div>
+          <ClaimStatusCards year={selectedYear ?? undefined} />
         </div>
 
         <div>
@@ -417,7 +466,7 @@ export default function Dashboard() {
                     onClick={() => setLocation('/tasks')}
                   >
                     <div className="flex-1">
-                      <div className="flex items-center gap-2 mb-1">
+                      <div className="flex items-center gap-2 mb-1 flex-wrap">
                         <h4 className="font-medium text-sm">{task.title}</h4>
                         <Badge variant={task.status === 'EN_PROGRESO' ? 'default' : 'secondary'}>
                           {task.status === 'PENDIENTE' ? t('dashboard.tasks.pending') : t('dashboard.tasks.inProgress')}
@@ -430,6 +479,17 @@ export default function Dashboard() {
                             {task.priority === 'ALTA' ? t('dashboard.tasks.priority.high') : task.priority === 'MEDIA' ? t('dashboard.tasks.priority.medium') : t('dashboard.tasks.priority.low')}
                           </Badge>
                         )}
+                        {(() => {
+                          const taskYear = getTaskClientYear(task);
+                          if (taskYear && taskYear !== selectedYear) {
+                            return (
+                              <Badge variant="outline" className="text-xs border-amber-400 text-amber-600 bg-amber-50">
+                                {taskYear}
+                              </Badge>
+                            );
+                          }
+                          return null;
+                        })()}
                       </div>
                       {task.description && (
                         <p className="text-xs text-muted-foreground line-clamp-1">

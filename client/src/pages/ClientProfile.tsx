@@ -24,6 +24,7 @@ import {
   Trash2,
   File,
 } from "lucide-react";
+import { ShareClientDialog } from "@/components/ShareClientDialog";
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { trpc } from "@/lib/trpc";
@@ -537,12 +538,15 @@ export default function ClientProfile() {
               <p className="text-muted-foreground mt-1">{t("clientProfile.labels.clientId")}: {client.id}</p>
             </div>
           </div>
-          {canEdit && (
-            <Button onClick={() => setLocation(`/clients/${client.id}/edit`)}>
-              <Edit className="mr-2 h-4 w-4" />
-              {t("clientProfile.actions.edit")}
-            </Button>
-          )}
+          <div className="flex items-center gap-2">
+            <ShareClientDialog clientId={client.id} />
+            {canEdit && (
+              <Button onClick={() => setLocation(`/clients/${client.id}/edit`)}>
+                <Edit className="mr-2 h-4 w-4" />
+                {t("clientProfile.actions.edit")}
+              </Button>
+            )}
+          </div>
         </div>
 
         {/* Quick Info Cards */}

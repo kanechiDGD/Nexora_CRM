@@ -1121,49 +1121,70 @@ export const appRouter = router({
     }),
   // ============ DASHBOARD / KPIs ROUTER ============
     dashboard: router({
-      // Total de clientes
-      totalClients: orgProcedure.query(async ({ ctx }) => {
-        const clients = await db.getAllClients(ctx.organizationId);
-        return { count: clients.length, clients };
+      // Años disponibles en clientes (por dateOfLoss)
+      availableYears: orgProcedure.query(async ({ ctx }) => {
+        return await db.getAvailableClientYears(ctx.organizationId);
       }),
 
-    // Contacto atrasado (>7 días)
-    lateContact: orgProcedure.query(async ({ ctx }) => {
-      const clients = await db.getClientsWithLateContact(ctx.organizationId, 7);
-      return { count: clients.length, clients };
-    }),
+      // Total de clientes
+      totalClients: orgProcedure
+        .input(z.object({ year: z.number().optional() }))
+        .query(async ({ input, ctx }) => {
+          const clients = await db.getAllClients(ctx.organizationId, input.year);
+          return { count: clients.length, clients };
+        }),
 
-    // No suplementado
-    notSupplemented: orgProcedure.query(async ({ ctx }) => {
-      const clients = await db.getClientsNotSupplemented(ctx.organizationId);
-      return { count: clients.length, clients };
-    }),
+      // Contacto atrasado (>7 días)
+      lateContact: orgProcedure
+        .input(z.object({ year: z.number().optional() }))
+        .query(async ({ input, ctx }) => {
+          const clients = await db.getClientsWithLateContact(ctx.organizationId, 7, input.year);
+          return { count: clients.length, clients };
+        }),
 
-    // Pendientes por someter
-    pendingSubmission: orgProcedure.query(async ({ ctx }) => {
-      const clients = await db.getClientsPendingSubmission(ctx.organizationId);
-      return { count: clients.length, clients };
-    }),
+      // No suplementado
+      notSupplemented: orgProcedure
+        .input(z.object({ year: z.number().optional() }))
+        .query(async ({ input, ctx }) => {
+          const clients = await db.getClientsNotSupplemented(ctx.organizationId, input.year);
+          return { count: clients.length, clients };
+        }),
 
-    // Listas para construir
-    readyForConstruction: orgProcedure.query(async ({ ctx }) => {
-      const clients = await db.getClientsReadyForConstruction(ctx.organizationId);
-      return { count: clients.length, clients };
-    }),
+      // Pendientes por someter
+      pendingSubmission: orgProcedure
+        .input(z.object({ year: z.number().optional() }))
+        .query(async ({ input, ctx }) => {
+          const clients = await db.getClientsPendingSubmission(ctx.organizationId, input.year);
+          return { count: clients.length, clients };
+        }),
 
-    // Próximos contactos (7 días)
-    upcomingContacts: protectedProcedure.query(async () => {
-      const clients = await db.getClientsWithUpcomingContact(7);
-      return { count: clients.length, clients };
-    }),
+      // Listas para construir
+      readyForConstruction: orgProcedure
+        .input(z.object({ year: z.number().optional() }))
+        .query(async ({ input, ctx }) => {
+          const clients = await db.getClientsReadyForConstruction(ctx.organizationId, input.year);
+          return { count: clients.length, clients };
+        }),
+
+      // Próximos contactos (7 días)
+      upcomingContacts: orgProcedure
+        .input(z.object({ year: z.number().optional() }))
+        .query(async ({ input, ctx }) => {
+          const clients = await db.getClientsWithUpcomingContact(ctx.organizationId, 7, input.year);
+          return { count: clients.length, clients };
+        }),
 
       // Conteo de clientes por estado de reclamo (predeterminados + personalizados)
-      clientsByClaimStatus: orgProcedure.query(async ({ ctx }) => {
-        return await db.getClientCountByClaimStatus(ctx.organizationId);
-      }),
+      clientsByClaimStatus: orgProcedure
+        .input(z.object({ year: z.number().optional() }))
+        .query(async ({ input, ctx }) => {
+          return await db.getClientCountByClaimStatus(ctx.organizationId, input.year);
+        }),
 
-      workflowKpis: orgProcedure.query(async ({ ctx }) => {
-        const clients = await db.getAllClients(ctx.organizationId);
+      workflowKpis: orgProcedure
+        .input(z.object({ year: z.number().optional() }))
+        .query(async ({ input, ctx }) => {
+          const clients = await db.getAllClients(ctx.organizationId, input.year);
         const coreTypes = [
           "AJUSTACION_REALIZADA",
           "SCOPE_SOLICITADO",
@@ -1368,6 +1389,46 @@ export const appRouter = router({
         };
       }),
     }),
+
+  // ============ CLIENT SHARES ROUTER ============
+  clientShares: router({
+    // Generate (or replace) a share link for a client
+    generate: orgProcedure
+      .input(z.object({ clientId: z.string() }))
+      .mutation(async ({ input, ctx }) => {
+        const token = crypto.randomUUID();
+        await db.upsertClientShare(input.clientId, ctx.organizationId, ctx.user.id, token);
+        return { token };
+      }),
+
+    // Get existing share for a client (null if none)
+    get: orgProcedure
+      .input(z.object({ clientId: z.string() }))
+      .query(async ({ input, ctx }) => {
+        return await db.getClientShareByClientId(input.clientId, ctx.organizationId);
+      }),
+
+    // Revoke share link
+    revoke: orgProcedure
+      .input(z.object({ clientId: z.string() }))
+      .mutation(async ({ input, ctx }) => {
+        await db.deleteClientShare(input.clientId, ctx.organizationId);
+      }),
+
+    // PUBLIC: Get client data by share token (no auth required)
+    getPublicData: publicProcedure
+      .input(z.object({ token: z.string() }))
+      .query(async ({ input }) => {
+        const share = await db.getClientShareByToken(input.token);
+        if (!share) throw new TRPCError({ code: "NOT_FOUND", message: "Share link not found or revoked" });
+        const [client, docs] = await Promise.all([
+          db.getClientById(share.clientId, share.organizationId),
+          db.getDocumentsByClientId(share.clientId, share.organizationId),
+        ]);
+        if (!client) throw new TRPCError({ code: "NOT_FOUND", message: "Client not found" });
+        return { client, documents: docs };
+      }),
+  }),
 
   // ============ ACTIVITY LOGS ROUTER ============
   activityLogs: router({

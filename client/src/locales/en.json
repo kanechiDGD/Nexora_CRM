@@ -91,6 +91,42 @@
       "email": "Email"
     }
   },
+  "share": {
+    "button": "Share",
+    "title": "Share client",
+    "description": "Anyone with this link can view the client's information and download documents.",
+    "loading": "Loading...",
+    "noLink": "No share link generated yet.",
+    "generate": "Generate link",
+    "regenerate": "Regenerate",
+    "revoke": "Revoke link",
+    "copyLink": "Copy link",
+    "copied": "Copied!",
+    "publicNote": "Anyone with this link can view info and download documents. Revoke it at any time.",
+    "publicView": "Shared view",
+    "generalInfo": "General information",
+    "claimInfo": "Claim information",
+    "documents": "Documents",
+    "noDocuments": "No documents available.",
+    "download": "Download",
+    "notFound": "Link not available",
+    "notFoundDescription": "This share link does not exist or has been revoked.",
+    "footer": "This is a read-only shared view. To make changes, please contact the case manager.",
+    "fields": {
+      "name": "Full name",
+      "phone": "Phone",
+      "alternatePhone": "Alternate phone",
+      "email": "Email",
+      "address": "Property address",
+      "insuranceCompany": "Insurance company",
+      "policyNumber": "Policy number",
+      "claimNumber": "Claim number",
+      "claimStatus": "Claim status",
+      "dateOfLoss": "Date of loss",
+      "deductible": "Deductible",
+      "coverageAmount": "Coverage amount"
+    }
+  },
   "dashboard": {
     "title": "Dashboard",
     "subtitle": "Overview of CRM metrics and KPIs",
@@ -223,6 +259,14 @@
       "close": "Close",
       "oneClient": "1 client in this status",
       "manyClients": "{{count}} clients in this status",
+      "breakdown": "Breakdown by status",
+      "kpi": {
+        "total": "Total clients",
+        "approved": "Approved",
+        "active": "Active",
+        "rejected": "Rejected",
+        "ofTotal": "of total"
+      },
       "status": {
         "NO_SOMETIDA": "Not Submitted",
         "SOMETIDA": "Submitted",
@@ -238,6 +282,10 @@
         "CERRADA": "Closed",
         "APROBADA": "Approved"
       }
+    },
+    "yearFilter": {
+      "all": "All years",
+      "label": "Year"
     },
     "workflowKpis": {
       "title": "Workflow alerts",

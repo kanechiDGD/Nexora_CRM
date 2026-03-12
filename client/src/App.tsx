@@ -31,6 +31,7 @@ import Users from "./pages/Users";
 import Notifications from "./pages/Notifications";
 import WorkflowSettings from "./pages/WorkflowSettings";
 import AuthGuard from "./components/AuthGuard";
+import SharedClientView from "./pages/SharedClientView";
 
 function Router() {
   // make sure to consider if you need authentication for certain routes
@@ -48,6 +49,7 @@ function Router() {
       <Route path={"/reset-password"} component={ResetPassword} />
       <Route path={"/invite"} component={AcceptInvite} />
       <Route path={"/onboarding"} component={OnboardingWizard} />
+      <Route path={"/share/:token"} component={SharedClientView} />
       <Route path={"/dashboard"}>
         <AuthGuard>
           <Dashboard />
